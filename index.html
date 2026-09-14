@@ -50,6 +50,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);bo
 .btn{padding:11px 16px;border-radius:10px;background:var(--teal);color:#fff;font-weight:600;font-size:14px;transition:background .15s}
 .btn:hover{background:var(--teal-d)} .btn:disabled{opacity:.6;cursor:default}
 .btn.full{width:100%} .btn.ghost{background:#eef2f5;color:var(--ink)} .btn.ghost:hover{background:#e2e8ee}
+.btn.danger{background:var(--red)} .btn.danger:hover{background:#b91c1c}
 .msg{font-size:13px;padding:11px 13px;border-radius:9px;margin-bottom:16px;line-height:1.45}
 .msg.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .msg.info{background:var(--teal-soft);color:var(--teal-d);border:1px solid #bfe8e1}
@@ -438,6 +439,21 @@ function drawReceber(){
 }
 
 function closeModal(){ $('modalRoot').innerHTML=''; }
+
+/* Modal de confirmação com a identidade do Candidus (substitui o confirm() do navegador) */
+function confirmModal({titulo, texto, ok='Confirmar', perigo=false}){
+  return new Promise(resolve=>{
+    $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm">
+      <div class="modal-h"><h2>${esc(titulo)}</h2><button class="x" id="cfX">×</button></div>
+      <div class="modal-b"><p style="font-size:14px;color:var(--text);line-height:1.5">${esc(texto)}</p></div>
+      <div class="modal-f"><button class="btn ghost" id="cfNo">Cancelar</button>
+        <button class="btn ${perigo?'danger':''}" id="cfYes">${esc(ok)}</button></div>
+    </div></div>`;
+    const done=v=>{ closeModal(); resolve(v); };
+    $('cfX').onclick=$('cfNo').onclick=()=>done(false);
+    $('cfYes').onclick=()=>done(true);
+  });
+}
 async function openNovaReceber(){
   const defaultCo=companyId||(companies[0]&&companies[0].id)||'';
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
@@ -903,7 +919,9 @@ function openCadForm(key,rec){
 }
 async function delCad(key,rec){
   const cfg=CAD[key];
-  if(!confirm(`Excluir este ${cfg.singular}? Esta ação não pode ser desfeita.`)) return;
+  const nome=rec.nome_fantasia||rec.razao_social||rec.nome||'este registro';
+  const ok=await confirmModal({titulo:`Excluir ${cfg.singular}`, texto:`Deseja excluir “${nome}”? Esta ação não pode ser desfeita.`, ok:'Excluir', perigo:true});
+  if(!ok) return;
   const { error }=await db.from(cfg.table).delete().eq('id',rec.id);
   if(error){ toast('Não foi possível excluir (pode estar em uso). '+ (error.message||''),'err'); return; }
   toast('Excluído.'); loadCad(key);
@@ -986,7 +1004,8 @@ function openCatForm(rec){
   };
 }
 async function delCat(rec){
-  if(!confirm('Excluir esta categoria?')) return;
+  const ok=await confirmModal({titulo:'Excluir categoria', texto:`Deseja excluir a categoria “${rec.nome}”?`, ok:'Excluir', perigo:true});
+  if(!ok) return;
   const { error }=await db.from('categories').delete().eq('id',rec.id);
   if(error){ toast('Não foi possível excluir (pode estar em uso).','err'); return; }
   toast('Excluída.'); loadCategorias();
