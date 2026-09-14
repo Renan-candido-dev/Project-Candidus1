@@ -11,7 +11,8 @@
      =================================================================== -->
 <script>
   const SUPABASE_URL      = "https://mheuysfojnsdzkvvfjwm.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXV5c2Zvam5zZHprdnZmandtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTk3NzIsImV4cCI6MjEwMzQ3NTc3Mn0.cQmXT_Tc0fuFOSpblGB9Wh1rSW99sJzYeVFoqarlJlg";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZXV5c2Zvam5zZHprdnZmandtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTk3NzIsImV4cCI6MjEwMzQ3NTc3Mn0.cQmXT_Tc0fuFOSpblGB9Wh1rSW99sJzYeVFoqarlJlg
+";
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -123,6 +124,10 @@ tr.inst-row td{background:#f8fafb;font-size:12.5px;color:#475569}
 .filters select,.filters input{padding:8px 10px;font-size:13px;min-width:150px}
 .mini{font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;background:var(--teal-soft);color:var(--teal-d)}
 .mini:hover{background:#d5efe9}
+.nav-item .star{margin-left:auto;font-size:14px;color:#cbd5e1;padding:2px 5px;border-radius:6px;line-height:1;flex:none}
+.nav-item .star:hover{color:var(--amber);background:#f1f5f9}
+.nav-item .star.on{color:var(--amber)}
+#app.collapsed .nav-item .star{display:none}
 .chart{display:flex;gap:16px;align-items:flex-end;height:190px;padding:18px;overflow-x:auto}
 .cbar-group{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:54px}
 .cbars{display:flex;gap:5px;align-items:flex-end;height:135px}
@@ -230,6 +235,7 @@ function toast(msg,type='ok'){
 }
 
 let companies=[], companyId=null, currentView='dashboard';
+let favSet=new Set(), userId=null;
 const scopeQ = q => companyId ? q.eq('company_id',companyId) : q;
 
 const MENU = [
@@ -246,17 +252,45 @@ const MENU = [
   ]},
   {g:'Gestão', items:[{ico:'◆',label:'Controladoria',soon:true},{ico:'◈',label:'BPO',soon:true}]},
 ];
+function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
+  if(favSet.size){
+    side.appendChild(el('div','nav-group','Favoritos'));
+    [...favSet].forEach(v=>{ const it=viewMeta(v); if(!it) return;
+      const node=el('div','nav-item link'+(v===currentView?' active':''),`<span class="ico">★</span><span class="label">${it.label}</span>`);
+      node.onclick=()=>setView(v); side.appendChild(node);
+    });
+  }
   MENU.forEach(grp=>{
     side.appendChild(el('div','nav-group',grp.g));
     grp.items.forEach(it=>{
       const cls='nav-item '+(it.soon?'soon':'link')+(it.view===currentView?' active':'');
-      const node=el('div',cls,`<span class="ico">${it.ico}</span><span class="label">${it.label}</span>${it.soon?'<span class="tag">em breve</span>':''}`);
-      if(!it.soon) node.onclick=()=>setView(it.view);
+      const star = (it.view&&!it.soon)?`<button class="star ${favSet.has(it.view)?'on':''}" title="Favoritar">${favSet.has(it.view)?'★':'☆'}</button>`:'';
+      const tag = it.soon?'<span class="tag">em breve</span>':'';
+      const node=el('div',cls,`<span class="ico">${it.ico}</span><span class="label">${it.label}</span>${tag}${star}`);
+      if(!it.soon && it.view) node.onclick=()=>setView(it.view);
       side.appendChild(node);
+      const st=node.querySelector('.star');
+      if(st) st.onclick=e=>{ e.stopPropagation(); toggleFav(it.view); };
     });
   });
+}
+async function loadFavorites(){
+  const { data }=await db.from('favorites').select('modulo');
+  favSet=new Set((data||[]).map(f=>f.modulo));
+}
+async function toggleFav(v){
+  if(favSet.has(v)){
+    const { error }=await db.from('favorites').delete().eq('user_id',userId).eq('modulo',v);
+    if(error){ toast('Erro ao desfavoritar.','err'); return; }
+    favSet.delete(v);
+  }else{
+    const { error }=await db.from('favorites').insert({user_id:userId,modulo:v});
+    if(error){ toast('Erro ao favoritar.','err'); return; }
+    favSet.add(v);
+  }
+  renderMenu();
 }
 function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
@@ -279,7 +313,9 @@ $('burger').addEventListener('click', ()=> $('app').classList.toggle('collapsed'
 async function enterApp(session){
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
   $('userEmail').textContent=session.user.email;
+  userId=session.user.id;
   await loadCompanies();
+  await loadFavorites();
   setView('dashboard');
 }
 async function loadCompanies(){
