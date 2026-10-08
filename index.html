@@ -2297,7 +2297,13 @@ async function openPagarFatura(fat, card){
   const { data:accs }=await db.from('financial_accounts').select('id,nome,tipo').eq('company_id',card.company_id).neq('tipo','cartao_credito').order('nome');
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm">
     <div class="modal-h"><h2>Pagar fatura</h2><button class="x" id="mx">×</button></div>
-    <div class="modal-b"><div class="box"><b>${esc(card.nome)}</b> · Fatura ${fmtDate(fat.venc)}<br>Total ${money(fat.total)} · já pago ${money(fat.pago)} · <b>saldo ${money(fat.saldo)}</b><br>${fat.items.length} compra(s) serão baixadas.</div>
+    <div class="modal-b"><div class="box"><b>${esc(card.nome)}</b> · Fatura ${fmtDate(fat.venc)}<br>Total ${money(fat.total)} · já pago ${money(fat.pago)} · <b>saldo ${money(fat.saldo)}</b></div>
+      <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px">Compras desta fatura</div>
+      <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px">
+        ${fat.items.map(it=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid #f1f4f7;font-size:13px">
+          <span>${esc(it.payables.descricao)}${it.total_parcelas>1?` · ${it.numero}/${it.total_parcelas}`:''}${Number(it.saldo)<=0.005?' <span class="pill st-recebido" style="font-size:9px">pago</span>':''}</span>
+          <b class="r">${money(it.saldo>0.005?it.saldo:it.valor)}</b></div>`).join('')}
+      </div>
       <div class="row2">
         <div class="field"><label>Pagar da conta *</label><select id="pfAcc"><option value="">—</option>${(accs||[]).map(a=>`<option value="${a.id}">${esc(a.nome)}</option>`).join('')}</select></div>
         <div class="field"><label>Data *</label><input id="pfData" type="date" value="${todayStr()}"></div>
@@ -2313,7 +2319,7 @@ async function openPagarFatura(fat, card){
     $('mSave').disabled=true; $('mSave').textContent='Pagando…';
     try{
       for(const it of fat.items){ if(Number(it.saldo)>0.005){
-        const { error }=await db.rpc('baixar_payable_installment',{ p_installment_id:it.id, p_valor:Number(it.saldo), p_financial_account_id:acc, p_data:dt, p_forma:'fatura cartão', p_observacao:'Pagamento fatura '+card.nome });
+        const { error }=await db.rpc('baixar_payable_installment',{ p_installment_id:it.id, p_valor:Number(it.saldo), p_financial_account_id:acc, p_data:dt, p_forma:'fatura cartão', p_observacao:'Pagamento fatura '+card.nome, p_descricao:'Fatura '+card.nome+' · '+it.payables.descricao });
         if(error) throw error;
       }}
       closeModal(); toast('Fatura paga!'); loadFaturas();
