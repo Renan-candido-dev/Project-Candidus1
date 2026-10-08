@@ -192,8 +192,10 @@ body.dark .filters .fg label,body.dark label{color:var(--text)}
 body.dark .caret{color:#8295a9}
 :root{--panel-2:#f8fafb}
 body.dark{--panel-2:#131d2a}
-.warn{background:#fff7e6;border-color:#fde3b0;color:#8a5a00}
-body.dark .warn{background:#2c2410;border-color:#5a4a1c;color:#fcd34d}
+.warnbox{background:#fff7e6;border-color:#fde3b0;color:#8a5a00}
+body.dark .warnbox{background:#2c2410;border-color:#5a4a1c;color:#fcd34d}
+body.dark .oc input{background:transparent}
+body.dark .oc tfoot td,body.dark .oc .rowtot{background:#16222f;color:var(--ink)}
 body.dark .btn.ghost{background:#273647;color:#e6edf5}
 body.dark .btn.ghost:hover{background:#31445a}
 body.dark .nav-item.active{background:#123029;color:#54d6c4}
@@ -1834,7 +1836,7 @@ async function refreshDre(){
         ${col(ac)}</tr>`;
     }).join('');
 
-    const aviso=semMap?`<div class="box warn" style="margin-bottom:12px">⚠️ ${semMap} lançamento(s) com categoria <b>sem mapeamento</b> não entraram na DRE. Clique em “Mapear categorias”.</div>`:'';
+    const aviso=semMap?`<div class="box warnbox" style="margin-bottom:12px">⚠️ ${semMap} lançamento(s) com categoria <b>sem mapeamento</b> não entraram na DRE. Clique em “Mapear categorias”.</div>`:'';
     $('dreArea').innerHTML=`${aviso}<div class="panel"><h3><span class="dot t"></span>${MESNOME[mIdx]}/${ano}${companyId?'':' · consolidado'}</h3>
       <table><thead><tr><th>Descrição</th><th class="r">Mês atual</th><th class="r">Mês anterior</th><th class="r">Variação</th><th class="r">%</th><th class="r">Acumulado ano</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
