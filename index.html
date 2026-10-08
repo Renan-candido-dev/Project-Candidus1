@@ -106,7 +106,7 @@ th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
 td{padding:11px 18px;border-top:1px solid #f1f4f7;color:#334155;vertical-align:middle}
 td.r,th.r{text-align:right}
 tr.title-row{cursor:pointer}tr.title-row:hover td{background:#fafcfd}
-tr.inst-row td{background:#f8fafb;font-size:12.5px;color:#475569}
+tr.inst-row td{background:var(--panel-2);font-size:12.5px;color:#475569}
 .caret{display:inline-block;transition:transform .15s;color:#94a3b8;margin-right:6px}
 .caret.open{transform:rotate(90deg)}
 .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;white-space:nowrap}
@@ -190,6 +190,20 @@ body.dark .metabar{background:#263447}
 body.dark .msg.info{background:#0e2e2a;border-color:#1e5048;color:#8fe0d4}
 body.dark .filters .fg label,body.dark label{color:var(--text)}
 body.dark .caret{color:#8295a9}
+:root{--panel-2:#f8fafb}
+body.dark{--panel-2:#131d2a}
+.warn{background:#fff7e6;border-color:#fde3b0;color:#8a5a00}
+body.dark .warn{background:#2c2410;border-color:#5a4a1c;color:#fcd34d}
+body.dark .btn.ghost{background:#273647;color:#e6edf5}
+body.dark .btn.ghost:hover{background:#31445a}
+body.dark .nav-item.active{background:#123029;color:#54d6c4}
+body.dark input::placeholder,body.dark textarea::placeholder{color:#5c6b7e}
+body.dark .mini{background:#123029;color:#54d6c4}
+body.dark .mini:hover{background:#174038}
+body.dark .ps-aberta{background:#263447;color:#c2cedd}
+.themebtn{border:1px solid #2c4a66;transition:transform .15s}
+.themebtn.spin{animation:themespin .5s ease}
+@keyframes themespin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .cadgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .act{display:flex;gap:6px;justify-content:flex-end}
 .lnk{font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;background:#eef2f5;color:#334155}
@@ -360,7 +374,8 @@ function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashb
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
-function toggleTheme(){ const nt=document.body.classList.contains('dark')?'light':'dark'; try{localStorage.setItem('candidus_theme',nt);}catch(e){} applyTheme(nt); }
+function toggleTheme(){ const nt=document.body.classList.contains('dark')?'light':'dark'; try{localStorage.setItem('candidus_theme',nt);}catch(e){} applyTheme(nt);
+  const b=$('themeToggle'); if(b){ b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); } }
 try{ applyTheme(localStorage.getItem('candidus_theme')||'light'); }catch(e){ applyTheme('light'); }
 $('themeToggle').addEventListener('click', toggleTheme);
 
@@ -1228,7 +1243,7 @@ function drawFluxo(){
       <td class="r" style="color:var(--green)">${l.e?money(l.e):'—'}</td>
       <td class="r" style="color:var(--red)">${l.s?money(l.s):'—'}</td>
       <td class="r" style="font-weight:600;color:${l.fim<0?'var(--red)':'var(--ink)'}">${money(l.fim)}</td></tr>`;
-    const det=open?`<tr><td colspan="5" style="padding:0;background:#f8fafb">${fluxoDetail(l.ym,detail)}</td></tr>`:'';
+    const det=open?`<tr><td colspan="5" style="padding:0;background:var(--panel-2)">${fluxoDetail(l.ym,detail)}</td></tr>`:'';
     return main+det;
   }).join('');
 
@@ -1448,7 +1463,7 @@ function drawTarefas(){
         <input type="checkbox" data-chk="${c.id}" ${c.done?'checked':''} style="width:16px;height:16px">
         <span style="flex:1;font-size:13px;${c.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(c.descricao)}</span>
         <button class="lnk del" data-chkdel="${c.id}" style="padding:2px 8px">×</button></div>`).join('') || '<div style="color:var(--muted);font-size:13px;padding:4px 0">Sem itens no checklist.</div>';
-      det=`<tr><td colspan="${showCo?8:7}" style="background:#f8fafb">
+      det=`<tr><td colspan="${showCo?8:7}" style="background:var(--panel-2)">
         <div style="padding:6px 8px 12px 38px">
           <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px">Checklist</div>
           ${chkHtml}
@@ -1819,7 +1834,7 @@ async function refreshDre(){
         ${col(ac)}</tr>`;
     }).join('');
 
-    const aviso=semMap?`<div class="box" style="margin-bottom:12px;background:#fff7e6;border-color:#fde3b0">⚠️ ${semMap} lançamento(s) com categoria <b>sem mapeamento</b> não entraram na DRE. Clique em “Mapear categorias”.</div>`:'';
+    const aviso=semMap?`<div class="box warn" style="margin-bottom:12px">⚠️ ${semMap} lançamento(s) com categoria <b>sem mapeamento</b> não entraram na DRE. Clique em “Mapear categorias”.</div>`:'';
     $('dreArea').innerHTML=`${aviso}<div class="panel"><h3><span class="dot t"></span>${MESNOME[mIdx]}/${ano}${companyId?'':' · consolidado'}</h3>
       <table><thead><tr><th>Descrição</th><th class="r">Mês atual</th><th class="r">Mês anterior</th><th class="r">Variação</th><th class="r">%</th><th class="r">Acumulado ano</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
@@ -2277,7 +2292,7 @@ function drawFaturas(card){
       <td><span class="pill ${f.paga?'st-recebido':(f.venc<todayStr()?'st-vencido':'st-a_vencer')}">${f.paga?'Paga':(f.venc<todayStr()?'Vencida':'Aberta')}</span></td>
       <td>${f.saldo>0.005?`<button class="mini" data-pay="${i}">Pagar fatura</button>`:'—'}</td></tr>`;
     let det='';
-    if(open){ det=`<tr><td colspan="7" style="padding:0;background:#f8fafb"><table style="margin:0"><tbody>${f.items.map(it=>`
+    if(open){ det=`<tr><td colspan="7" style="padding:0;background:var(--panel-2)"><table style="margin:0"><tbody>${f.items.map(it=>`
       <tr class="inst-row"><td style="padding-left:38px">${esc(it.payables.descricao)}${it.total_parcelas>1?` · ${it.numero}/${it.total_parcelas}`:''}</td>
       <td style="color:var(--muted)">compet. ${it.competencia?fmtDate(it.competencia):'—'}</td>
       <td class="r">${money(it.valor)}</td><td class="r">${money(it.valor_pago)}</td><td class="r">${money(it.saldo)}</td><td colspan="2"></td></tr>`).join('')}</tbody></table></td></tr>`; }
