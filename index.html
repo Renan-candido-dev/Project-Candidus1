@@ -158,6 +158,38 @@ tr.inst-row td{background:#f8fafb;font-size:12.5px;color:#475569}
 .legend span{display:flex;align-items:center;gap:6px}
 .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
 @media(max-width:860px){.cards3{grid-template-columns:1fr}}
+.themebtn{font-size:16px;line-height:1;padding:6px 9px;border-radius:9px;background:transparent}
+.themebtn:hover{background:var(--ink-2)}
+
+/* ===================== MODO NOITE ===================== */
+body.dark{
+  --surface:#0e1726; --card:#17212f; --text:#e2e8f0; --muted:#93a3b8;
+  --line:#2a3647; --ink:#e8eef5; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+body.dark .topbar{background:#0a1220}
+body.dark .side{background:var(--card);border-right-color:var(--line)}
+body.dark .nav-item{color:#c2cedd}
+body.dark .nav-item.link:hover:not(.active){background:#1f2b3b}
+body.dark .nav-item.soon{color:#5b6b7e}
+body.dark .nav-item.soon .tag{background:#1f2b3b;color:#8295a9}
+body.dark th{background:#14202f;color:#8295a9;border-color:var(--line)}
+body.dark td{border-top-color:#232f40;color:#c2cedd}
+body.dark tr.title-row:hover td{background:#1c2736}
+body.dark tr.inst-row td{background:#131d2a;color:#9fb0c2}
+body.dark input,body.dark select,body.dark textarea{background:#0f1a28;border-color:var(--line);color:#e2e8f0}
+body.dark .modal{background:var(--card)}
+body.dark .modal-h .x:hover{background:#1f2b3b}
+body.dark .box{background:#101b29;border-color:var(--line)}
+body.dark .dre-sub td{background:#16222f;color:var(--ink)}
+body.dark .oc th{background:#14202f}
+body.dark .oc th:first-child,body.dark .oc td:first-child{background:var(--card)}
+body.dark .oc input:focus{background:#0f1a28}
+body.dark .lnk{background:#263447;color:#c2cedd}
+body.dark .lnk:hover{background:#2f3f54}
+body.dark .metabar{background:#263447}
+body.dark .msg.info{background:#0e2e2a;border-color:#1e5048;color:#8fe0d4}
+body.dark .filters .fg label,body.dark label{color:var(--text)}
+body.dark .caret{color:#8295a9}
 .cadgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .act{display:flex;gap:6px;justify-content:flex-end}
 .lnk{font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;background:#eef2f5;color:#334155}
@@ -225,7 +257,8 @@ textarea{resize:vertical}
       <select id="companySel"></select>
     </div>
     <div class="spacer"></div>
-    <div class="user"><span class="email" id="userEmail"></span>
+    <div class="user"><button class="themebtn" id="themeToggle" title="Modo noite / claro">🌙</button>
+      <span class="email" id="userEmail"></span>
       <button class="out" id="logout">Sair</button></div>
   </div>
   <nav class="side" id="side"></nav>
@@ -326,6 +359,11 @@ async function toggleFav(v){
 function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
+function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
+function toggleTheme(){ const nt=document.body.classList.contains('dark')?'light':'dark'; try{localStorage.setItem('candidus_theme',nt);}catch(e){} applyTheme(nt); }
+try{ applyTheme(localStorage.getItem('candidus_theme')||'light'); }catch(e){ applyTheme('light'); }
+$('themeToggle').addEventListener('click', toggleTheme);
+
 async function boot(){
   if(!configured){ showLoginMsg('⚙️ Configuração pendente: cole a <b>anon key</b> do Supabase no topo do index.html.','info'); $('loginForm').classList.add('hidden'); return; }
   const { data:{ session } } = await db.auth.getSession();
