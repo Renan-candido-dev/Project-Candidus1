@@ -643,6 +643,29 @@ function bindCrPager(){
 
 function closeModal(){ $('modalRoot').innerHTML=''; }
 
+/* Confirmação que EMPILHA sobre outro modal (não apaga o formulário aberto) */
+function confirmOver({titulo,texto,ok='Confirmar'}){
+  return new Promise(res=>{
+    const d=el('div','overlay'); d.style.zIndex='60';
+    d.innerHTML=`<div class="modal sm"><div class="modal-h"><h2>${esc(titulo)}</h2><button class="x">×</button></div>
+      <div class="modal-b"><p style="font-size:14px;line-height:1.5;color:var(--text)">${esc(texto)}</p></div>
+      <div class="modal-f"><button class="btn ghost" data-no>Cancelar</button><button class="btn" data-yes>${esc(ok)}</button></div></div>`;
+    document.body.appendChild(d);
+    const done=v=>{ d.remove(); res(v); };
+    d.querySelector('.x').onclick=d.querySelector('[data-no]').onclick=()=>done(false);
+    d.querySelector('[data-yes]').onclick=()=>done(true);
+  });
+}
+/* Checa se já existe conta parecida: mesma empresa, contraparte, valor, descrição e vencimento próximo */
+async function contaDuplicada(tabela, co, contraId, contraCol, desc, val, primeiroVenc){
+  const instTbl = tabela==='receivables'?'receivable_installments':'payable_installments';
+  let q=db.from(tabela).select('id, '+instTbl+'(vencimento)').eq('company_id',co).eq('valor_total',val).neq('status','cancelado').ilike('descricao',desc);
+  q = contraId ? q.eq(contraCol,contraId) : q.is(contraCol,null);
+  const { data }=await q;
+  if(!data||!data.length) return false;
+  return data.some(r=>(r[instTbl]||[]).some(i=>Math.abs((new Date(primeiroVenc)-new Date(i.vencimento))/86400000)<=5));
+}
+
 /* Modal de confirmação com a identidade do Candidus (substitui o confirm() do navegador) */
 function confirmModal({titulo, texto, ok='Confirmar', perigo=false}){
   return new Promise(resolve=>{
@@ -706,6 +729,10 @@ async function openNovaReceber(){
     if(!desc){ toast('Informe a descrição.','err'); return; }
     if(!(val>0)){ toast('Informe um valor válido.','err'); return; }
     if(!$('nVenc').value){ toast('Informe o 1º vencimento.','err'); return; }
+    if(await contaDuplicada('receivables',$('nCo').value,$('nCli').value||null,'customer_id',desc,val,$('nVenc').value)){
+      const ok=await confirmOver({titulo:'Conta parecida já existe',texto:'Já existe uma conta a receber com a mesma descrição, valor e cliente, com vencimento próximo. Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
+      if(!ok) return;
+    }
     $('mSave').disabled=true; $('mSave').textContent='Salvando…';
     const params={
       p_company_id:$('nCo').value, p_customer_id:$('nCli').value||null, p_descricao:desc,
@@ -928,6 +955,10 @@ async function openNovaPagar(){
     if(!desc){ toast('Informe a descrição.','err'); return; }
     if(!(val>0)){ toast('Informe um valor válido.','err'); return; }
     if(!$('pnVenc').value){ toast('Informe o 1º vencimento.','err'); return; }
+    if(await contaDuplicada('payables',$('pnCo').value,$('pnFor').value||null,'supplier_id',desc,val,$('pnVenc').value)){
+      const ok=await confirmOver({titulo:'Conta parecida já existe',texto:'Já existe uma conta a pagar com a mesma descrição, valor e fornecedor, com vencimento próximo. Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
+      if(!ok) return;
+    }
     $('mSave').disabled=true; $('mSave').textContent='Salvando…';
     const params={
       p_company_id:$('pnCo').value, p_supplier_id:$('pnFor').value||null, p_descricao:desc,
