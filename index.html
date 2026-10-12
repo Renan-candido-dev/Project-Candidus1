@@ -318,7 +318,7 @@ const MENU = [
     {ico:'≋',label:'Fluxo de caixa',view:'fluxo-caixa'},
     {ico:'▭',label:'Cartões',view:'cartoes'},
     {ico:'↧',label:'Importar extrato',view:'importar'},
-    {ico:'⇄',label:'Conciliação',soon:true},
+    {ico:'⇄',label:'Conciliação',view:'conciliacao'},
   ]},
   {g:'Cadastros', items:[
     {ico:'◎',label:'Clientes',view:'clientes'},{ico:'◍',label:'Fornecedores',view:'fornecedores'},
@@ -377,7 +377,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -417,9 +417,66 @@ async function loadCompanies(){
   sel.onchange=()=>{ companyId=sel.value||null; setView(currentView); };
 }
 
+function dashSelectCompany(id){ companyId=id; const sel=$('companySel'); if(sel) sel.value=id; setView('dashboard'); }
+async function renderDashboardConsolidado(){
+  $('main').innerHTML=`<div class="page-h"><h1>Visão geral da Candidus</h1><span class="scope">· todas as empresas</span></div>
+    <div class="updated">Atualizado agora · ${new Date().toLocaleString('pt-BR')}</div>
+    <div id="dashArea"><div class="loading">Carregando dados…</div></div>`;
+  try{
+    const [acc,tx,rec,pag,tsk,unc]=await Promise.all([
+      db.from('financial_accounts').select('saldo_inicial,company_id'),
+      db.from('bank_transactions').select('tipo,valor,company_id'),
+      db.from('vw_contas_receber').select('saldo,situacao,company_id'),
+      db.from('vw_contas_pagar').select('saldo,situacao,company_id'),
+      db.from('tasks').select('prazo,status,company_id'),
+      db.from('bank_transactions').select('id',{count:'exact',head:true}).is('receivable_installment_id',null).is('payable_installment_id',null).eq('origem','importado'),
+    ]);
+    for(const r of [acc,tx,rec,pag,tsk]) if(r.error) throw r.error;
+    const aberto=s=>!['recebido','pago','cancelado'].includes(s);
+    const per={}; // company_id -> agregados
+    const get=id=>(per[id]=per[id]||{saldoI:0,ent:0,sai:0,aReceber:0,aPagar:0,vencR:0,vencP:0});
+    (acc.data||[]).forEach(x=>get(x.company_id).saldoI+=Number(x.saldo_inicial||0));
+    (tx.data||[]).forEach(x=>{ const p=get(x.company_id); if(x.tipo==='entrada')p.ent+=Number(x.valor); else if(x.tipo==='saida')p.sai+=Number(x.valor); });
+    (rec.data||[]).forEach(x=>{ const p=get(x.company_id); if(aberto(x.situacao))p.aReceber+=Number(x.saldo); if(x.situacao==='vencido')p.vencR+=Number(x.saldo); });
+    (pag.data||[]).forEach(x=>{ const p=get(x.company_id); if(aberto(x.situacao))p.aPagar+=Number(x.saldo); if(x.situacao==='vencido')p.vencP+=Number(x.saldo); });
+    const hoje=todayStr();
+    const tarefasAtras=(tsk.data||[]).filter(t=>t.prazo&&t.prazo<hoje&&!['concluida','cancelada'].includes(t.status)).length;
+    const naoConc=unc.count||0;
+
+    const lista=companies.map(c=>{ const p=per[c.id]||{saldoI:0,ent:0,sai:0,aReceber:0,aPagar:0,vencR:0,vencP:0};
+      return {id:c.id,nome:c.nome_fantasia||c.razao_social,saldo:p.saldoI+p.ent-p.sai,aReceber:p.aReceber,aPagar:p.aPagar,venc:p.vencR+p.vencP}; });
+    const totReceber=lista.reduce((s,x)=>s+x.aReceber,0), totPagar=lista.reduce((s,x)=>s+x.aPagar,0);
+    const totVencR=lista.reduce((s,x)=>s+(per[x.id]?per[x.id].vencR:0),0), totVencP=lista.reduce((s,x)=>s+(per[x.id]?per[x.id].vencP:0),0);
+    const comVencidos=lista.filter(x=>x.venc>0).length;
+
+    const cards=[
+      {lbl:'Empresas atendidas',dot:'t',val:String(companies.length)},
+      {lbl:'Empresas com vencidos',dot:'r',val:String(comVencidos),cls:comVencidos>0?'warn':''},
+      {lbl:'Total a receber',dot:'g',val:money(totReceber)},
+      {lbl:'Total a pagar',dot:'r',val:money(totPagar)},
+      {lbl:'Vencido a receber',dot:'r',val:money(totVencR),cls:totVencR>0?'warn':''},
+      {lbl:'Vencido a pagar',dot:'r',val:money(totVencP),cls:totVencP>0?'neg':''},
+      {lbl:'Movimentos não conciliados',dot:'a',val:String(naoConc),cls:naoConc>0?'warn':''},
+      {lbl:'Tarefas atrasadas',dot:'r',val:String(tarefasAtras),cls:tarefasAtras>0?'warn':''},
+    ];
+    const rows=lista.sort((a,b)=>b.venc-a.venc).map(x=>`<tr class="title-row" data-co="${x.id}">
+      <td><b>${esc(x.nome)}</b></td>
+      <td class="r ${x.saldo<0?'dre-neg':''}">${money(x.saldo)}</td>
+      <td class="r" style="color:var(--green)">${money(x.aReceber)}</td>
+      <td class="r" style="color:var(--red)">${money(x.aPagar)}</td>
+      <td class="r ${x.venc>0?'dre-neg':''}">${money(x.venc)}</td></tr>`).join('');
+    $('dashArea').innerHTML=`<div class="cards">${cards.map(c=>`<div class="kpi"><div class="lbl"><span class="dot ${c.dot}"></span>${c.lbl}</div><div class="val ${c.cls||''}">${c.val}</div></div>`).join('')}</div>
+      <div class="panel"><h3><span class="dot t"></span>Por empresa <span style="font-weight:400;color:var(--muted);font-size:12px">— clique numa empresa para abrir o detalhe</span></h3>
+      <table><thead><tr><th>Empresa</th><th class="r">Saldo</th><th class="r">A receber</th><th class="r">A pagar</th><th class="r">Vencido</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <div class="hint" style="margin-top:10px">Os saldos são de cada empresa separadamente — não há soma de caixa entre clientes diferentes.</div>`;
+    $('dashArea').querySelectorAll('[data-co]').forEach(tr=>tr.onclick=()=>dashSelectCompany(tr.dataset.co));
+  }catch(err){ $('dashArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+}
 async function renderDashboard(){
+  if(!companyId) return renderDashboardConsolidado();
   const m=$('main');
-  m.innerHTML=`<div class="page-h"><h1>Dashboard</h1><span class="scope">${companyId?'':'· consolidado (todas as empresas)'}</span></div>
+  m.innerHTML=`<div class="page-h"><h1>Dashboard</h1><span class="scope">${esc(coName(companyId))}</span></div>
     <div class="updated">Atualizado agora · ${new Date().toLocaleString('pt-BR')}</div>
     <div id="dashArea"><div class="loading">Carregando dados…</div></div>`;
   try{
@@ -472,70 +529,73 @@ async function renderDashboard(){
   }
 }
 
-let crCache={titles:[],byId:{}};
 let crFilters={cliente:'',status:'',busca:''};
+let crPage=0, crTotal=0, crClientes=[], crTitles=[], crBuscaTimer=null;
+const PAGE_SIZE=40;
 const openTitles=new Set();
 
+function pagerHTML(page,total,prefix){
+  const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)), de=total?page*PAGE_SIZE+1:0, ate=Math.min(total,(page+1)*PAGE_SIZE);
+  return `<div style="display:flex;align-items:center;gap:12px;justify-content:flex-end;margin-top:12px;font-size:13px;color:var(--muted)">
+    <span>${de}–${ate} de ${total}</span>
+    <button class="lnk" data-pg="${prefix}-prev" ${page<=0?'disabled style=opacity:.4':''}>‹ Anterior</button>
+    <span>Página ${page+1} de ${pages}</span>
+    <button class="lnk" data-pg="${prefix}-next" ${page+1>=pages?'disabled style=opacity:.4':''}>Próxima ›</button></div>`;
+}
+
 async function renderContasReceber(){
-  const m=$('main');
-  m.innerHTML=`<div class="page-h"><h1>Contas a receber</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
+  $('main').innerHTML=`<div class="page-h"><h1>Contas a receber</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
       <button class="btn" id="btnNova">+ Nova conta a receber</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="crFilters"></div>
     <div id="crArea"><div class="loading">Carregando…</div></div>`;
   $('btnNova').onclick=openNovaReceber;
+  crPage=0;
+  const { data:cli }=await scopeQ(db.from('customers').select('id,razao_social,nome_fantasia')).order('razao_social');
+  crClientes=cli||[];
+  renderCrFilters();
   await loadReceber();
 }
-
-async function loadReceber(){
-  try{
-    const [recs,insts]=await Promise.all([
-      scopeQ(db.from('receivables').select('id,customer_id,descricao,documento,valor_total,status,created_at,company_id,customers(razao_social,nome_fantasia)')).order('created_at',{ascending:false}),
-      scopeQ(db.from('vw_contas_receber').select('id,receivable_id,numero,total_parcelas,competencia,vencimento,valor,valor_recebido,saldo,situacao')),
-    ]);
-    if(recs.error) throw recs.error; if(insts.error) throw insts.error;
-    const byRec={}; (insts.data||[]).forEach(i=>{(byRec[i.receivable_id]=byRec[i.receivable_id]||[]).push(i);});
-    Object.values(byRec).forEach(arr=>arr.sort((a,b)=>a.numero-b.numero));
-    const titles=(recs.data||[]).map(r=>{
-      const parc=byRec[r.id]||[];
-      const cliente=r.customers?(r.customers.nome_fantasia||r.customers.razao_social):'—';
-      const recebido=parc.reduce((s,p)=>s+Number(p.valor_recebido||0),0);
-      const saldo=parc.reduce((s,p)=>s+Number(p.saldo||0),0);
-      const temVencido=parc.some(p=>p.situacao==='vencido');
-      return {...r,cliente,parc,recebido,saldo,temVencido};
-    });
-    crCache={titles,byId:Object.fromEntries(titles.map(t=>[t.id,t]))};
-    renderCrFilters(); drawReceber();
-  }catch(err){
-    $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`;
-  }
-}
-
 function renderCrFilters(){
-  const clientes=[...new Map(crCache.titles.filter(t=>t.customer_id).map(t=>[t.customer_id,t.cliente])).entries()];
   $('crFilters').innerHTML=`<div class="filters">
-    <div class="fg"><label>Cliente</label><select id="fCli"><option value="">Todos</option>${clientes.map(([id,n])=>`<option value="${id}" ${crFilters.cliente===id?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+    <div class="fg"><label>Cliente</label><select id="fCli"><option value="">Todos</option>${crClientes.map(c=>`<option value="${c.id}" ${crFilters.cliente===c.id?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
     <div class="fg"><label>Situação</label><select id="fSt">
       <option value="">Todas</option>
       <option value="aberto" ${crFilters.status==='aberto'?'selected':''}>Em aberto</option>
-      <option value="vencido" ${crFilters.status==='vencido'?'selected':''}>Com vencido</option>
       <option value="quitado" ${crFilters.status==='quitado'?'selected':''}>Quitados</option>
       <option value="cancelado" ${crFilters.status==='cancelado'?'selected':''}>Cancelados</option></select></div>
     <div class="fg"><label>Buscar descrição</label><input id="fBusca" placeholder="ex: consultoria" value="${esc(crFilters.busca)}"></div>
   </div>`;
-  $('fCli').onchange=e=>{crFilters.cliente=e.target.value;drawReceber();};
-  $('fSt').onchange=e=>{crFilters.status=e.target.value;drawReceber();};
-  $('fBusca').oninput=e=>{crFilters.busca=e.target.value;drawReceber();};
+  $('fCli').onchange=e=>{crFilters.cliente=e.target.value;crPage=0;loadReceber();};
+  $('fSt').onchange=e=>{crFilters.status=e.target.value;crPage=0;loadReceber();};
+  $('fBusca').oninput=e=>{crFilters.busca=e.target.value;clearTimeout(crBuscaTimer);crBuscaTimer=setTimeout(()=>{crPage=0;loadReceber();},350);};
+}
+async function loadReceber(){
+  try{
+    let q=scopeQ(db.from('receivables').select('id,customer_id,descricao,documento,valor_total,status,company_id,customers(razao_social,nome_fantasia)',{count:'exact'}));
+    if(crFilters.cliente) q=q.eq('customer_id',crFilters.cliente);
+    if(crFilters.status) q=q.eq('status',crFilters.status);
+    if(crFilters.busca) q=q.ilike('descricao',`%${crFilters.busca}%`);
+    q=q.order('created_at',{ascending:false}).range(crPage*PAGE_SIZE,(crPage+1)*PAGE_SIZE-1);
+    const { data:recs,count,error }=await q; if(error) throw error;
+    crTotal=count||0;
+    const ids=(recs||[]).map(r=>r.id);
+    let insts=[];
+    if(ids.length){ const r2=await db.from('vw_contas_receber').select('id,receivable_id,numero,total_parcelas,competencia,vencimento,valor,valor_recebido,saldo,situacao').in('receivable_id',ids); if(r2.error) throw r2.error; insts=r2.data||[]; }
+    const byRec={}; insts.forEach(i=>{(byRec[i.receivable_id]=byRec[i.receivable_id]||[]).push(i);});
+    Object.values(byRec).forEach(arr=>arr.sort((a,b)=>a.numero-b.numero));
+    crTitles=(recs||[]).map(r=>{ const parc=byRec[r.id]||[];
+      return {...r, cliente:r.customers?(r.customers.nome_fantasia||r.customers.razao_social):'—', parc,
+        recebido:parc.reduce((s,p)=>s+Number(p.valor_recebido||0),0),
+        saldo:parc.reduce((s,p)=>s+Number(p.saldo||0),0),
+        temVencido:parc.some(p=>p.situacao==='vencido')}; });
+    drawReceber();
+  }catch(err){ $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 
 function drawReceber(){
-  let rows=crCache.titles;
-  if(crFilters.cliente) rows=rows.filter(t=>t.customer_id===crFilters.cliente);
-  if(crFilters.busca) rows=rows.filter(t=>(t.descricao||'').toLowerCase().includes(crFilters.busca.toLowerCase()));
-  if(crFilters.status==='vencido') rows=rows.filter(t=>t.temVencido);
-  else if(crFilters.status) rows=rows.filter(t=>t.status===crFilters.status);
-
-  if(!rows.length){ $('crArea').innerHTML='<div class="panel"><div class="empty">Nenhuma conta a receber encontrada.</div></div>'; return; }
+  const rows=crTitles;
+  if(!rows.length){ $('crArea').innerHTML='<div class="panel"><div class="empty">Nenhuma conta a receber encontrada.</div></div>'+pagerHTML(crPage,crTotal,'cr'); bindCrPager(); return; }
 
   const body=rows.map(t=>{
     const open=openTitles.has(t.id);
@@ -565,7 +625,7 @@ function drawReceber(){
   $('crArea').innerHTML=`<div class="panel"><table>
     <thead><tr><th>Cliente</th><th>Descrição</th><th>Documento</th><th>Parc.</th>
       <th class="r">Valor</th><th class="r">Recebido</th><th class="r">Saldo</th><th>Situação</th></tr></thead>
-    <tbody>${body}</tbody></table></div>`;
+    <tbody>${body}</tbody></table></div>`+pagerHTML(crPage,crTotal,'cr');
 
   $('crArea').querySelectorAll('tr.title-row').forEach(tr=>tr.onclick=()=>{
     const id=tr.dataset.id; openTitles.has(id)?openTitles.delete(id):openTitles.add(id); drawReceber();
@@ -573,6 +633,12 @@ function drawReceber(){
   $('crArea').querySelectorAll('[data-baixa]').forEach(b=>b.onclick=e=>{
     e.stopPropagation(); openBaixa(b.dataset.baixa);
   });
+  bindCrPager();
+}
+function bindCrPager(){
+  const p=$('crArea').querySelector('[data-pg="cr-prev"]'); const n=$('crArea').querySelector('[data-pg="cr-next"]');
+  if(p) p.onclick=()=>{ if(crPage>0){crPage--;loadReceber();} };
+  if(n) n.onclick=()=>{ if((crPage+1)*PAGE_SIZE<crTotal){crPage++;loadReceber();} };
 }
 
 function closeModal(){ $('modalRoot').innerHTML=''; }
@@ -673,7 +739,7 @@ async function fillNovaSelects(co){
 
 async function openBaixa(instId){
   let inst=null;
-  for(const t of crCache.titles){ const p=t.parc.find(x=>x.id===instId); if(p){inst={...p,cliente:t.cliente,descricao:t.descricao,company_id:t.company_id};break;} }
+  for(const t of crTitles){ const p=t.parc.find(x=>x.id===instId); if(p){inst={...p,cliente:t.cliente,descricao:t.descricao,company_id:t.company_id};break;} }
   if(!inst){ toast('Parcela não encontrada.','err'); return; }
   const co=inst.company_id||companyId||(companies[0]&&companies[0].id);
   const accRes=await db.from('financial_accounts').select('id,nome').eq('company_id',co).order('nome');
@@ -712,70 +778,68 @@ async function openBaixa(instId){
 }
 
 /* ===================== CONTAS A PAGAR ===================== */
-let cpCache={titles:[]};
 let cpFilters={forn:'',status:'',busca:''};
+let cpPage=0, cpTotal=0, cpForns=[], cpTitles=[], cpBuscaTimer=null;
 const openTitlesP=new Set();
 
 async function renderContasPagar(){
-  const m=$('main');
-  m.innerHTML=`<div class="page-h"><h1>Contas a pagar</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
+  $('main').innerHTML=`<div class="page-h"><h1>Contas a pagar</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
       <button class="btn" id="btnNovaP">+ Nova conta a pagar</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="cpFilters"></div>
     <div id="cpArea"><div class="loading">Carregando…</div></div>`;
   $('btnNovaP').onclick=openNovaPagar;
+  cpPage=0;
+  const { data:forn }=await scopeQ(db.from('suppliers').select('id,razao_social,nome_fantasia')).order('razao_social');
+  cpForns=forn||[];
+  renderCpFilters();
   await loadPagar();
 }
-
-async function loadPagar(){
-  try{
-    const [pays,insts]=await Promise.all([
-      scopeQ(db.from('payables').select('id,supplier_id,descricao,documento,valor_total,status,created_at,company_id,suppliers(razao_social,nome_fantasia)')).order('created_at',{ascending:false}),
-      scopeQ(db.from('vw_contas_pagar').select('id,payable_id,numero,total_parcelas,competencia,vencimento,valor,valor_pago,saldo,situacao')),
-    ]);
-    if(pays.error) throw pays.error; if(insts.error) throw insts.error;
-    const byPay={}; (insts.data||[]).forEach(i=>{(byPay[i.payable_id]=byPay[i.payable_id]||[]).push(i);});
-    Object.values(byPay).forEach(arr=>arr.sort((a,b)=>a.numero-b.numero));
-    const titles=(pays.data||[]).map(p=>{
-      const parc=byPay[p.id]||[];
-      const forn=p.suppliers?(p.suppliers.nome_fantasia||p.suppliers.razao_social):'—';
-      const pago=parc.reduce((s,x)=>s+Number(x.valor_pago||0),0);
-      const saldo=parc.reduce((s,x)=>s+Number(x.saldo||0),0);
-      const temVencido=parc.some(x=>x.situacao==='vencido');
-      return {...p,forn,parc,pago,saldo,temVencido};
-    });
-    cpCache={titles};
-    renderCpFilters(); drawPagar();
-  }catch(err){
-    $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`;
-  }
-}
-
 function renderCpFilters(){
-  const forns=[...new Map(cpCache.titles.filter(t=>t.supplier_id).map(t=>[t.supplier_id,t.forn])).entries()];
   $('cpFilters').innerHTML=`<div class="filters">
-    <div class="fg"><label>Fornecedor</label><select id="pFor"><option value="">Todos</option>${forns.map(([id,n])=>`<option value="${id}" ${cpFilters.forn===id?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+    <div class="fg"><label>Fornecedor</label><select id="pFor"><option value="">Todos</option>${cpForns.map(c=>`<option value="${c.id}" ${cpFilters.forn===c.id?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
     <div class="fg"><label>Situação</label><select id="pSt">
       <option value="">Todas</option>
       <option value="aberto" ${cpFilters.status==='aberto'?'selected':''}>Em aberto</option>
-      <option value="vencido" ${cpFilters.status==='vencido'?'selected':''}>Com vencido</option>
       <option value="quitado" ${cpFilters.status==='quitado'?'selected':''}>Quitados</option>
       <option value="cancelado" ${cpFilters.status==='cancelado'?'selected':''}>Cancelados</option></select></div>
     <div class="fg"><label>Buscar descrição</label><input id="pBusca" placeholder="ex: aluguel" value="${esc(cpFilters.busca)}"></div>
   </div>`;
-  $('pFor').onchange=e=>{cpFilters.forn=e.target.value;drawPagar();};
-  $('pSt').onchange=e=>{cpFilters.status=e.target.value;drawPagar();};
-  $('pBusca').oninput=e=>{cpFilters.busca=e.target.value;drawPagar();};
+  $('pFor').onchange=e=>{cpFilters.forn=e.target.value;cpPage=0;loadPagar();};
+  $('pSt').onchange=e=>{cpFilters.status=e.target.value;cpPage=0;loadPagar();};
+  $('pBusca').oninput=e=>{cpFilters.busca=e.target.value;clearTimeout(cpBuscaTimer);cpBuscaTimer=setTimeout(()=>{cpPage=0;loadPagar();},350);};
+}
+async function loadPagar(){
+  try{
+    let q=scopeQ(db.from('payables').select('id,supplier_id,descricao,documento,valor_total,status,company_id,suppliers(razao_social,nome_fantasia)',{count:'exact'}));
+    if(cpFilters.forn) q=q.eq('supplier_id',cpFilters.forn);
+    if(cpFilters.status) q=q.eq('status',cpFilters.status);
+    if(cpFilters.busca) q=q.ilike('descricao',`%${cpFilters.busca}%`);
+    q=q.order('created_at',{ascending:false}).range(cpPage*PAGE_SIZE,(cpPage+1)*PAGE_SIZE-1);
+    const { data:pays,count,error }=await q; if(error) throw error;
+    cpTotal=count||0;
+    const ids=(pays||[]).map(p=>p.id);
+    let insts=[];
+    if(ids.length){ const r2=await db.from('vw_contas_pagar').select('id,payable_id,numero,total_parcelas,competencia,vencimento,valor,valor_pago,saldo,situacao').in('payable_id',ids); if(r2.error) throw r2.error; insts=r2.data||[]; }
+    const byPay={}; insts.forEach(i=>{(byPay[i.payable_id]=byPay[i.payable_id]||[]).push(i);});
+    Object.values(byPay).forEach(arr=>arr.sort((a,b)=>a.numero-b.numero));
+    cpTitles=(pays||[]).map(p=>{ const parc=byPay[p.id]||[];
+      return {...p, forn:p.suppliers?(p.suppliers.nome_fantasia||p.suppliers.razao_social):'—', parc,
+        pago:parc.reduce((s,x)=>s+Number(x.valor_pago||0),0),
+        saldo:parc.reduce((s,x)=>s+Number(x.saldo||0),0),
+        temVencido:parc.some(x=>x.situacao==='vencido')}; });
+    drawPagar();
+  }catch(err){ $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+}
+function bindCpPager(){
+  const p=$('cpArea').querySelector('[data-pg="cp-prev"]'); const n=$('cpArea').querySelector('[data-pg="cp-next"]');
+  if(p) p.onclick=()=>{ if(cpPage>0){cpPage--;loadPagar();} };
+  if(n) n.onclick=()=>{ if((cpPage+1)*PAGE_SIZE<cpTotal){cpPage++;loadPagar();} };
 }
 
 function drawPagar(){
-  let rows=cpCache.titles;
-  if(cpFilters.forn) rows=rows.filter(t=>t.supplier_id===cpFilters.forn);
-  if(cpFilters.busca) rows=rows.filter(t=>(t.descricao||'').toLowerCase().includes(cpFilters.busca.toLowerCase()));
-  if(cpFilters.status==='vencido') rows=rows.filter(t=>t.temVencido);
-  else if(cpFilters.status) rows=rows.filter(t=>t.status===cpFilters.status);
-
-  if(!rows.length){ $('cpArea').innerHTML='<div class="panel"><div class="empty">Nenhuma conta a pagar encontrada.</div></div>'; return; }
+  const rows=cpTitles;
+  if(!rows.length){ $('cpArea').innerHTML='<div class="panel"><div class="empty">Nenhuma conta a pagar encontrada.</div></div>'+pagerHTML(cpPage,cpTotal,'cp'); bindCpPager(); return; }
 
   const body=rows.map(t=>{
     const open=openTitlesP.has(t.id);
@@ -805,12 +869,13 @@ function drawPagar(){
   $('cpArea').innerHTML=`<div class="panel"><table>
     <thead><tr><th>Fornecedor</th><th>Descrição</th><th>Documento</th><th>Parc.</th>
       <th class="r">Valor</th><th class="r">Pago</th><th class="r">Saldo</th><th>Situação</th></tr></thead>
-    <tbody>${body}</tbody></table></div>`;
+    <tbody>${body}</tbody></table></div>`+pagerHTML(cpPage,cpTotal,'cp');
 
   $('cpArea').querySelectorAll('tr.title-row').forEach(tr=>tr.onclick=()=>{
     const id=tr.dataset.id; openTitlesP.has(id)?openTitlesP.delete(id):openTitlesP.add(id); drawPagar();
   });
   $('cpArea').querySelectorAll('[data-pagar]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPagar(b.dataset.pagar); });
+  bindCpPager();
 }
 
 /* ---------- MODAL: NOVA CONTA A PAGAR ---------- */
@@ -897,7 +962,7 @@ async function fillNovaPagarSelects(co){
 /* ---------- MODAL: BAIXA (PAGAR) ---------- */
 async function openPagar(instId){
   let inst=null;
-  for(const t of cpCache.titles){ const p=t.parc.find(x=>x.id===instId); if(p){inst={...p,forn:t.forn,descricao:t.descricao,company_id:t.company_id};break;} }
+  for(const t of cpTitles){ const p=t.parc.find(x=>x.id===instId); if(p){inst={...p,forn:t.forn,descricao:t.descricao,company_id:t.company_id};break;} }
   if(!inst){ toast('Parcela não encontrada.','err'); return; }
   const co=inst.company_id||companyId||(companies[0]&&companies[0].id);
   const accRes=await db.from('financial_accounts').select('id,nome').eq('company_id',co).order('nome');
@@ -2518,6 +2583,128 @@ async function confirmarImport(){
     toast(sel.length+' movimento(s) importado(s)!');
     $('impArea').innerHTML=`<div class="panel"><div class="empty">✅ ${sel.length} movimentos lançados na conta.<br>Eles já aparecem no <b>Fluxo de caixa</b> (realizado). A conciliação com contas a pagar/receber vem no próximo módulo.</div></div>`;
   }catch(err){ btn.disabled=false; btn.textContent='Importar selecionados'; toast('Erro: '+(err.message||err),'err'); }
+}
+
+/* ===================== CONCILIAÇÃO ===================== */
+let concState={bts:[],abertas:{receber:[],pagar:[]},tab:'conciliar'};
+function daysDiff(a,b){ return Math.abs(Math.round((new Date(a)-new Date(b))/86400000)); }
+function nameTokens(s){ return normDesc(s).split(/[^a-z0-9]+/).filter(w=>w.length>=4); }
+function descHit(btDesc, nome){ const d=normDesc(btDesc); return nameTokens(nome).some(t=>d.includes(t)); }
+function sugerir(bt, lista){ // lista de parcelas abertas (do tipo certo)
+  let best=null;
+  for(const inst of lista){
+    const dif=Math.abs(bt.valor-inst.saldo);
+    const pct=inst.saldo>0?dif/inst.saldo:1;
+    const prox=daysDiff(bt.data, inst.vencimento)<=5;
+    const nome=descHit(bt.descricao, inst.contraparte||'');
+    let conf=null, rank=0;
+    if(dif<0.01){ if(nome||prox){conf='alta';rank=3;} else {conf='media';rank=2;} }
+    else if(pct<=0.02){ if(nome||prox){conf='media';rank=2;} else {conf='baixa';rank=1;} }
+    else if(nome){ conf='baixa';rank=1; }
+    if(conf){ const score=rank*1000 - dif - daysDiff(bt.data,inst.vencimento)*0.1;
+      if(!best || score>best.score) best={inst,conf,score,dif}; }
+  }
+  return best;
+}
+async function renderConciliacao(){
+  $('main').innerHTML=`<div class="page-h"><h1>Conciliação</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
+    <button class="btn ghost" id="cncBulk">Conciliar todas de alta confiança</button></div>
+    <div class="updated">Casa os movimentos do extrato com as contas a pagar/receber. Conciliar dá baixa na conta sem lançar caixa de novo.</div>
+    <div class="seg" style="max-width:360px;margin-bottom:18px">
+      <button type="button" data-ctab="conciliar" class="${concState.tab==='conciliar'?'on':''}">A conciliar</button>
+      <button type="button" data-ctab="conciliados" class="${concState.tab==='conciliados'?'on':''}">Conciliados</button></div>
+    <div id="cncArea"><div class="loading">Carregando…</div></div>`;
+  document.querySelectorAll('[data-ctab]').forEach(b=>b.onclick=()=>{ concState.tab=b.dataset.ctab; renderConciliacao(); });
+  $('cncBulk').onclick=conciliarAltas;
+  await loadConciliacao();
+}
+async function loadConciliacao(){
+  try{
+    const [rec,pag]=await Promise.all([
+      scopeQ(db.from('receivable_installments').select('id,receivable_id,vencimento,valor,valor_recebido,saldo,status,company_id, receivables(descricao,customers(razao_social,nome_fantasia))')),
+      scopeQ(db.from('payable_installments').select('id,payable_id,vencimento,valor,valor_pago,saldo,status,company_id, payables(descricao,suppliers(razao_social,nome_fantasia))')),
+    ]);
+    concState.abertas.receber=(rec.data||[]).filter(i=>!['recebido','cancelado'].includes(i.status) && Number(i.saldo)>0)
+      .map(i=>({id:i.id,vencimento:i.vencimento,saldo:Number(i.saldo),descricao:i.receivables&&i.receivables.descricao,contraparte:i.receivables&&i.receivables.customers&&(i.receivables.customers.nome_fantasia||i.receivables.customers.razao_social)}));
+    concState.abertas.pagar=(pag.data||[]).filter(i=>!['pago','cancelado'].includes(i.status) && Number(i.saldo)>0)
+      .map(i=>({id:i.id,vencimento:i.vencimento,saldo:Number(i.saldo),descricao:i.payables&&i.payables.descricao,contraparte:i.payables&&i.payables.suppliers&&(i.payables.suppliers.nome_fantasia||i.payables.suppliers.razao_social)}));
+    if(concState.tab==='conciliar'){
+      const { data:bts }=await scopeQ(db.from('bank_transactions').select('id,data,descricao,valor,tipo,company_id').is('receivable_installment_id',null).is('payable_installment_id',null).in('tipo',['entrada','saida'])).order('data');
+      concState.bts=bts||[];
+      drawConciliar();
+    } else {
+      const { data:bts }=await scopeQ(db.from('bank_transactions').select('id,data,descricao,valor,tipo,receivable_installment_id,payable_installment_id').or('receivable_installment_id.not.is.null,payable_installment_id.not.is.null')).order('data',{ascending:false});
+      concState.conc=bts||[]; drawConciliados();
+    }
+  }catch(err){ $('cncArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
+}
+function confPill(c){ return `<span class="pill ${c==='alta'?'st-recebido':(c==='media'?'st-recebido_parcial':'st-vencido')}">${c==='alta'?'Alta':(c==='media'?'Média':'Baixa')}</span>`; }
+function drawConciliar(){
+  if(!concState.bts.length){ $('cncArea').innerHTML='<div class="panel"><div class="empty">Nenhum movimento pendente de conciliação. Importe um extrato primeiro (menu Importar extrato).</div></div>'; return; }
+  const rows=concState.bts.map((bt,i)=>{
+    const lista=bt.tipo==='entrada'?concState.abertas.receber:concState.abertas.pagar;
+    const sug=sugerir(bt,lista); bt._sug=sug;
+    const sugHtml=sug?`${esc(sug.inst.descricao||'')}${sug.inst.contraparte?' · '+esc(sug.inst.contraparte):''} · venc. ${fmtDate(sug.inst.vencimento)} · ${money(sug.inst.saldo)} ${confPill(sug.conf)}`:'<span style="color:var(--muted)">Sem sugestão</span>';
+    return `<tr>
+      <td>${fmtDate(bt.data)}</td><td>${esc(bt.descricao)}</td>
+      <td class="r" style="color:${bt.tipo==='entrada'?'var(--green)':'var(--red)'}">${bt.tipo==='entrada'?'+':'−'} ${money(bt.valor)}</td>
+      <td>${sugHtml}</td>
+      <td><div class="act">${sug?`<button class="mini" data-conc="${i}">Conciliar</button>`:''}<button class="lnk" data-pick="${i}">Escolher</button></div></td></tr>`;
+  }).join('');
+  $('cncArea').innerHTML=`<div class="panel"><table><thead><tr><th>Data</th><th>Movimento</th><th class="r">Valor</th><th>Sugestão (conta)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $('cncArea').querySelectorAll('[data-conc]').forEach(b=>b.onclick=()=>{ const bt=concState.bts[+b.dataset.conc]; conciliar(bt, bt._sug.inst.id); });
+  $('cncArea').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>openPickConc(concState.bts[+b.dataset.pick]));
+}
+async function conciliar(bt, instId){
+  const tipo=bt.tipo==='entrada'?'receber':'pagar';
+  const { error }=await db.rpc('conciliar_movimento',{ p_bank_transaction_id:bt.id, p_installment_id:instId, p_tipo:tipo });
+  if(error){ toast('Erro: '+error.message,'err'); return; }
+  toast('Conciliado!'); loadConciliacao();
+}
+async function conciliarAltas(){
+  const alvos=concState.bts.filter(bt=>{ const lista=bt.tipo==='entrada'?concState.abertas.receber:concState.abertas.pagar; const s=sugerir(bt,lista); return s&&s.conf==='alta'; });
+  if(!alvos.length){ toast('Nenhuma sugestão de alta confiança.','err'); return; }
+  const ok=await confirmModal({titulo:'Conciliar em massa',texto:`Conciliar ${alvos.length} movimento(s) de alta confiança automaticamente?`,ok:'Conciliar'});
+  if(!ok) return;
+  for(const bt of alvos){ const lista=bt.tipo==='entrada'?concState.abertas.receber:concState.abertas.pagar; const s=sugerir(bt,lista);
+    const tipo=bt.tipo==='entrada'?'receber':'pagar';
+    await db.rpc('conciliar_movimento',{ p_bank_transaction_id:bt.id, p_installment_id:s.inst.id, p_tipo:tipo });
+    // remove a parcela usada pra não reusar
+    const arr=concState.abertas[tipo==='receber'?'receber':'pagar']; const idx=arr.findIndex(x=>x.id===s.inst.id); if(idx>=0) arr.splice(idx,1);
+  }
+  toast(alvos.length+' conciliado(s)!'); loadConciliacao();
+}
+function openPickConc(bt){
+  const tipo=bt.tipo==='entrada'?'receber':'pagar';
+  const lista=concState.abertas[tipo==='receber'?'receber':'pagar'].slice().sort((a,b)=>Math.abs(a.saldo-bt.valor)-Math.abs(b.saldo-bt.valor));
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
+    <div class="modal-h"><h2>Conciliar movimento</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box">${fmtDate(bt.data)} · <b>${esc(bt.descricao)}</b> · ${bt.tipo==='entrada'?'entrada':'saída'} de <b>${money(bt.valor)}</b></div>
+      <input id="pkBusca" placeholder="Buscar conta..." style="margin-bottom:10px">
+      <div id="pkList" style="max-height:340px;overflow-y:auto"></div>
+    </div><div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  const draw=(f)=>{ const rows=lista.filter(x=>!f||((x.descricao||'')+' '+(x.contraparte||'')).toLowerCase().includes(f.toLowerCase()));
+    $('pkList').innerHTML=rows.length?rows.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;border-top:1px solid #f1f4f7">
+      <div><div style="font-size:13.5px">${esc(x.descricao||'—')}${x.contraparte?' · '+esc(x.contraparte):''}</div><div style="font-size:12px;color:var(--muted)">venc. ${fmtDate(x.vencimento)} · saldo ${money(x.saldo)}</div></div>
+      <button class="mini" data-pk="${x.id}">Conciliar</button></div>`).join(''):'<div class="empty">Nenhuma conta aberta encontrada.</div>';
+    $('pkList').querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{ closeModal(); conciliar(bt, b.dataset.pk); }); };
+  draw(''); $('pkBusca').oninput=e=>draw(e.target.value);
+}
+function drawConciliados(){
+  const bts=concState.conc||[];
+  if(!bts.length){ $('cncArea').innerHTML='<div class="panel"><div class="empty">Nenhum movimento conciliado ainda.</div></div>'; return; }
+  const rows=bts.map((bt,i)=>`<tr>
+    <td>${fmtDate(bt.data)}</td><td>${esc(bt.descricao)}</td>
+    <td class="r" style="color:${bt.tipo==='entrada'?'var(--green)':'var(--red)'}">${bt.tipo==='entrada'?'+':'−'} ${money(bt.valor)}</td>
+    <td><span class="pill st-recebido">${bt.receivable_installment_id?'Receber':'Pagar'}</span></td>
+    <td><button class="lnk del" data-undo="${i}">Desfazer</button></td></tr>`).join('');
+  $('cncArea').innerHTML=`<div class="panel"><table><thead><tr><th>Data</th><th>Movimento</th><th class="r">Valor</th><th>Tipo</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $('cncArea').querySelectorAll('[data-undo]').forEach(b=>b.onclick=async ()=>{
+    const bt=bts[+b.dataset.undo];
+    const { error }=await db.rpc('desconciliar_movimento',{ p_bank_transaction_id:bt.id });
+    if(error){ toast('Erro: '+error.message,'err'); return; } toast('Conciliação desfeita.'); loadConciliacao();
+  });
 }
 
 boot();
