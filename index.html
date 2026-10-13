@@ -613,10 +613,11 @@ function drawReceber(){
     if(open){
       instRows=t.parc.map(p=>{
         const canBaixa=!['recebido','cancelado'].includes(p.situacao)&&Number(p.saldo)>0;
+        const temBaixa=Number(p.valor_recebido)>0;
         return `<tr class="inst-row"><td colspan="3" style="padding-left:38px">Parcela ${p.numero}/${p.total_parcelas} · venc. ${fmtDate(p.vencimento)}</td>
           <td><span class="pill st-${p.situacao}">${STLABEL[p.situacao]||p.situacao}</span></td>
           <td class="r">${money(p.valor)}</td><td class="r">${money(p.valor_recebido)}</td><td class="r">${money(p.saldo)}</td>
-          <td>${canBaixa?`<button class="mini" data-baixa="${p.id}">Receber</button>`:'—'}</td></tr>`;
+          <td><div class="act">${canBaixa?`<button class="mini" data-baixa="${p.id}">Receber</button>`:''}${temBaixa?`<button class="lnk del" data-estorno="${p.id}">Estornar</button>`:''}${!canBaixa&&!temBaixa?'—':''}</div></td></tr>`;
       }).join('');
     }
     return titleRow+instRows;
@@ -632,6 +633,13 @@ function drawReceber(){
   });
   $('crArea').querySelectorAll('[data-baixa]').forEach(b=>b.onclick=e=>{
     e.stopPropagation(); openBaixa(b.dataset.baixa);
+  });
+  $('crArea').querySelectorAll('[data-estorno]').forEach(b=>b.onclick=async e=>{
+    e.stopPropagation();
+    const ok=await confirmModal({titulo:'Estornar recebimento',texto:'Isso desfaz o recebimento desta parcela (volta a em aberto e remove o movimento do caixa). Confirmar?',ok:'Estornar',perigo:true});
+    if(!ok) return;
+    const { error }=await db.rpc('estornar_baixa',{p_installment_id:b.dataset.estorno,p_tipo:'receber'});
+    if(error){ toast('Erro: '+error.message,'err'); return; } toast('Recebimento estornado.'); loadReceber();
   });
   bindCrPager();
 }
@@ -777,7 +785,13 @@ async function openBaixa(instId){
       <div class="box"><b>${esc(inst.descricao)}</b> — ${esc(inst.cliente)}<br>
         Parcela ${inst.numero}/${inst.total_parcelas} · venc. ${fmtDate(inst.vencimento)}<br>
         Valor ${money(inst.valor)} · já recebido ${money(inst.valor_recebido)} · <b>saldo ${money(inst.saldo)}</b></div>
-      <div class="field"><label>Valor a receber *</label><input id="bVal" type="number" step="0.01" min="0" max="${inst.saldo}" value="${Number(inst.saldo).toFixed(2)}"><div class="hint">Pode receber menos que o saldo (recebimento parcial).</div></div>
+      <div class="field"><label>Valor a receber (principal) *</label><input id="bVal" type="number" step="0.01" min="0" max="${inst.saldo}" value="${Number(inst.saldo).toFixed(2)}"><div class="hint">Pode receber menos que o saldo (recebimento parcial).</div></div>
+      <div class="row2">
+        <div class="field"><label>Juros</label><input id="bJuros" type="number" step="0.01" min="0" value="0"></div>
+        <div class="field"><label>Multa</label><input id="bMulta" type="number" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="field"><label>Desconto</label><input id="bDesc" type="number" step="0.01" min="0" value="0"></div>
+      <div class="box" id="bCash" style="background:var(--teal-soft);color:var(--teal-d)"></div>
       <div class="row2">
         <div class="field"><label>Data *</label><input id="bData" type="date" value="${todayStr()}"></div>
         <div class="field"><label>Conta financeira *</label><select id="bAcc"><option value="">—</option>${accs.map(a=>`<option value="${a.id}">${esc(a.nome)}</option>`).join('')}</select></div>
@@ -788,6 +802,8 @@ async function openBaixa(instId){
     <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">Confirmar recebimento</button></div>
   </div></div>`;
   $('mx').onclick=$('mCancel').onclick=closeModal;
+  const upCash=()=>{ const c=(parseFloat($('bVal').value)||0)+(parseFloat($('bJuros').value)||0)+(parseFloat($('bMulta').value)||0)-(parseFloat($('bDesc').value)||0); $('bCash').innerHTML='Valor que entra no caixa: <b>'+money(c)+'</b>'; };
+  ['bVal','bJuros','bMulta','bDesc'].forEach(id=>$(id).oninput=upCash); upCash();
   $('mSave').onclick=async ()=>{
     const val=parseFloat($('bVal').value);
     if(!(val>0)){ toast('Informe o valor.','err'); return; }
@@ -797,6 +813,7 @@ async function openBaixa(instId){
     const { error }=await db.rpc('baixar_receivable_installment',{
       p_installment_id:instId, p_valor:val, p_financial_account_id:$('bAcc').value,
       p_data:$('bData').value||todayStr(), p_forma:$('bForma').value||null, p_observacao:$('bObs').value||null,
+      p_juros:parseFloat($('bJuros').value)||0, p_multa:parseFloat($('bMulta').value)||0, p_desconto:parseFloat($('bDesc').value)||0,
     });
     $('mSave').disabled=false; $('mSave').textContent='Confirmar recebimento';
     if(error){ toast('Erro: '+error.message,'err'); return; }
@@ -884,10 +901,11 @@ function drawPagar(){
     if(open){
       instRows=t.parc.map(p=>{
         const canBaixa=!['pago','cancelado'].includes(p.situacao)&&Number(p.saldo)>0;
+        const temBaixa=Number(p.valor_pago)>0;
         return `<tr class="inst-row"><td colspan="3" style="padding-left:38px">Parcela ${p.numero}/${p.total_parcelas} · venc. ${fmtDate(p.vencimento)}</td>
           <td><span class="pill st-${p.situacao}">${STLABEL[p.situacao]||p.situacao}</span></td>
           <td class="r">${money(p.valor)}</td><td class="r">${money(p.valor_pago)}</td><td class="r">${money(p.saldo)}</td>
-          <td>${canBaixa?`<button class="mini" data-pagar="${p.id}">Pagar</button>`:'—'}</td></tr>`;
+          <td><div class="act">${canBaixa?`<button class="mini" data-pagar="${p.id}">Pagar</button>`:''}${temBaixa?`<button class="lnk del" data-estornop="${p.id}">Estornar</button>`:''}${!canBaixa&&!temBaixa?'—':''}</div></td></tr>`;
       }).join('');
     }
     return titleRow+instRows;
@@ -902,6 +920,13 @@ function drawPagar(){
     const id=tr.dataset.id; openTitlesP.has(id)?openTitlesP.delete(id):openTitlesP.add(id); drawPagar();
   });
   $('cpArea').querySelectorAll('[data-pagar]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPagar(b.dataset.pagar); });
+  $('cpArea').querySelectorAll('[data-estornop]').forEach(b=>b.onclick=async e=>{
+    e.stopPropagation();
+    const ok=await confirmModal({titulo:'Estornar pagamento',texto:'Isso desfaz o pagamento desta parcela (volta a em aberto e remove o movimento do caixa). Confirmar?',ok:'Estornar',perigo:true});
+    if(!ok) return;
+    const { error }=await db.rpc('estornar_baixa',{p_installment_id:b.dataset.estornop,p_tipo:'pagar'});
+    if(error){ toast('Erro: '+error.message,'err'); return; } toast('Pagamento estornado.'); loadPagar();
+  });
   bindCpPager();
 }
 
@@ -1004,7 +1029,13 @@ async function openPagar(instId){
       <div class="box"><b>${esc(inst.descricao)}</b> — ${esc(inst.forn)}<br>
         Parcela ${inst.numero}/${inst.total_parcelas} · venc. ${fmtDate(inst.vencimento)}<br>
         Valor ${money(inst.valor)} · já pago ${money(inst.valor_pago)} · <b>saldo ${money(inst.saldo)}</b></div>
-      <div class="field"><label>Valor a pagar *</label><input id="bVal" type="number" step="0.01" min="0" max="${inst.saldo}" value="${Number(inst.saldo).toFixed(2)}"><div class="hint">Pode pagar menos que o saldo (pagamento parcial).</div></div>
+      <div class="field"><label>Valor a pagar (principal) *</label><input id="bVal" type="number" step="0.01" min="0" max="${inst.saldo}" value="${Number(inst.saldo).toFixed(2)}"><div class="hint">Pode pagar menos que o saldo (pagamento parcial).</div></div>
+      <div class="row2">
+        <div class="field"><label>Juros</label><input id="bJuros" type="number" step="0.01" min="0" value="0"></div>
+        <div class="field"><label>Multa</label><input id="bMulta" type="number" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="field"><label>Desconto</label><input id="bDesc" type="number" step="0.01" min="0" value="0"></div>
+      <div class="box" id="bCash" style="background:var(--teal-soft);color:var(--teal-d)"></div>
       <div class="row2">
         <div class="field"><label>Data *</label><input id="bData" type="date" value="${todayStr()}"></div>
         <div class="field"><label>Conta financeira *</label><select id="bAcc"><option value="">—</option>${accs.map(a=>`<option value="${a.id}">${esc(a.nome)}</option>`).join('')}</select></div>
@@ -1015,6 +1046,8 @@ async function openPagar(instId){
     <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">Confirmar pagamento</button></div>
   </div></div>`;
   $('mx').onclick=$('mCancel').onclick=closeModal;
+  const upCash=()=>{ const c=(parseFloat($('bVal').value)||0)+(parseFloat($('bJuros').value)||0)+(parseFloat($('bMulta').value)||0)-(parseFloat($('bDesc').value)||0); $('bCash').innerHTML='Valor que sai do caixa: <b>'+money(c)+'</b>'; };
+  ['bVal','bJuros','bMulta','bDesc'].forEach(id=>$(id).oninput=upCash); upCash();
   $('mSave').onclick=async ()=>{
     const val=parseFloat($('bVal').value);
     if(!(val>0)){ toast('Informe o valor.','err'); return; }
@@ -1024,6 +1057,7 @@ async function openPagar(instId){
     const { error }=await db.rpc('baixar_payable_installment',{
       p_installment_id:instId, p_valor:val, p_financial_account_id:$('bAcc').value,
       p_data:$('bData').value||todayStr(), p_forma:$('bForma').value||null, p_observacao:$('bObs').value||null,
+      p_juros:parseFloat($('bJuros').value)||0, p_multa:parseFloat($('bMulta').value)||0, p_desconto:parseFloat($('bDesc').value)||0,
     });
     $('mSave').disabled=false; $('mSave').textContent='Confirmar pagamento';
     if(error){ toast('Erro: '+error.message,'err'); return; }
