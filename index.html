@@ -2783,7 +2783,7 @@ async function openCriarLancConc(bt){
     <div class="modal-b"><div class="box">${fmtDate(bt.data)} · <b>${esc(bt.descricao)}</b> · ${bt.tipo==='entrada'?'entrada':'saída'} de <b>${money(bt.valor)}</b><br>Cria uma conta a ${tipo} e já concilia este movimento.</div>
       <div class="cadgrid">
         <div class="field" style="grid-column:1/3"><label>Descrição *</label><input id="clDesc" value="${esc(bt.descricao||'')}"></div>
-        <div class="field"><label>${tipo==='receber'?'Cliente':'Fornecedor'}</label><select id="clContra">${opt({data:contraArr},x=>x.nome_fantasia||x.razao_social)}</select></div>
+        <div class="field"><label>${tipo==='receber'?'Cliente':'Fornecedor'}</label><select id="clContra">${opt(contraArr,x=>x.nome_fantasia||x.razao_social)}</select></div>
         <div class="field"><label>Categoria</label><select id="clCat">${opt(cat,x=>x.nome)}</select></div>
         <div class="field"><label>Centro de custo</label><select id="clCC">${opt(cc,x=>x.nome)}</select></div>
         <div class="field"><label>Valor</label><input value="${money(bt.valor)}" disabled></div>
