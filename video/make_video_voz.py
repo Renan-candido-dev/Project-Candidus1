@@ -1,5 +1,7 @@
 """Versão do vídeo da Candidus narrada com a voz do Renan (1080x1920, 30 fps).
 
+A fala é editada (cortes de hesitações e pausas) e ganha um gancho de abertura.
+
 Os textos e os cartões aparecem sincronizados com a fala da gravação.
 Uso: python3 make_video_voz.py <foto.jpg> <pasta_fontes> <gravacao.mp4> <saida.mp4>
 Fontes esperadas na pasta: Cormorant-SemiBold.ttf, Montserrat-Regular.ttf,
@@ -14,9 +16,25 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 PHOTO, FONTS, VOICE, OUT = sys.argv[1:5]
 W, H, FPS = 1080, 1920, 30
-# Trecho da gravação usado (segundos no arquivo original) e fim do vídeo.
-VOICE_IN, VOICE_OUT = 2.8, 43.5
-DUR = VOICE_OUT - VOICE_IN + 1.8
+# Trechos da gravação mantidos (segundos no arquivo original). A edição tira
+# hesitações e a frase confusa do meio, deixando a fala mais direta.
+SEGMENTS = [
+    (3.15, 8.40),    # Olá, meu nome é Renan, nós somos a Candidus...
+    (9.42, 13.58),   # (sem o "onde") enquanto você cuida da sua empresa...
+    (13.95, 22.72),  # contas a pagar, a receber, conciliação, resultado
+    (23.12, 29.85),  # fluxo de caixa... para onde seu dinheiro está indo
+    (36.02, 40.38),  # (sem o "então") aqui nós temos organização...
+    (40.72, 42.00),  # vem na Candidus conversar
+    (42.80, 43.50),  # conosco (sem o "com nós")
+]
+HOOK = 2.4   # abertura só com texto e música, antes da voz
+GAP = 0.32   # pausa entre os trechos
+GAPS = [GAP] * (len(SEGMENTS) - 2) + [0.12]
+SEG_START = [HOOK]
+for (a, b), g in zip(SEGMENTS, GAPS):
+    SEG_START.append(SEG_START[-1] + (b - a) + g)
+VOICE_END = SEG_START[-1] + SEGMENTS[-1][1] - SEGMENTS[-1][0]
+DUR = VOICE_END + 2.0
 N = int(DUR * FPS)
 
 GREEN = (14, 40, 36)
@@ -225,15 +243,19 @@ def make_music(path):
 
 
 def T(x):
-    """Converte um tempo da gravação original para o tempo do vídeo."""
-    return x - VOICE_IN
+    """Converte um tempo da gravação original para o tempo do vídeo
+    (um tempo num trecho cortado vai para o início do trecho seguinte)."""
+    for (a, b), st in zip(SEGMENTS, SEG_START):
+        if x <= b:
+            return st + max(0.0, x - a)
+    return VOICE_END
 
 
 # ---------- legendas (texto revisado da fala) ----------
 CAPTIONS = [
-    (3.2, 5.6, "Olá, meu nome é Renan."),
+    (3.15, 5.6, "Olá, meu nome é Renan."),
     (5.6, 8.6, "Nós somos a Candidus, gestão financeira."),
-    (8.87, 11.6, "Enquanto você cuida da sua empresa,"),
+    (9.42, 11.6, "Enquanto você cuida da sua empresa,"),
     (11.7, 13.8, "nós cuidamos do seu financeiro."),
     (13.97, 16.3, "Aqui na Candidus, nós cuidamos"),
     (16.3, 19.1, "das suas contas a pagar e a receber,"),
@@ -241,10 +263,8 @@ CAPTIONS = [
     (23.0, 25.4, "do seu fluxo de caixa"),
     (25.4, 28.0, "e acompanhamos como está a sua empresa:"),
     (28.1, 30.0, "para onde o seu dinheiro está indo."),
-    (30.2, 33.9, "Toda a organização que uma empresa precisa"),
-    (33.9, 36.3, "que o seu financeiro tenha."),
-    (36.3, 40.4, "Aqui você tem organização, planejamento e resultado."),
-    (40.4, 43.5, "Vem para a Candidus e conversa com a gente!"),
+    (36.02, 40.38, "Aqui nós temos organização, planejamento e resultado."),
+    (40.72, 43.5, "Vem para a Candidus e conversa com a gente!"),
 ]
 CAP_Y = 1745
 
@@ -275,8 +295,13 @@ def caption_layer(txt):
 CAP_LAYERS = [(T(a), T(b), caption_layer(c)) for a, b, c in CAPTIONS]
 
 # ---------- cenas ----------
-S1, S2, S3, S4 = T(13.8), T(30.1), T(40.4), DUR  # fins de cada cena
+S1, S2, S3, S4 = T(13.95) - 0.12, T(36.02) - 0.15, T(40.72) - 0.1, DUR  # fins de cada cena
 
+L_HOOK = text_layer(lambda d: (
+    centered(d, 1250, "Você sabe para onde", SERIF(84), IVORY),
+    centered(d, 1345, "está indo o dinheiro", SERIF(84), IVORY),
+    centered(d, 1440, "da sua empresa?", SERIF(84), GOLD_L),
+))
 L_NAME = text_layer(lambda d: (
     d.rectangle([80, 1330, 86, 1550], fill=GOLD),
     d.text((115, 1328), "RENAN", font=SANSB(34), fill=GOLD),
@@ -305,14 +330,15 @@ L_FEAT_TITLE = text_layer(lambda d: (
 
 PILLARS = [(37.2, "ORGANIZAÇÃO"), (38.7, "PLANEJAMENTO"), (39.7, "RESULTADO")]
 L_PIL_TITLE = text_layer(lambda d: (
-    centered(d, 230, "Tudo o que o financeiro", SERIF(84), IVORY),
-    centered(d, 320, "da sua empresa precisa", SERIF(84), GOLD_L),
+    centered(d, 230, "Na Candidus você tem", SERIF(84), IVORY),
+    centered(d, 320, "o financeiro sob controle", SERIF(84), GOLD_L),
 ))
 
 L_CTA = text_layer(lambda d: (
     centered(d, 1250, "CANDIDUS", SERIF(150), IVORY),
     centered(d, 1420, "GESTÃO FINANCEIRA", SANSB(40), GOLD, spacing=6),
-    centered(d, 1530, "Vem conversar com a gente", SANS(40), IVORY),
+    centered(d, 1530, "Organize o seu financeiro hoje.", SANS(40), IVORY),
+    centered(d, 1590, "Fale com a gente!", SANSB(40), GOLD_L),
 ))
 
 
@@ -321,8 +347,9 @@ def scene_frame(t):
         z = 1.0 + 0.10 * (t / S1)
         img = photo_frame(z, 0.5, 0.5 - 0.08 * (t / S1)).convert("RGBA")
         img.alpha_composite(GRAD_BOTTOM)
-        put(img, L_NAME, window(t, T(3.4), T(8.6)), dy=int(30 * (1 - prog(t, T(3.4), 0.8))))
-        put(img, L_HEAD, window(t, T(8.9), S1), dy=int(30 * (1 - prog(t, T(8.9), 0.8))))
+        put(img, L_HOOK, window(t, 0.25, HOOK - 0.1, 0.4), dy=int(30 * (1 - prog(t, 0.25, 0.8))))
+        put(img, L_NAME, window(t, T(3.4), T(8.4)), dy=int(30 * (1 - prog(t, T(3.4), 0.8))))
+        put(img, L_HEAD, window(t, T(9.3), S1), dy=int(30 * (1 - prog(t, T(9.3), 0.8))))
         return img
 
     if t < S2:
@@ -343,14 +370,14 @@ def scene_frame(t):
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(layer)
         put(layer, L_PIL_TITLE, prog(t, S2 + 0.1, 0.8), dy=int(25 * (1 - prog(t, S2 + 0.1, 0.8))))
-        logo(d, W / 2, 900, 1.9, grow=prog(t, S2 + 0.5, 3.0))
+        logo(d, W / 2, 900, 1.9, grow=prog(t, S2 + 0.3, 1.5))
         for i, (st, p) in enumerate(PILLARS):
             pa = prog(t, T(st), 0.5)
             if pa > 0:
                 col = GOLD if i % 2 == 0 else IVORY
                 tmp = text_layer(lambda dd: centered(dd, 1070 + i * 150, p, SANSB(64), col, spacing=6))
                 put(layer, tmp, pa, dy=int(20 * (1 - pa)))
-        gold_rule(d, 1530, 300 * prog(t, T(39.9), 0.6))
+        gold_rule(d, 1530, 300 * prog(t, T(39.9), 0.4))
         put(img, layer, window(t, S2, S3, 0.4))
         return img
 
@@ -370,10 +397,18 @@ if __name__ == "__main__":
     music = OUT + ".music.wav"
     make_music(music)
     # voz: corta o trecho, limpa ruído e normaliza; música abaixada por baixo
+    parts, labels = [], []
+    for i, ((a, b), st) in enumerate(zip(SEGMENTS, SEG_START)):
+        parts.append(
+            f"[1:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d=0.02,"
+            f"afade=t=out:st={b - a - 0.03:.3f}:d=0.03,adelay={int(st * 1000)}:all=1[s{i}]"
+        )
+        labels.append(f"[s{i}]")
     af = (
-        f"[1:a]atrim={VOICE_IN}:{VOICE_OUT},asetpts=PTS-STARTPTS,highpass=f=80,afftdn=nf=-25,"
-        f"acompressor=threshold=-20dB:ratio=3:attack=5:release=120,loudnorm=I=-16:TP=-1.5,"
-        f"afade=t=out:st={VOICE_OUT - VOICE_IN - 0.4}:d=0.4,apad[v];"
+        ";".join(parts) + ";"
+        + "".join(labels) + f"amix=inputs={len(labels)}:normalize=0:duration=longest,"
+        "highpass=f=80,afftdn=nf=-25,acompressor=threshold=-20dB:ratio=3:attack=5:release=120,"
+        "loudnorm=I=-16:TP=-1.5,apad[v];"
         "[2:a]volume=0.16[m];[v][m]amix=inputs=2:duration=shortest:normalize=0[a]"
     )
     ff = subprocess.Popen([
