@@ -24,6 +24,10 @@ const CFG2 = {
     ['DECISÃO', 'Escolha com base em números, não no achismo.']
   ],
   planos: [
+    { tag: 'PLANO 1', nome: 'Candidus Essencial', preco: 750,
+      desc: 'Para empresas que querem organizar o financeiro.',
+      itens: ['Contas a pagar e a receber', 'Conciliação bancária', 'Lançamentos e categorização',
+              'Organização de comprovantes', 'Relatório mensal de movimentação'] },
     { tag: 'PLANO 2', nome: 'Candidus Gestão', preco: 1500,
       desc: 'Para empresas que querem controle e previsibilidade.',
       itens: ['Tudo do Essencial', 'Fluxo de caixa projetado', 'Relatório de receitas e despesas',
@@ -59,10 +63,10 @@ function planCard(c, t, pl) {
   line(c, x + 80, y + 600, x + w - 80, P(t, 1.4, .6), 'rgba(236,201,107,.5)', 2);
   pl.itens.forEach((s, i) => {
     const q = P(t, 1.8 + i * .45, .45);
-    const yy = y + 690 + i * 100;
+    const yy = y + 690 + i * 100, herda = i === 0 && s.startsWith('Tudo do');
     check(c, x + 110, yy, 26, q);
-    txt(c, s, x + 160 - (1 - q) * 40, yy + 2, { size: 36, weight: i === 0 ? 800 : 600, align: 'left', alpha: q,
-      color: i === 0 ? C.gold2 : C.cream });
+    txt(c, s, x + 160 - (1 - q) * 40, yy + 2, { size: 36, weight: herda ? 800 : 600, align: 'left', alpha: q,
+      color: herda ? C.gold2 : C.cream });
   });
   c.restore();
 }
@@ -169,13 +173,16 @@ const VIDEO2 = makeTimeline([
       txt(c, 'NOSSOS PLANOS', W / 2, H * .42 + 140, { size: 110, weight: 900, color: C.cream, scale: P(t, .6, .6, E.back), shadow: 16 });
   } },
 
-  /* 8 · Plano Gestão */
-  { d: 8.4, tr: 'up', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[0]); } },
+  /* 8 · Plano Essencial */
+  { d: 8, tr: 'up', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[0]); } },
 
-  /* 9 · Plano Estratégico */
-  { d: 9, tr: 'left', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[1]); } },
+  /* 9 · Plano Gestão */
+  { d: 8.4, tr: 'left', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[1]); } },
 
-  /* 10 · Pergunta final */
+  /* 10 · Plano Estratégico */
+  { d: 9, tr: 'left', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[2]); } },
+
+  /* 11 · Pergunta final */
   { d: 3.4, tr: 'up', draw(c, t) {
       bgGold(c);
       txt(c, 'QUAL É O PLANO', W / 2, H * .4, { size: 96, weight: 900, color: C.ink, scale: P(t, .1, .5, E.back) });
@@ -183,7 +190,7 @@ const VIDEO2 = makeTimeline([
       txt(c, 'SUA EMPRESA?', W / 2, H * .4 + 260, { size: 120, weight: 900, color: C.cream, scale: P(t, .8, .6, E.back), shadow: 16 });
   } },
 
-  /* 11 · CTA com foto */
+  /* 12 · CTA com foto */
   { d: 6, tr: 'circle', draw(c, t, d) {
       c.fillStyle = C.dark2; c.fillRect(0, 0, W, H);
       cover(c, IMG.foto, 0, 0, W, H, lerp(1.08, 1.0, t / d), .85, .3);
