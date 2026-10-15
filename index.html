@@ -137,6 +137,12 @@ tr.inst-row td{background:var(--panel-2);font-size:12.5px;color:#475569}
 .dre-lupa{color:var(--muted);font-size:12px}
 .dre-av{color:var(--muted);font-size:12px}
 .dre-tbl th{white-space:nowrap}
+.ind-grupo{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.ind-i{font-size:11px;color:var(--muted);cursor:help}
+.sc-svg{display:block}.sc-grid{stroke:var(--line);stroke-width:1}.sc-zero{stroke:var(--muted);stroke-width:1}
+.sc-ax{font-size:11px;fill:var(--muted)}
+.sc-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:0 0 8px}
+.sc-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}.sc-line{height:3px;border-radius:2px;vertical-align:2px}
 .dre-mes input{max-width:190px}
 .ocwrap{overflow-x:auto}
 .oc{border-collapse:collapse;font-size:12.5px;min-width:1050px}
@@ -442,22 +448,14 @@ async function renderDashboardConsolidado(){
     <div class="updated">Atualizado agora · ${new Date().toLocaleString('pt-BR')}</div>
     <div id="dashArea"><div class="loading">Carregando dados…</div></div>`;
   try{
-    const [acc,tx,rec,pag,tsk,unc]=await Promise.all([
-      db.from('financial_accounts').select('saldo_inicial,company_id'),
-      db.from('bank_transactions').select('tipo,valor,company_id'),
-      db.from('vw_contas_receber').select('saldo,situacao,company_id'),
-      db.from('vw_contas_pagar').select('saldo,situacao,company_id'),
+    const [res,tsk,unc]=await Promise.all([
+      db.rpc('resumo_financeiro',{ p_company:null }),
       db.from('tasks').select('prazo,status,company_id'),
       db.from('bank_transactions').select('id',{count:'exact',head:true}).eq('conciliado',false).eq('origem','importado').in('tipo',['entrada','saida']),
     ]);
-    for(const r of [acc,tx,rec,pag,tsk]) if(r.error) throw r.error;
-    const aberto=s=>!['recebido','pago','cancelado'].includes(s);
-    const per={}; // company_id -> agregados
-    const get=id=>(per[id]=per[id]||{saldoI:0,ent:0,sai:0,aReceber:0,aPagar:0,vencR:0,vencP:0});
-    (acc.data||[]).forEach(x=>get(x.company_id).saldoI+=Number(x.saldo_inicial||0));
-    (tx.data||[]).forEach(x=>{ const p=get(x.company_id); if(x.tipo==='entrada')p.ent+=Number(x.valor); else if(x.tipo==='saida')p.sai+=Number(x.valor); });
-    (rec.data||[]).forEach(x=>{ const p=get(x.company_id); if(aberto(x.situacao))p.aReceber+=Number(x.saldo); if(x.situacao==='vencido')p.vencR+=Number(x.saldo); });
-    (pag.data||[]).forEach(x=>{ const p=get(x.company_id); if(aberto(x.situacao))p.aPagar+=Number(x.saldo); if(x.situacao==='vencido')p.vencP+=Number(x.saldo); });
+    for(const r of [res,tsk]) if(r.error) throw r.error;
+    const per={}; // company_id -> agregados (somados no banco: sem limite de 1.000 linhas)
+    (res.data||[]).forEach(x=>{ per[x.company_id]={saldoI:Number(x.saldo),ent:0,sai:0,aReceber:Number(x.receber_aberto),aPagar:Number(x.pagar_aberto),vencR:Number(x.receber_vencido),vencP:Number(x.pagar_vencido)}; });
     const hoje=todayStr();
     const tarefasAtras=(tsk.data||[]).filter(t=>t.prazo&&t.prazo<hoje&&!['concluida','cancelada'].includes(t.status)).length;
     const naoConc=unc.count||0;
@@ -499,24 +497,16 @@ async function renderDashboard(){
     <div class="updated">Atualizado agora · ${new Date().toLocaleString('pt-BR')}</div>
     <div id="dashArea"><div class="loading">Carregando dados…</div></div>`;
   try{
-    const [acc,tx,rec,pag]=await Promise.all([
-      scopeQ(db.from('financial_accounts').select('saldo_inicial,company_id')),
-      scopeQ(db.from('bank_transactions').select('tipo,valor,company_id')),
-      scopeQ(db.from('vw_contas_receber').select('saldo,situacao,vencimento,descricao,company_id')),
-      scopeQ(db.from('vw_contas_pagar').select('saldo,situacao,vencimento,descricao,company_id')),
+    const vw=(t,sit,asc)=>db.from(t).select('saldo,situacao,vencimento,descricao').eq('company_id',companyId).eq('situacao',sit).order('vencimento',{ascending:asc}).limit(8);
+    const [res,pR,pP,vR,vP]=await Promise.all([
+      db.rpc('resumo_financeiro',{ p_company:companyId }),
+      vw('vw_contas_receber','a_vencer',true), vw('vw_contas_pagar','a_vencer',true),
+      vw('vw_contas_receber','vencido',true),  vw('vw_contas_pagar','vencido',true),
     ]);
-    for(const r of [acc,tx,rec,pag]) if(r.error) throw r.error;
-    const A=acc.data||[],T=tx.data||[],R=rec.data||[],P=pag.data||[];
-    const sum=(arr,f)=>arr.reduce((s,x)=>s+Number(f(x)||0),0);
-    const saldoAtual=sum(A,x=>x.saldo_inicial)+sum(T.filter(t=>t.tipo==='entrada'),x=>x.valor)-sum(T.filter(t=>t.tipo==='saida'),x=>x.valor);
-    const aberto=s=>!['recebido','pago','cancelado'].includes(s);
-    const aReceber=sum(R.filter(r=>aberto(r.situacao)),x=>x.saldo);
-    const aPagar=sum(P.filter(p=>aberto(p.situacao)),x=>x.saldo);
-    const vencR=sum(R.filter(r=>r.situacao==='vencido'),x=>x.saldo);
-    const vencP=sum(P.filter(p=>p.situacao==='vencido'),x=>x.saldo);
-    const lim=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
-    const recebPrev=sum(R.filter(r=>r.situacao==='a_vencer'&&r.vencimento<=lim),x=>x.saldo);
-    const pagPrev=sum(P.filter(p=>p.situacao==='a_vencer'&&p.vencimento<=lim),x=>x.saldo);
+    for(const r of [res,pR,pP,vR,vP]) if(r.error) throw r.error;
+    const z=(res.data||[])[0]||{}, N=k=>Number(z[k]||0);
+    const saldoAtual=N('saldo'), aReceber=N('receber_aberto'), aPagar=N('pagar_aberto');
+    const vencR=N('receber_vencido'), vencP=N('pagar_vencido'), recebPrev=N('receber_30d'), pagPrev=N('pagar_30d');
     const cards=[
       {lbl:'Saldo atual',dot:'t',val:money(saldoAtual),cls:saldoAtual<0?'neg':''},
       {lbl:'Contas a receber',dot:'g',val:money(aReceber)},
@@ -527,9 +517,9 @@ async function renderDashboard(){
       {lbl:'Vencido a receber',dot:'r',val:money(vencR),cls:vencR>0?'warn':''},
       {lbl:'Vencido a pagar',dot:'r',val:money(vencP),cls:vencP>0?'neg':''},
     ];
-    const prox=[...R.filter(r=>r.situacao==='a_vencer').map(r=>({tipo:'receber',...r})),...P.filter(p=>p.situacao==='a_vencer').map(p=>({tipo:'pagar',...p}))]
+    const prox=[...(pR.data||[]).map(r=>({tipo:'receber',...r})),...(pP.data||[]).map(p=>({tipo:'pagar',...p}))]
       .sort((a,b)=>a.vencimento.localeCompare(b.vencimento)).slice(0,8);
-    const venc=[...R.filter(r=>r.situacao==='vencido').map(r=>({tipo:'receber',...r})),...P.filter(p=>p.situacao==='vencido').map(p=>({tipo:'pagar',...p}))]
+    const venc=[...(vR.data||[]).map(r=>({tipo:'receber',...r})),...(vP.data||[]).map(p=>({tipo:'pagar',...p}))]
       .sort((a,b)=>daysLate(b.vencimento)-daysLate(a.vencimento)).slice(0,8);
     $('dashArea').innerHTML=`
       <div class="cards">${cards.map(c=>`<div class="kpi"><div class="lbl"><span class="dot ${c.dot}"></span>${c.lbl}</div><div class="val ${c.cls||''}">${c.val}</div></div>`).join('')}</div>
@@ -1328,28 +1318,50 @@ async function renderFluxo(){
 }
 async function loadFluxo(){
   try{
-    const [acc,tx,rec,pag]=await Promise.all([
+    const [acc,fm]=await Promise.all([
       scopeQ(db.from('financial_accounts').select('saldo_inicial,company_id')),
-      scopeQ(db.from('bank_transactions').select('tipo,valor,data,descricao,company_id')),
-      scopeQ(db.from('vw_contas_receber').select('saldo,situacao,vencimento,descricao,company_id')),
-      scopeQ(db.from('vw_contas_pagar').select('saldo,situacao,vencimento,descricao,company_id')),
+      db.rpc('fluxo_mensal',{ p_company:companyId||null }),
     ]);
-    for(const r of [acc,tx,rec,pag]) if(r.error) throw r.error;
+    for(const r of [acc,fm]) if(r.error) throw r.error;
     const base=(acc.data||[]).reduce((s,x)=>s+Number(x.saldo_inicial||0),0);
-    const realE={},realS={},prevE={},prevS={},movsReal=[],movsPrev=[];
-    (tx.data||[]).forEach(t=>{
-      const k=ymOf(t.data);
-      if(t.tipo==='entrada'){ realE[k]=(realE[k]||0)+Number(t.valor); movsReal.push({ym:k,data:t.data,descricao:t.descricao||'Recebimento',valor:Number(t.valor),tipo:'entrada',origem:'realizado'}); }
-      else if(t.tipo==='saida'){ realS[k]=(realS[k]||0)+Number(t.valor); movsReal.push({ym:k,data:t.data,descricao:t.descricao||'Pagamento',valor:Number(t.valor),tipo:'saida',origem:'realizado'}); }
-    });
-    const aberto=s=>!['recebido','pago','cancelado'].includes(s);
-    (rec.data||[]).forEach(r=>{ if(aberto(r.situacao)&&Number(r.saldo)>0){ const k=ymOf(r.vencimento); prevE[k]=(prevE[k]||0)+Number(r.saldo); movsPrev.push({ym:k,data:r.vencimento,descricao:r.descricao||'A receber',valor:Number(r.saldo),tipo:'entrada',origem:'previsto'}); } });
-    (pag.data||[]).forEach(p=>{ if(aberto(p.situacao)&&Number(p.saldo)>0){ const k=ymOf(p.vencimento); prevS[k]=(prevS[k]||0)+Number(p.saldo); movsPrev.push({ym:k,data:p.vencimento,descricao:p.descricao||'A pagar',valor:Number(p.saldo),tipo:'saida',origem:'previsto'}); } });
-    fluxoData={base,realE,realS,prevE,prevS,movsReal,movsPrev};
+    const realE={},realS={},prevE={},prevS={};
+    (fm.data||[]).forEach(x=>{ const k=x.ym;
+      if(+x.real_e) realE[k]=Number(x.real_e); if(+x.real_s) realS[k]=Number(x.real_s);
+      if(+x.prev_e) prevE[k]=Number(x.prev_e); if(+x.prev_s) prevS[k]=Number(x.prev_s); });
+    fluxoData={base,realE,realS,prevE,prevS}; fluxoDet={};
     drawFluxo();
   }catch(err){
     $('fluxoArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`;
   }
+}
+// detalhe do mês: carrega só quando o mês é aberto
+let fluxoDet={};
+async function loadFluxoDet(ym){
+  if(fluxoDet[ym]) return;
+  fluxoDet[ym]='loading';
+  const [y,m]=ym.split('-').map(Number), [ny,nm]=addMes(y,m,1);
+  const ini=`${ym}-01`, fim=`${ny}-${String(nm).padStart(2,'0')}-01`;
+  try{
+    const [tx,rec,pag]=await Promise.all([
+      scopeQ(db.from('bank_transactions').select('data,descricao,valor,tipo').in('tipo',['entrada','saida']).gte('data',ini).lt('data',fim)).order('data').limit(1000),
+      scopeQ(db.from('vw_contas_receber').select('saldo,vencimento,descricao').not('situacao','in','(recebido,cancelado)').gt('saldo',0).gte('vencimento',ini).lt('vencimento',fim)).order('vencimento').limit(1000),
+      scopeQ(db.from('vw_contas_pagar').select('saldo,vencimento,descricao').not('situacao','in','(pago,cancelado)').gt('saldo',0).gte('vencimento',ini).lt('vencimento',fim)).order('vencimento').limit(1000),
+    ]);
+    for(const r of [tx,rec,pag]) if(r.error) throw r.error;
+    fluxoDet[ym]={
+      real:(tx.data||[]).map(t=>({ym,data:t.data,descricao:t.descricao||(t.tipo==='entrada'?'Recebimento':'Pagamento'),valor:Number(t.valor),tipo:t.tipo,origem:'realizado'})),
+      prev:[...(rec.data||[]).map(r=>({ym,data:r.vencimento,descricao:r.descricao||'A receber',valor:Number(r.saldo),tipo:'entrada',origem:'previsto'})),
+            ...(pag.data||[]).map(p=>({ym,data:p.vencimento,descricao:p.descricao||'A pagar',valor:Number(p.saldo),tipo:'saida',origem:'previsto'}))],
+      cortado:[tx,rec,pag].some(r=>(r.data||[]).length>=1000) };
+  }catch(err){ fluxoDet[ym]={erro:err.message||String(err)}; }
+  drawFluxo();
+}
+function fluxoDetalheMes(ym){
+  const d=fluxoDet[ym];
+  if(!d||d==='loading'){ if(!d) loadFluxoDet(ym); return '<div class="loading" style="padding:14px">Carregando movimentos…</div>'; }
+  if(d.erro) return `<div class="empty" style="padding:16px">Erro: ${esc(d.erro)}</div>`;
+  const movs=fluxoMode==='realizado'?d.real:(fluxoMode==='previsto'?d.prev:[...d.real,...d.prev]);
+  return fluxoDetail(ym,movs)+(d.cortado?'<div class="hint" style="padding:6px 38px 10px">Mês com muitos lançamentos: mostrando os primeiros 1.000 de cada tipo. Os totais do mês estão completos.</div>':'');
 }
 function fluxoDetail(ym,movs){
   const list=movs.filter(m=>m.ym===ym).sort((a,b)=>a.data.localeCompare(b.data));
@@ -1362,13 +1374,12 @@ function fluxoDetail(ym,movs){
 }
 function drawFluxo(){
   if(!fluxoData) return;
-  const {base,realE,realS,prevE,prevS,movsReal,movsPrev}=fluxoData;
+  const {base,realE,realS,prevE,prevS}=fluxoData;
   const E={},S={};
   const add=(dst,src)=>{ for(const k in src) dst[k]=(dst[k]||0)+src[k]; };
-  let detail;
-  if(fluxoMode==='realizado'){ add(E,realE); add(S,realS); detail=movsReal; }
-  else if(fluxoMode==='previsto'){ add(E,prevE); add(S,prevS); detail=movsPrev; }
-  else { add(E,realE); add(E,prevE); add(S,realS); add(S,prevS); detail=[...movsReal,...movsPrev]; }
+  if(fluxoMode==='realizado'){ add(E,realE); add(S,realS); }
+  else if(fluxoMode==='previsto'){ add(E,prevE); add(S,prevS); }
+  else { add(E,realE); add(E,prevE); add(S,realS); add(S,prevS); }
 
   const months=monthsRange([...new Set([...Object.keys(E),...Object.keys(S)])]);
   if(!months.length){ $('fluxoArea').innerHTML='<div class="panel"><div class="empty">Sem movimentos para exibir neste modo.</div></div>'; return; }
@@ -1403,7 +1414,7 @@ function drawFluxo(){
       <td class="r" style="color:var(--green)">${l.e?money(l.e):'—'}</td>
       <td class="r" style="color:var(--red)">${l.s?money(l.s):'—'}</td>
       <td class="r" style="font-weight:600;color:${l.fim<0?'var(--red)':'var(--ink)'}">${money(l.fim)}</td></tr>`;
-    const det=open?`<tr><td colspan="5" style="padding:0;background:var(--panel-2)">${fluxoDetail(l.ym,detail)}</td></tr>`:'';
+    const det=open?`<tr><td colspan="5" style="padding:0;background:var(--panel-2)">${fluxoDetalheMes(l.ym)}</td></tr>`:'';
     return main+det;
   }).join('');
 
@@ -2292,20 +2303,57 @@ async function loadRxO(){
 
 /* ===================== CONTROLADORIA — INDICADORES ===================== */
 let indCo='', indAno=new Date().getFullYear(), indMes=0, indMetas={};
-const IND_ORDER=['faturamento','receita_liquida','custos','despesas','lucro','margem_liquida','fluxo_caixa','saldo','inadimplencia','ticket_medio','pmr','pmp'];
-const IND_NOME={faturamento:'Faturamento',receita_liquida:'Receita líquida',despesas:'Despesas',custos:'Custos',lucro:'Lucro',margem_liquida:'Margem líquida',inadimplencia:'Inadimplência',ticket_medio:'Ticket médio',pmr:'Prazo médio recebimento',pmp:'Prazo médio pagamento',saldo:'Saldo atual',fluxo_caixa:'Fluxo de caixa (período)'};
-const IND_UNID={faturamento:'moeda',receita_liquida:'moeda',despesas:'moeda',custos:'moeda',lucro:'moeda',margem_liquida:'percent',inadimplencia:'percent',ticket_medio:'moeda',pmr:'dias',pmp:'dias',saldo:'moeda',fluxo_caixa:'moeda'};
-const fmtInd=(k,v)=> IND_UNID[k]==='percent'?(v==null?'—':v.toFixed(1)+'%') : IND_UNID[k]==='dias'?(v==null?'—':Math.round(v)+' dias') : money(v);
+const IND_GRUPOS=[
+  {t:'Resultado', k:['faturamento','receita_liquida','custos','despesas','lucro','crescimento']},
+  {t:'Margens e equilíbrio', k:['margem_bruta','margem_operacional','margem_liquida','ponto_equilibrio']},
+  {t:'Caixa e liquidez', k:['saldo','fluxo_caixa','liquidez','folego_caixa']},
+  {t:'Prazos e risco', k:['pmr','pmp','inadimplencia','ticket_medio']},
+];
+const IND_ORDER=IND_GRUPOS.flatMap(g=>g.k);
+const IND_NOME={faturamento:'Faturamento',receita_liquida:'Receita líquida',despesas:'Despesas operacionais',custos:'Custos',lucro:'Lucro líquido',
+  margem_liquida:'Margem líquida',inadimplencia:'Inadimplência',ticket_medio:'Ticket médio',pmr:'Prazo médio recebimento',pmp:'Prazo médio pagamento',
+  saldo:'Saldo atual',fluxo_caixa:'Fluxo de caixa (período)',margem_bruta:'Margem bruta',margem_operacional:'Margem operacional',
+  crescimento:'Crescimento da receita',ponto_equilibrio:'Ponto de equilíbrio (estimado)',liquidez:'Liquidez corrente',folego_caixa:'Fôlego de caixa'};
+const IND_UNID={faturamento:'moeda',receita_liquida:'moeda',despesas:'moeda',custos:'moeda',lucro:'moeda',margem_liquida:'percent',inadimplencia:'percent',
+  ticket_medio:'moeda',pmr:'dias',pmp:'dias',saldo:'moeda',fluxo_caixa:'moeda',margem_bruta:'percent',margem_operacional:'percent',crescimento:'percent',
+  ponto_equilibrio:'moeda',liquidez:'indice',folego_caixa:'dias'};
+const IND_DICA={
+  faturamento:'Receita bruta do período (por competência).',
+  receita_liquida:'Receita bruta − deduções.',
+  custos:'Custos mapeados na DRE.',
+  despesas:'Despesas operacionais mapeadas na DRE.',
+  lucro:'Resultado líquido da DRE: receita líquida − custos − despesas ± resultado financeiro − impostos.',
+  crescimento:'Receita bruta comparada com o mesmo período do ano anterior. No ano corrente, compara jan até o mês atual.',
+  margem_bruta:'(Receita líquida − custos) ÷ receita líquida.',
+  margem_operacional:'Resultado operacional ÷ receita líquida.',
+  margem_liquida:'Lucro líquido ÷ receita líquida.',
+  ponto_equilibrio:'Receita líquida necessária pra empatar: despesas operacionais ÷ margem de contribuição. Estimado: trata custos como variáveis e despesas operacionais como fixas.',
+  saldo:'Saldo de hoje: saldos iniciais + entradas − saídas de todas as contas.',
+  fluxo_caixa:'Entradas − saídas realizadas no período.',
+  liquidez:'(Saldo + contas a receber em aberto) ÷ contas a pagar em aberto. Acima de 1 = cobre as obrigações.',
+  folego_caixa:'Quantos dias o saldo atual aguenta, pela média de saídas dos últimos 3 meses fechados.',
+  pmr:'Contas a receber em aberto ÷ faturamento × dias do período.',
+  pmp:'Contas a pagar em aberto ÷ (custos + despesas) × dias do período.',
+  inadimplencia:'Valor vencido a receber ÷ total a receber em aberto (foto de hoje).',
+  ticket_medio:'Faturamento ÷ nº de títulos a receber do período.',
+};
+const fmtInd=(k,v)=>{ const u=IND_UNID[k];
+  if(v==null||!isFinite(v)) return '—';
+  if(u==='percent') return (k==='crescimento'&&v>0?'+':'')+v.toFixed(1).replace('.',',')+'%';
+  if(u==='dias') return Math.round(v)+' dias';
+  if(u==='indice') return v.toFixed(2).replace('.',',')+'×';
+  return money(v); };
+const indUnidLbl=k=>({percent:'%',dias:'dias',indice:'×',moeda:'R$'})[IND_UNID[k]];
 
 async function renderIndicadores(){
   indCo=companyId||'';
   $('main').innerHTML=`<div class="page-h"><h1>Indicadores</h1><div class="spacer"></div>
     <button class="btn ghost" id="btnMetas">Definir metas</button></div>
-    <div class="updated">Indicadores financeiros do período. Saldo e inadimplência são a foto de agora.</div>
+    <div class="updated">Indicadores do período. Saldo, liquidez, fôlego e inadimplência são a foto de hoje. Passe o mouse num card pra ver a fórmula.</div>
     <div class="filters">
       <div class="fg"><label>Empresa</label><select id="inCo"><option value="">Todas as empresas</option>${companies.map(c=>`<option value="${c.id}" ${c.id===indCo?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
       <div class="fg"><label>Ano</label><input id="inAno" type="number" value="${indAno}" style="max-width:110px"></div>
-      <div class="fg"><label>Período</label><select id="inMes"><option value="0">Ano todo</option>${MES3.map((m,i)=>`<option value="${i+1}">${MESNOME[i]}</option>`).join('')}</select></div>
+      <div class="fg"><label>Período</label><select id="inMes"><option value="0">Ano todo</option>${MES3.map((m,i)=>`<option value="${i+1}" ${indMes===i+1?'selected':''}>${MESNOME[i]}</option>`).join('')}</select></div>
     </div>
     <div id="inArea"><div class="loading">Calculando…</div></div>`;
   $('btnMetas').onclick=openMetas;
@@ -2315,73 +2363,148 @@ async function renderIndicadores(){
   await loadIndicadores();
 }
 function coFilter(q){ return indCo?q.eq('company_id',indCo):q; }
+// soma natureza → valor dentro de [ini, fim] (meses 'YYYY-MM-01')
+function indNat(data, ini, fim){
+  const N={receita_bruta:0,deducao:0,custo:0,despesa_operacional:0,imposto:0,resultado_financeiro:0};
+  data.forEach(d=>{ if(!d.natureza||N[d.natureza]===undefined||d.mes<ini||d.mes>fim) return; N[d.natureza]+=dreValor(d); });
+  const rl=N.receita_bruta-N.deducao, lb=rl-N.custo, ro=lb-N.despesa_operacional, ll=ro+N.resultado_financeiro-N.imposto;
+  return {...N, rl, lb, ro, ll};
+}
+const indPct=(a,b)=>b?a/b*100:null;
 async function loadIndicadores(){
   $('inArea').innerHTML='<div class="loading">Calculando…</div>';
   try{
-    await loadDreBase(); // dreCatNat = categoria -> natureza
-    const ano=indAno, ini=ano+'-01-01', fim=ano+'-12-31';
-    const [rec,realiz,vwR,vwP,bankAll,accs,metas]=await Promise.all([
-      coFilter(db.from('receivable_installments').select('competencia,status,receivable_id')).gte('competencia',ini).lte('competencia',fim),
-      dreRealizado(indCo, ini, fim),
-      coFilter(db.from('vw_contas_receber').select('saldo,valor,situacao')),
-      coFilter(db.from('vw_contas_pagar').select('saldo,situacao')),
-      coFilter(db.from('bank_transactions').select('tipo,valor,data')),
-      coFilter(db.from('financial_accounts').select('saldo_inicial')),
+    const ano=indAno, hoje=todayStr(), anoAtual=+hoje.slice(0,4), mesAtual=+hoje.slice(5,7);
+    const pIni=mesIni(ano, indMes||1), pFim=mesIni(ano, indMes||12);
+    const co=indCo||null;
+    const [realiz,res,fm,tit,metas]=await Promise.all([
+      dreRealizado(co, mesIni(ano-1,1), mesIni(ano,12)),
+      db.rpc('resumo_financeiro',{p_company:co}),
+      db.rpc('fluxo_mensal',{p_company:co}),
+      db.rpc('contar_titulos_receber',{p_company:co, p_ini:pIni, p_fim:pFim}),
       indCo?db.from('indicator_targets').select('*').eq('company_id',indCo).eq('ano',ano).is('mes',null):Promise.resolve({data:[]}),
     ]);
-    const inPer=comp=>comp && (indMes===0 || (+comp.slice(5,7))===indMes);
-    const N={receita_bruta:0,deducao:0,custo:0,despesa_operacional:0,imposto:0,resultado_financeiro:0};
-    const titulos=new Set();
-    (realiz||[]).forEach(d=>{ if(!d.natureza||N[d.natureza]===undefined||!inPer(d.mes)) return; N[d.natureza]+=dreValor(d); });
-    (rec.data||[]).forEach(r=>{ if(r.status==='cancelado'||!inPer(r.competencia))return; titulos.add(r.receivable_id); });
+    for(const r of [res,fm,tit]) if(r.error) throw r.error;
 
-    const faturamento=N.receita_bruta;
-    const receita_liquida=N.receita_bruta-N.deducao;
-    const custos=N.custo, despesas=N.despesa_operacional;
-    const lucro=receita_liquida-custos-despesas+N.resultado_financeiro-N.imposto;
-    const margem_liquida=receita_liquida!==0?(lucro/receita_liquida*100):null;
-    const ticket_medio=titulos.size?faturamento/titulos.size:0;
+    const D=indNat(realiz,pIni,pFim);
+    // crescimento: mesmo recorte do ano anterior (no ano corrente, "ano todo" = jan até o mês atual)
+    const cIni=pIni, cFim=(indMes===0 && ano===anoAtual)?mesIni(ano,mesAtual):pFim;
+    const Dc=indNat(realiz,cIni,cFim), Dp=indNat(realiz,mesIni(ano-1,+cIni.slice(5,7)),mesIni(ano-1,+cFim.slice(5,7)));
 
-    // snapshot
-    const abertoR=(vwR.data||[]).filter(r=>!['recebido','cancelado'].includes(r.situacao));
-    const receberAberto=abertoR.reduce((s,r)=>s+Number(r.saldo||0),0);
-    const vencidoR=(vwR.data||[]).filter(r=>r.situacao==='vencido').reduce((s,r)=>s+Number(r.saldo||0),0);
-    const totalR=receberAberto; const inadimplencia=totalR>0?(vencidoR/totalR*100):0;
-    const pagarAberto=(vwP.data||[]).filter(p=>!['pago','cancelado'].includes(p.situacao)).reduce((s,p)=>s+Number(p.saldo||0),0);
-    const saldoInicial=(accs.data||[]).reduce((s,a)=>s+Number(a.saldo_inicial||0),0);
-    const entradasAll=(bankAll.data||[]).filter(t=>t.tipo==='entrada').reduce((s,t)=>s+Number(t.valor),0);
-    const saidasAll=(bankAll.data||[]).filter(t=>t.tipo==='saida').reduce((s,t)=>s+Number(t.valor),0);
-    const saldo=saldoInicial+entradasAll-saidasAll;
-    const inPerData=d=>d && (+d.slice(0,4)===ano) && (indMes===0||(+d.slice(5,7))===indMes);
-    const entP=(bankAll.data||[]).filter(t=>t.tipo==='entrada'&&inPerData(t.data)).reduce((s,t)=>s+Number(t.valor),0);
-    const saiP=(bankAll.data||[]).filter(t=>t.tipo==='saida'&&inPerData(t.data)).reduce((s,t)=>s+Number(t.valor),0);
-    const fluxo_caixa=entP-saiP;
+    const R=(res.data||[]).reduce((s,x)=>{ ['saldo','receber_aberto','receber_vencido','pagar_aberto'].forEach(k=>s[k]+=Number(x[k]||0)); return s; },{saldo:0,receber_aberto:0,receber_vencido:0,pagar_aberto:0});
+    const F=fm.data||[];
+    const ymP=[pIni.slice(0,7), pFim.slice(0,7)];
+    const fluxo_caixa=F.filter(x=>x.ym>=ymP[0]&&x.ym<=ymP[1]).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
+    // fôlego: média de saídas dos 3 meses fechados antes do mês atual
+    const ult3=[1,2,3].map(n=>{ const [a,m]=addMes(anoAtual,mesAtual,-n); return `${a}-${String(m).padStart(2,'0')}`; });
+    const saidaMedia=F.filter(x=>ult3.includes(x.ym)).reduce((s,x)=>s+Number(x.real_s),0)/3;
     const dias=indMes===0?365:30;
-    const pmr=faturamento>0?(receberAberto/faturamento*dias):null;
-    const pmp=(custos+despesas)>0?(pagarAberto/(custos+despesas)*dias):null;
+    const mc=D.rl?(D.rl-D.custo)/D.rl:null;
+    const titulos=Number(tit.data||0);
 
-    const val={faturamento,receita_liquida,custos,despesas,lucro,margem_liquida,inadimplencia,ticket_medio,pmr,pmp,saldo,fluxo_caixa};
+    const val={
+      faturamento:D.receita_bruta, receita_liquida:D.rl, custos:D.custo, despesas:D.despesa_operacional, lucro:D.ll,
+      crescimento:Dp.receita_bruta?(Dc.receita_bruta-Dp.receita_bruta)/Math.abs(Dp.receita_bruta)*100:null,
+      margem_bruta:indPct(D.lb,D.rl), margem_operacional:indPct(D.ro,D.rl), margem_liquida:indPct(D.ll,D.rl),
+      ponto_equilibrio:(mc&&mc>0)?D.despesa_operacional/mc:null,
+      saldo:R.saldo, fluxo_caixa,
+      liquidez:R.pagar_aberto>0?(R.saldo+R.receber_aberto)/R.pagar_aberto:null,
+      folego_caixa:saidaMedia>0?Math.max(0,R.saldo)/(saidaMedia/30):null,
+      pmr:D.receita_bruta>0?(R.receber_aberto/D.receita_bruta*dias):null,
+      pmp:(D.custo+D.despesa_operacional)>0?(R.pagar_aberto/(D.custo+D.despesa_operacional)*dias):null,
+      inadimplencia:R.receber_aberto>0?(R.receber_vencido/R.receber_aberto*100):0,
+      ticket_medio:titulos?D.receita_bruta/titulos:0,
+    };
     indMetas={}; (metas.data||[]).forEach(m=>indMetas[m.indicador]={id:m.id,meta:Number(m.meta)});
 
-    const cards=IND_ORDER.map(k=>{
-      const v=val[k]; const meta=indMetas[k];
-      let metaHtml='';
+    const negRuim=['lucro','fluxo_caixa','saldo','margem_bruta','margem_operacional','margem_liquida','crescimento'];
+    const card=k=>{
+      const v=val[k], meta=indMetas[k]; let extra='';
       if(meta && indMes===0 && IND_UNID[k]!=='dias'){
-        const pct=meta.meta!==0?(v/meta.meta*100):null;
-        metaHtml=`<div class="meta">Meta: ${fmtInd(k,meta.meta)}${pct!=null?` · ${pct.toFixed(0)}% atingido`:''}</div>
+        const pct=meta.meta!==0&&v!=null?(v/meta.meta*100):null;
+        extra=`<div class="meta">Meta: ${fmtInd(k,meta.meta)}${pct!=null?` · ${pct.toFixed(0)}% atingido`:''}</div>
           <div class="metabar"><span style="width:${Math.max(0,Math.min(100,pct||0))}%"></span></div>`;
       }
-      return `<div class="kpi"><div class="lbl">${IND_NOME[k]}</div><div class="val ${(k==='lucro'||k==='fluxo_caixa'||k==='saldo')&&v<0?'neg':''}">${fmtInd(k,v)}</div>${metaHtml}</div>`;
-    }).join('');
+      if(k==='liquidez' && v!=null) extra+=`<div class="meta">${v>=1?'Cobre as contas em aberto':'Não cobre as contas em aberto'}</div>`;
+      if(k==='ponto_equilibrio' && v!=null && D.rl) extra+=`<div class="meta">${D.rl>=v?'Acima':'Abaixo'} do equilíbrio (${(D.rl/v*100).toFixed(0)}%)</div>`;
+      const cls=(negRuim.includes(k)&&v!=null&&v<0)?'neg':(k==='liquidez'&&v!=null&&v<1?'warn':'');
+      return `<div class="kpi" title="${esc(IND_DICA[k])}"><div class="lbl">${IND_NOME[k]} <span class="ind-i">ⓘ</span></div><div class="val ${cls}">${fmtInd(k,v)}</div>${extra}</div>`;
+    };
+    const grupos=IND_GRUPOS.map(g=>`<div class="ind-grupo">${g.t}</div><div class="cards">${g.k.map(card).join('')}</div>`).join('');
+
+    // gráficos do ano
+    await loadDreBase();
+    const meses=[...Array(12)].map((_,i)=>i+1);
+    const porMes=meses.map(m=>indNat(realiz,mesIni(ano,m),mesIni(ano,m)));
+    const ch1=svgChart({ labels:MES3, series:[
+      {nome:'Receita líquida', cor:'var(--teal,#0d9488)', vals:porMes.map(x=>x.rl)},
+      {nome:'Lucro líquido', cor:'var(--green)', corNeg:'var(--red)', vals:porMes.map(x=>x.ll)} ],
+      line:{nome:'Margem líquida', cor:'var(--amber)', vals:porMes.map(x=>x.rl?x.ll/x.rl*100:null), fmt:v=>v.toFixed(0)+'%'} });
+    const totalReal=F.reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
+    let acum=R.saldo-totalReal; // saldo antes do primeiro movimento
+    F.filter(x=>x.ym<`${ano}-01`).forEach(x=>{ acum+=Number(x.real_e)-Number(x.real_s); });
+    const fAno=meses.map(m=>F.find(x=>x.ym===`${ano}-${String(m).padStart(2,'0')}`)||{real_e:0,real_s:0});
+    const saldoMes=fAno.map(x=>{ acum+=Number(x.real_e)-Number(x.real_s); return acum; });
+    const ateHoje=meses.map(m=>ano<anoAtual||(ano===anoAtual&&m<=mesAtual));
+    const ch2=svgChart({ labels:MES3, series:[
+      {nome:'Entradas', cor:'var(--green)', vals:fAno.map(x=>Number(x.real_e))},
+      {nome:'Saídas', cor:'var(--red)', vals:fAno.map(x=>Number(x.real_s))} ],
+      line:{nome:'Saldo no fim do mês', cor:'var(--teal,#0d9488)', vals:saldoMes.map((v,i)=>ateHoje[i]?v:null), fmt:v=>moneyCurto(v)} });
+
     const per=indMes===0?('Ano '+ano):(MESNOME[indMes-1]+'/'+ano);
-    $('inArea').innerHTML=`<div class="updated" style="margin-bottom:8px">Período: <b>${per}</b>${indCo?'':' · consolidado'}</div><div class="cards">${cards}</div>`;
+    $('inArea').innerHTML=`<div class="updated" style="margin-bottom:8px">Período: <b>${per}</b>${indCo?'':' · consolidado'}</div>${grupos}
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel"><h3><span class="dot t"></span>Receita líquida × lucro · ${ano}</h3>${ch1}</div>
+        <div class="panel"><h3><span class="dot t"></span>Entradas × saídas (realizado) · ${ano}</h3>${ch2}</div>
+      </div>`;
   }catch(err){ $('inArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
+}
+// "R$ 12,3 mil" / "R$ 1,2 mi"
+function moneyCurto(v){ const a=Math.abs(v), s=v<0?'−':'';
+  if(a>=1e6) return s+'R$ '+(a/1e6).toFixed(1).replace('.',',')+' mi';
+  if(a>=1e3) return s+'R$ '+(a/1e3).toFixed(a>=1e4?0:1).replace('.',',')+' mil';
+  return s+'R$ '+a.toFixed(0); }
+// gráfico de barras agrupadas (aceita negativo) + linha opcional com escala própria (eixo direito)
+function svgChart({labels, series, line=null, h=240}){
+  const W=Math.max(520, labels.length*52), H=h, pl=70, pr=line?62:14, pt=14, pb=26;
+  const all=series.flatMap(s=>s.vals.map(Number).filter(isFinite));
+  if(!all.some(v=>v!==0)) return '<div class="empty" style="padding:28px">Sem dados neste ano.</div>';
+  let max=Math.max(0,...all), min=Math.min(0,...all); if(max===min) max=min+1;
+  const pad=(max-min)*0.08; max+=max>0?pad:0; min-=min<0?pad:0;
+  const y=v=>pt+(max-v)/(max-min)*(H-pt-pb);
+  const gw=(W-pl-pr)/labels.length, bw=Math.min(20,(gw-12)/series.length);
+  let g='';
+  for(let i=0;i<=4;i++){ const v=min+(max-min)*i/4, yy=y(v);
+    g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" class="sc-grid"/><text x="${pl-8}" y="${yy+4}" class="sc-ax" text-anchor="end">${moneyCurto(v)}</text>`; }
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" class="sc-zero"/>`;
+  labels.forEach((lb,i)=>{
+    series.forEach((s,j)=>{ const v=Number(s.vals[i]||0); const x=pl+i*gw+(gw-bw*series.length)/2+j*bw;
+      const top=y(Math.max(v,0)), hh=Math.max(v?1:0,Math.abs(y(v)-y(0)));
+      g+=`<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${hh.toFixed(1)}" rx="2" style="fill:${v<0&&s.corNeg?s.corNeg:s.cor}"><title>${esc(s.nome)} · ${esc(lb)}: ${money(v)}</title></rect>`; });
+    g+=`<text x="${(pl+i*gw+gw/2).toFixed(1)}" y="${H-8}" class="sc-ax" text-anchor="middle">${esc(lb)}</text>`;
+  });
+  if(line){
+    const lv=line.vals.map(v=>v==null||!isFinite(v)?null:Number(v)); const ok=lv.filter(v=>v!=null);
+    if(ok.length){
+      let lmax=Math.max(...ok), lmin=Math.min(...ok); if(lmax===lmin){ lmax+=1; lmin-=1; }
+      const ly=v=>pt+(lmax-v)/(lmax-lmin)*(H-pt-pb);
+      let path='', pen=false;
+      lv.forEach((v,i)=>{ if(v==null){ pen=false; return; } const x=pl+i*gw+gw/2; path+=(pen?'L':'M')+x.toFixed(1)+' '+ly(v).toFixed(1)+' '; pen=true; });
+      g+=`<path d="${path}" fill="none" style="stroke:${line.cor}" stroke-width="2.5"/>`;
+      lv.forEach((v,i)=>{ if(v==null) return; const x=pl+i*gw+gw/2;
+        g+=`<circle cx="${x.toFixed(1)}" cy="${ly(v).toFixed(1)}" r="3.5" style="fill:${line.cor}"><title>${esc(line.nome)} · ${esc(labels[i])}: ${line.fmt(v)}</title></circle>`; });
+      [lmin,(lmin+lmax)/2,lmax].forEach(v=>{ g+=`<text x="${W-pr+6}" y="${ly(v)+4}" class="sc-ax">${line.fmt(v)}</text>`; });
+    }
+  }
+  const leg=[...series.map(s=>`<span><span class="sc-dot" style="background:${s.cor}"></span>${esc(s.nome)}</span>`),
+    line?`<span><span class="sc-dot sc-line" style="background:${line.cor}"></span>${esc(line.nome)} (eixo direito)</span>`:''].join('');
+  return `<div class="sc-leg">${leg}</div><div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="sc-svg">${g}</svg></div>`;
 }
 function openMetas(){
   if(!indCo){ toast('Selecione uma empresa para definir metas.','err'); return; }
   const rows=IND_ORDER.filter(k=>IND_UNID[k]!=='dias').map(k=>{
     const m=indMetas[k];
-    return `<tr><td>${IND_NOME[k]} <span style="color:var(--muted);font-size:11px">(${IND_UNID[k]==='percent'?'%':'R$'})</span></td>
+    return `<tr><td>${IND_NOME[k]} <span style="color:var(--muted);font-size:11px">(${indUnidLbl(k)})</span></td>
       <td><input data-meta="${k}" type="number" step="0.01" value="${m?m.meta:''}" style="width:130px"></td></tr>`;
   }).join('');
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
