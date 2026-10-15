@@ -248,11 +248,14 @@ function clipFor(c, tr, p) {
 /* VO_DELAY: quanto tempo após o início da cena a narração começa.
    Se houver narração (audio/duracoes.js), a cena é esticada para a fala caber. */
 const VO_DELAY = .3, VO_TAIL = .45;
+const BPM = 120, BEAT = 60 / BPM; // igual ao BPM de gerar_audio.py
 function makeTimeline(scenes, vo = []) {
   let acc = 0;
   scenes.forEach((s, i) => {
     s.vo = vo[i] || 0;
     if (s.vo) s.d = Math.max(s.d, VO_DELAY + s.vo + VO_TAIL);
+    // arredonda para o tempo da batida: cada troca de cena cai num tempo da música
+    s.d = Math.max(BEAT, Math.round(s.d / BEAT) * BEAT);
     s.start = acc; acc += s.d;
   });
   return { scenes, duration: acc };

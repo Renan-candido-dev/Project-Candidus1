@@ -213,6 +213,113 @@ def musica(segundos=110, bpm=100, seed=7):
     print('  trilha: audio/musica.mp3', segundos, 's')
 
 
+# ---------------------------------------------------------------- batida + efeitos
+BPM = 120  # precisa bater com BPM em engine.js (as trocas de cena caem no tempo)
+
+
+def lowpass(x, fc):
+    """filtro passa-baixa de 1 polo; fc pode variar no tempo (array)"""
+    fc = np.broadcast_to(fc, x.shape)
+    a = 1 - np.exp(-2 * np.pi * fc / SR)
+    y = np.zeros_like(x); acc = 0.0
+    for i in range(len(x)):
+        acc += a[i] * (x[i] - acc); y[i] = acc
+    return y
+
+
+def batida(segundos=110, bpm=BPM, seed=3):
+    """batida eletrônica (house/pop) em Ré menor, compasso 1 começa em t=0"""
+    rng = np.random.default_rng(seed)
+    beat = 60 / bpm; bar = 4 * beat; s16 = beat / 4
+    N = int(segundos * SR); L = np.zeros(N); R = np.zeros(N)
+
+    def add(sig, t0, pan=0.0, g=1.0):
+        i0 = int(round(t0 * SR))
+        if i0 >= N or i0 < 0: return
+        sig = sig[:N - i0] * g
+        L[i0:i0 + len(sig)] += sig * (1 - max(0, pan)); R[i0:i0 + len(sig)] += sig * (1 + min(0, pan))
+
+    def tt(d): return np.arange(int(d * SR)) / SR
+    t = tt(.45); kick = np.sin(2 * np.pi * np.cumsum(48 + 110 * np.exp(-t * 35)) / SR) * np.exp(-t * 7.5)
+    kick[:60] += np.linspace(.6, 0, 60) * rng.standard_normal(60) * .4
+    t = tt(.25); clap = np.zeros(len(t))
+    for k in range(3):  # palma com 3 batidas rápidas
+        n0 = int(k * .011 * SR); nz = rng.standard_normal(len(t) - n0)
+        clap[n0:] += np.diff(np.r_[0, nz]) * np.exp(-np.arange(len(nz)) / SR * (60 if k < 2 else 18))
+    clap = lowpass(clap, 5000) * 1.4
+    t = tt(.05); hat = np.diff(np.r_[0, rng.standard_normal(len(t))]) * np.exp(-t * 90)
+    t = tt(.22); ohat = np.diff(np.r_[0, rng.standard_normal(len(t))]) * np.exp(-t * 16)
+
+    prog = [(50, [62, 65, 69]), (46, [58, 62, 65]), (48, [60, 64, 67]), (45, [57, 61, 64])]  # Dm Bb C A
+    nbar = int(segundos / bar) + 1
+    for b in range(nbar):
+        t0 = b * bar; root, ch = prog[b % 4]; cheio = b >= 1
+        for k in range(4):
+            add(kick, t0 + k * beat, g=.9)
+            if cheio: add(ohat, t0 + k * beat + beat / 2, pan=.2, g=.09)
+        if cheio:
+            for k in (1, 3): add(clap, t0 + k * beat, pan=-.05, g=.35)
+        for k in range(16):
+            if k % 2 or b % 2: add(hat, t0 + k * s16, pan=-.3, g=.05 if k % 4 == 2 else .03)
+        # baixo "pumping" (fora do tempo do bumbo)
+        for k in range(4):
+            n = int(beat / 2 * SR); t = np.arange(n) / SR; f = nota(root - 12)
+            sb = np.tanh(2.2 * (np.sin(2 * np.pi * f * t) + .4 * np.sin(4 * np.pi * f * t))) * env(n, .01, .05)
+            add(sb, t0 + k * beat + beat / 2, g=.28)
+        # acordes em stab no contratempo
+        if cheio:
+            for k in (1.5, 3.5, 2.75):
+                n = int(.18 * SR); t = np.arange(n) / SR; st = np.zeros(n)
+                for m in ch + [ch[0] + 12]:
+                    f = nota(m); st += np.sign(np.sin(2 * np.pi * f * t)) * .5 + np.sin(2 * np.pi * f * 1.003 * t)
+                st = lowpass(st, 2600) * np.exp(-t * 9) * env(n, .004, .04)
+                add(st, t0 + k * beat, pan=.25 if k == 1.5 else -.25, g=.045)
+        # pad de fundo
+        n = int(bar * SR); t = np.arange(n) / SR; pd = np.zeros(n)
+        for m in ch:
+            for dt in (.997, 1.003): pd += np.sin(2 * np.pi * nota(m) * dt * t)
+        add(pd * env(n, .3, .4), t0, g=.018)
+    for d, g in ((.023, .3), (.041, .25), (.067, .2)):
+        k = int(d * SR); L[k:] += L[:-k] * g * .3; R[k:] += R[:-k] * g * .3
+    st = np.stack([L, R], 1); st = np.tanh(st / (np.max(np.abs(st)) + 1e-9) * 1.3) * .9
+    return st
+
+
+def efeitos():
+    """whoosh (transição deslizando) e impacto (corte seco)"""
+    rng = np.random.default_rng(9)
+    n = int(.7 * SR); t = np.arange(n) / SR; pico = .45
+    envw = np.where(t < pico, (t / pico) ** 2.2, np.exp(-(t - pico) * 14))
+    fc = 300 + 5200 * np.where(t < pico, t / pico, np.exp(-(t - pico) * 8))
+    nz = lowpass(rng.standard_normal(n), fc)
+    nz = nz - lowpass(nz, 150)
+    w = nz * envw; w /= np.max(np.abs(w)) + 1e-9
+    pan = np.linspace(-.7, .7, n)
+    whoosh = np.stack([w * (1 - np.clip(pan, 0, 1)), w * (1 + np.clip(pan, -1, 0))], 1) * .8
+    n = int(.9 * SR); t = np.arange(n) / SR
+    boom = np.sin(2 * np.pi * np.cumsum(40 + 70 * np.exp(-t * 20)) / SR) * np.exp(-t * 4.5)
+    crack = lowpass(rng.standard_normal(n), 3500) * np.exp(-t * 30) * .9
+    imp = boom + crack; imp = np.tanh(imp / np.max(np.abs(imp)) * 1.5) * .85
+    impact = np.stack([imp, imp], 1)
+    return {'whoosh': whoosh, 'impacto': impact}
+
+
+def salvar_mp3(nome, st):
+    wav = os.path.join(AUDIO, nome + '.wav')
+    salvar(wav, st.reshape(-1), SR, canais=2)
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', wav, '-b:a', '192k', os.path.join(AUDIO, nome + '.mp3')], check=True)
+    os.remove(wav)
+
+
+def sem_narracao():
+    """remove a narração: as cenas voltam à duração original"""
+    import shutil
+    for v in ('1', '2'):
+        shutil.rmtree(os.path.join(AUDIO, 'v' + v), ignore_errors=True)
+    with open(os.path.join(AUDIO, 'duracoes.js'), 'w', encoding='utf-8') as f:
+        f.write('/* gerado por gerar_audio.py — sem narração */\nconst VO = {"1": [], "2": []};\n')
+
+
 # ---------------------------------------------------------------- narração própria
 def importar(pasta, video):
     """Usa uma narração gravada/gerada fora daqui (sua voz ou voz licenciada).
@@ -249,7 +356,9 @@ if __name__ == '__main__':
                     help='faber, cadu, jeff (Piper, masculinas) · dora (feminina), alex, santa (Kokoro)')
     ap.add_argument('--amostras', action='store_true', help='gera amostras-voz/voz-*.mp3 de todas as vozes')
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
-    ap.add_argument('--so-musica', action='store_true')
+    ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
+    ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só batida + efeitos)')
+    ap.add_argument('--estilo', default='batida', choices=['batida', 'suave'])
     ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
     ap.add_argument('--video', choices=['1', '2'], help='vídeo da narração importada')
     a = ap.parse_args()
@@ -266,6 +375,14 @@ if __name__ == '__main__':
     if a.importar:
         if not a.video: ap.error('use --video 1 ou --video 2 junto com --importar')
         print('Importando narração:'); importar(a.importar, a.video); sys.exit()
-    if not a.so_musica:
+    os.makedirs(AUDIO, exist_ok=True)
+    if a.narrar:
         print('Narração:'); narracao(a.voz, a.velocidade)
-    print('Trilha:'); musica()
+    elif not a.so_musica:
+        sem_narracao()
+    if a.estilo == 'suave':
+        print('Trilha suave:'); musica()
+    else:
+        print('Batida:'); salvar_mp3('musica', batida()); print('  audio/musica.mp3')
+    for nome, sig in efeitos().items():
+        salvar_mp3('sfx-' + nome, sig); print('  audio/sfx-' + nome + '.mp3')

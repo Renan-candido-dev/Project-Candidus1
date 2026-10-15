@@ -6,8 +6,8 @@ de tipografia cinética do vídeo de referência, usando a identidade Candidus
 
 | Vídeo | Arquivo | Duração |
 |---|---|---|
-| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 56 s |
-| 2 · Proposta comercial (dor → solução → planos) | `out/candidus-proposta.mp4` | 76 s |
+| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 50 s |
+| 2 · Proposta comercial (dor → solução → planos) | `out/candidus-proposta.mp4` | 71,5 s |
 
 ## Pré-visualizar
 Sirva a pasta e abra o player (fontes não carregam via `file://`):
@@ -22,16 +22,17 @@ cd videos && npx serve .        # ou: python3 -m http.server
 - Vídeo 2: objeto `CFG2` em `video2-proposta.js` (dores, rotina, planos, preços, CTA).
 - Cores, fontes e animações compartilhadas: `engine.js`.
 
-## Narração e música
-- **Voz:** narração neural em pt-BR (Piper, roda offline). O texto de cada cena fica em
-  `roteiro.json`. Cada cena é esticada automaticamente para a fala caber.
-- **Música:** trilha original composta por código (`gerar_audio.py`), livre de direitos autorais.
-  Na mixagem, a música abaixa sozinha quando a voz entra.
-- Amostras das vozes disponíveis em `amostras-voz/`: faber, cadu, jeff, alex, santa (masculinas) e dora (feminina). Gere de novo com `python3 gerar_audio.py --amostras`.
+## Som: batida + transições
+- **Batida:** trilha eletrônica original a 120 BPM, composta por código (`gerar_audio.py`), livre de direitos autorais.
+- **Transições:** *whoosh* nas transições deslizantes e *impacto* nos cortes secos.
+- As durações das cenas são arredondadas para o tempo da batida (`BPM` em `engine.js`),
+  então toda troca de cena cai exatamente num tempo da música.
 
 ```bash
-pip install piper-tts sherpa-onnx numpy
-python3 gerar_audio.py --voz faber --velocidade 0.95   # gera audio/ (voz + trilha)
+pip install numpy
+python3 gerar_audio.py                    # batida + efeitos (sem narração)
+python3 gerar_audio.py --estilo suave     # trilha mais calma no lugar da batida
+python3 gerar_audio.py --narrar --voz dora  # opcional: com narração (faber, cadu, jeff, dora, alex, santa)
 ```
 
 ### Usar a sua própria voz (ou uma voz licenciada)
