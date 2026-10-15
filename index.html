@@ -3210,10 +3210,13 @@ function acharContra(lista, nome){
 }
 // texto colado (Excel/Sheets: colunas separadas por TAB, ou ;) → linhas
 // colunas: Descrição | Valor | Vencimento | Fornecedor/Cliente (opc.) | Documento (opc.)
+// separador da linha: TAB (Excel/Sheets) > ; > |
+function sepColagem(l){ return l.includes('\t')?'\t':(l.includes(';')?';':(l.includes('|')?'|':null)); }
 function parseColagem(txt){
-  return String(txt||'').split(/\r?\n/).map(l=>l.trim()?l.split(l.includes('\t')?'\t':';').map(c=>c.trim()):null).filter(Boolean)
-    .map(c=>({desc:c[0]||'', valor:loteValor(c[1]), venc:loteData(c[2]), contraNome:c[3]||'', doc:c[4]||''}))
-    .filter((r,i)=>!(i===0 && isNaN(r.valor) && !r.venc)); // pula cabeçalho
+  const linhas=String(txt||'').split(/\r?\n/).filter(l=>l.trim());
+  return linhas.map(l=>{ const sep=sepColagem(l); const c=sep?l.split(sep).map(x=>x.trim()):[l.trim()];
+      return {desc:c[0]||'', valor:loteValor(c[1]), venc:loteData(c[2]), contraNome:c[3]||'', doc:c[4]||'', semColunas:!sep}; })
+    .filter((r,i)=>!(i===0 && linhas.length>1 && !/\d/.test(linhas[0]))); // pula cabeçalho (1ª linha sem nenhum número)
 }
 function loteLinhaVazia(r){ return !r.desc && !(r.valor>0) && !r.venc && !r.contra; }
 function loteErros(r){
@@ -3256,8 +3259,8 @@ async function openLote(tipo){
           <button class="btn ghost" id="ltColarBtn" style="margin-bottom:2px">📋 Colar do Excel</button>
         </div>
         <div id="ltColarBox" style="display:none;margin-top:10px">
-          <div class="hint" style="margin-bottom:6px">Copie as linhas da planilha e cole aqui. Colunas, nesta ordem: <b>Descrição · Valor · Vencimento</b> · ${contraLbl} (opcional) · Documento (opcional). Aceita 1.234,56 e 31/10/2026.</div>
-          <textarea id="ltColar" rows="5" style="width:100%;font-family:monospace;font-size:12.5px" placeholder="Aluguel galpão	3.500,00	10/11/2026	Imobiliária Silva	NF 123"></textarea>
+          <div class="hint" style="margin-bottom:6px">Copie as linhas direto da planilha e cole aqui (ou digite separando com <b>;</b> ou <b>|</b>). Colunas, nesta ordem: <b>Descrição · Valor · Vencimento</b> · ${contraLbl} (opcional) · Documento (opcional). Aceita 1.234,56 e 31/10/2026.</div>
+          <textarea id="ltColar" rows="5" style="width:100%;font-family:monospace;font-size:12.5px" placeholder="Aluguel galpão ; 3.500,00 ; 10/11/2026 ; Imobiliária Silva ; NF 123"></textarea>
           <div style="display:flex;gap:8px;margin-top:6px"><button class="btn" id="ltColarOk">Adicionar linhas</button><button class="btn ghost" id="ltColarCancel">Fechar</button></div>
         </div>
       </div>
@@ -3324,6 +3327,7 @@ async function openLote(tipo){
   $('ltColarOk').onclick=()=>{
     const novas=parseColagem($('ltColar').value);
     if(!novas.length){ toast('Nada reconhecido no texto colado.','err'); return; }
+    if(novas.every(n=>n.semColunas)){ toast('Não reconheci as colunas. Copie direto do Excel, ou separe com ; ou | (Descrição ; Valor ; Vencimento).','err'); return; }
     const linhas=novas.map(n=>{ const c=n.contraNome?acharContra(L.cad.contra,n.contraNome):null;
       return {...novaLinha(), desc:n.desc, valor:n.valor, venc:n.venc, doc:n.doc, contra:c?c.id:'', contraMiss:(n.contraNome&&!c)?n.contraNome:''}; });
     L.rows=L.rows.filter(r=>!loteLinhaVazia(r)).concat(linhas);
