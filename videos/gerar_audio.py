@@ -285,6 +285,81 @@ def batida(segundos=110, bpm=BPM, seed=3):
     return st
 
 
+def comercial(segundos=110, bpm=BPM, seed=5):
+    """trilha corporativa/comercial: Ré maior, piano, sinos, palmas, baixo e chocalho"""
+    rng = np.random.default_rng(seed)
+    beat = 60 / bpm; bar = 4 * beat; e8 = beat / 2; s16 = beat / 4
+    N = int(segundos * SR); L = np.zeros(N); R = np.zeros(N)
+
+    def add(sig, t0, pan=0.0, g=1.0):
+        i0 = int(round(t0 * SR))
+        if i0 >= N or i0 < 0: return
+        sig = sig[:N - i0] * g
+        L[i0:i0 + len(sig)] += sig * (1 - max(0, pan)); R[i0:i0 + len(sig)] += sig * (1 + min(0, pan))
+
+    def piano(m, d=1.2):
+        n = int(d * SR); t = np.arange(n) / SR; f = nota(m); x = np.zeros(n)
+        for h, a in ((1, 1), (2, .55), (3, .3), (4, .18), (5, .1), (6, .05)):
+            x += a * np.sin(2 * np.pi * f * h * (1 + .0004 * h * h) * t) * np.exp(-t * (2.2 + h * 1.4))
+        return x * env(n, .003, .08)
+
+    def sino(m, d=1.4):  # síntese FM (glockenspiel)
+        n = int(d * SR); t = np.arange(n) / SR; f = nota(m)
+        idx = 2.2 * np.exp(-t * 6)
+        return np.sin(2 * np.pi * f * t + idx * np.sin(2 * np.pi * f * 3.5 * t)) * np.exp(-t * 3.2) * env(n, .002, .1)
+
+    t = np.arange(int(.4 * SR)) / SR
+    kick = np.sin(2 * np.pi * np.cumsum(52 + 90 * np.exp(-t * 40)) / SR) * np.exp(-t * 9)
+    t = np.arange(int(.22 * SR)) / SR; clap = np.zeros(len(t))
+    for k in range(3):
+        n0 = int(k * .010 * SR); nz = rng.standard_normal(len(t) - n0)
+        clap[n0:] += np.diff(np.r_[0, nz]) * np.exp(-np.arange(len(nz)) / SR * (70 if k < 2 else 20))
+    t = np.arange(int(.07 * SR)) / SR
+    shaker = np.diff(np.r_[0, np.diff(np.r_[0, rng.standard_normal(len(t))])]) * np.sin(np.pi * t / t[-1]) ** 2
+
+    # I – V – vi – IV em Ré maior
+    prog = [(38, [62, 66, 69, 74]), (33, [61, 64, 69, 73]), (35, [62, 66, 71, 74]), (31, [62, 67, 71, 74])]
+    mel = [[74, None, 76, 78, None, 76, 74, None], [73, None, 74, 76, None, None, 69, None],
+           [71, None, 73, 74, None, 73, 71, None], [69, None, 71, 74, None, None, None, None]]
+    ritmo_piano = [1, 0, 1, 0, 1, 1, 0, 1]
+    nbar = int(segundos / bar) + 1
+    for b in range(nbar):
+        t0 = b * bar; root, ch = prog[b % 4]
+        bateria = b >= 2; melodia = b >= 4 and (b // 8) % 2 == 0
+        # piano: acordes sincopados
+        for k, on in enumerate(ritmo_piano):
+            if not on: continue
+            for j, m in enumerate(ch):
+                add(piano(m), t0 + k * e8 + j * .004, pan=(j - 1.5) * .15, g=.11 if k % 2 == 0 else .08)
+        # baixo
+        if bateria:
+            for k in range(8):
+                n = int(e8 * .95 * SR); tb = np.arange(n) / SR
+                f = nota(root + (12 if k in (3, 7) else 0))
+                sb = np.tanh(1.6 * (np.sin(2 * np.pi * f * tb) + .25 * np.sin(4 * np.pi * f * tb))) * env(n, .008, .04)
+                add(sb, t0 + k * e8, g=.10)
+            for k in range(4):
+                add(kick, t0 + k * beat, g=.38)
+                if k in (1, 3): add(clap, t0 + k * beat, g=.3)
+            for k in range(16):
+                add(shaker, t0 + k * s16, pan=.35, g=.05 if k % 2 else .025)
+        # melodia nos sinos (gancho)
+        if melodia:
+            for k, m in enumerate(mel[b % 4]):
+                if m is not None:
+                    add(sino(m), t0 + k * e8, pan=-.2, g=.12)
+                    add(sino(m + 12), t0 + k * e8 + e8 * 1.5, pan=.4, g=.025)  # eco
+        # prato suave a cada 4 compassos
+        if bateria and b % 4 == 0:
+            n = int(1.6 * SR); tc = np.arange(n) / SR
+            crash = np.diff(np.r_[0, rng.standard_normal(n)]) * np.exp(-tc * 2.5)
+            add(crash, t0, g=.05)
+    for d, g in ((.029, .3), (.053, .25), (.089, .2), (.127, .15)):
+        k = int(d * SR); L[k:] += L[:-k] * g * .35; R[k:] += R[:-k] * g * .35
+    st = np.stack([L, R], 1)
+    return np.tanh(st / (np.max(np.abs(st)) + 1e-9) * 1.2) * .9
+
+
 def efeitos():
     """whoosh (transição deslizando) e impacto (corte seco)"""
     rng = np.random.default_rng(9)
@@ -307,7 +382,8 @@ def efeitos():
 def salvar_mp3(nome, st):
     wav = os.path.join(AUDIO, nome + '.wav')
     salvar(wav, st.reshape(-1), SR, canais=2)
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', wav, '-b:a', '192k', os.path.join(AUDIO, nome + '.mp3')], check=True)
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', wav, '-af', 'highpass=f=35', '-b:a', '192k',
+                    os.path.join(AUDIO, nome + '.mp3')], check=True)
     os.remove(wav)
 
 
@@ -358,7 +434,7 @@ if __name__ == '__main__':
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
     ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só batida + efeitos)')
-    ap.add_argument('--estilo', default='batida', choices=['batida', 'suave'])
+    ap.add_argument('--estilo', default='comercial', choices=['comercial', 'batida', 'suave'])
     ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
     ap.add_argument('--video', choices=['1', '2'], help='vídeo da narração importada')
     a = ap.parse_args()
@@ -382,7 +458,9 @@ if __name__ == '__main__':
         sem_narracao()
     if a.estilo == 'suave':
         print('Trilha suave:'); musica()
+    elif a.estilo == 'batida':
+        print('Batida eletrônica:'); salvar_mp3('musica', batida()); print('  audio/musica.mp3')
     else:
-        print('Batida:'); salvar_mp3('musica', batida()); print('  audio/musica.mp3')
+        print('Trilha comercial:'); salvar_mp3('musica', comercial()); print('  audio/musica.mp3')
     for nome, sig in efeitos().items():
         salvar_mp3('sfx-' + nome, sig); print('  audio/sfx-' + nome + '.mp3')

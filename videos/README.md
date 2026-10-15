@@ -23,15 +23,17 @@ cd videos && npx serve .        # ou: python3 -m http.server
 - Cores, fontes e animações compartilhadas: `engine.js`.
 
 ## Som: batida + transições
-- **Batida:** trilha eletrônica original a 120 BPM, composta por código (`gerar_audio.py`), livre de direitos autorais.
+- **Trilha:** estilo comercial/corporativo (piano, sinos, palmas, baixo) a 120 BPM, composta por código
+  (`gerar_audio.py`), livre de direitos autorais. Outros estilos: `--estilo batida` (eletrônica) e `--estilo suave`.
 - **Transições:** *whoosh* nas transições deslizantes e *impacto* nos cortes secos.
 - As durações das cenas são arredondadas para o tempo da batida (`BPM` em `engine.js`),
   então toda troca de cena cai exatamente num tempo da música.
 
 ```bash
 pip install numpy
-python3 gerar_audio.py                    # batida + efeitos (sem narração)
-python3 gerar_audio.py --estilo suave     # trilha mais calma no lugar da batida
+python3 gerar_audio.py                    # trilha comercial + efeitos (sem narração)
+python3 gerar_audio.py --estilo batida    # batida eletrônica
+python3 gerar_audio.py --estilo suave     # trilha mais calma
 python3 gerar_audio.py --narrar --voz dora  # opcional: com narração (faber, cadu, jeff, dora, alex, santa)
 ```
 
