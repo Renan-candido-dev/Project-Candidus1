@@ -205,4 +205,4 @@ const VIDEO2 = makeTimeline([
       txt(c, 'AGENDE UMA CONVERSA', W / 2, H * .77 + 2, { size: 54, weight: 900, color: C.dark, scale: p * pulse });
       txt(c, CFG2.cta, W / 2, H * .77 + 135, { size: 40, weight: 600, alpha: P(t, 1.8, .5) });
   } }
-]);
+], voDur('2'));

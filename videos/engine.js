@@ -245,10 +245,19 @@ function clipFor(c, tr, p) {
 }
 
 /* ---------- linha do tempo ---------- */
-function makeTimeline(scenes) {
-  let acc = 0; scenes.forEach(s => { s.start = acc; acc += s.d; });
+/* VO_DELAY: quanto tempo após o início da cena a narração começa.
+   Se houver narração (audio/duracoes.js), a cena é esticada para a fala caber. */
+const VO_DELAY = .3, VO_TAIL = .45;
+function makeTimeline(scenes, vo = []) {
+  let acc = 0;
+  scenes.forEach((s, i) => {
+    s.vo = vo[i] || 0;
+    if (s.vo) s.d = Math.max(s.d, VO_DELAY + s.vo + VO_TAIL);
+    s.start = acc; acc += s.d;
+  });
   return { scenes, duration: acc };
 }
+const voDur = v => (typeof VO !== 'undefined' && VO[v]) || [];
 
 const TR_DUR = .42;
 function renderFrame(c, tl, t) {

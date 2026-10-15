@@ -35,6 +35,7 @@
 </div>
 
 <script src="engine.js"></script>
+<script src="audio/duracoes.js"></script>
 <script src="video1-apresentacao.js"></script>
 <script src="video2-proposta.js"></script>
 <script>
@@ -62,14 +63,37 @@
   function loop(now) {
     if (!playing) return;
     const t = (now - t0) / 1000;
-    if (t >= TL.duration) { playing = false; btn.textContent = '▶ Play'; show(TL.duration); return; }
+    if (t >= TL.duration) { playing = false; stopAudio(); btn.textContent = '▶ Play'; show(TL.duration); return; }
     show(t); requestAnimationFrame(loop);
   }
-  btn.onclick = () => {
+  // áudio da pré-visualização: trilha + narração de cada cena (Web Audio)
+  const V = qs.get('v') === '2' ? '2' : '1';
+  let ac = null, bufs = null, srcs = [];
+  async function loadAudio() {
+    ac = new AudioContext();
+    const get = async u => { try { const r = await fetch(u); if (!r.ok) return null; return await ac.decodeAudioData(await r.arrayBuffer()); } catch (e) { return null; } };
+    bufs = { music: await get('audio/musica.mp3'),
+             vo: await Promise.all(TL.scenes.map((s, i) => s.vo ? get(`audio/v${V}/${String(i).padStart(2, '0')}.wav`) : null)) };
+  }
+  function stopAudio() { srcs.forEach(s => { try { s.stop(); } catch (e) {} }); srcs = []; }
+  function playAudio(from) {
+    stopAudio(); if (!bufs) return;
+    const now = ac.currentTime + .05;
+    const play = (buf, at, gain) => {
+      const off = Math.max(0, from - at); if (!buf || off >= buf.duration) return;
+      const s = ac.createBufferSource(), g = ac.createGain(); g.gain.value = gain;
+      s.buffer = buf; s.connect(g).connect(ac.destination); s.start(now + Math.max(0, at - from), off); srcs.push(s);
+    };
+    play(bufs.music, 0, .22);
+    TL.scenes.forEach((s, i) => play(bufs.vo[i], s.start + VO_DELAY, 1));
+  }
+  btn.onclick = async () => {
+    if (!ac) await loadAudio();
     playing = !playing; btn.textContent = playing ? '❚❚ Pausa' : '▶ Play';
-    if (playing) { if (cur >= TL.duration - .05) cur = 0; t0 = performance.now() - cur * 1000; requestAnimationFrame(loop); }
+    if (playing) { if (cur >= TL.duration - .05) cur = 0; t0 = performance.now() - cur * 1000; playAudio(cur); requestAnimationFrame(loop); }
+    else stopAudio();
   };
-  seek.oninput = () => { playing = false; btn.textContent = '▶ Play'; show(seek.value / 1000 * TL.duration); };
+  seek.oninput = () => { playing = false; stopAudio(); btn.textContent = '▶ Play'; show(seek.value / 1000 * TL.duration); };
   window.ready.then(() => show(0));
 </script>
 </body>

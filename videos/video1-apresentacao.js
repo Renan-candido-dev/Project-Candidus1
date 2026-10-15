@@ -161,4 +161,4 @@ const VIDEO1 = makeTimeline([
       txt(c, 'VAMOS CONVERSAR?', W / 2, H * .64 + 2, { size: 60, weight: 900, color: C.dark, scale: p * pulse });
       txt(c, CFG1.cta, W / 2, H * .64 + 140, { size: 40, weight: 600, alpha: P(t, 2, .5) });
   } }
-]);
+], voDur('1'));
