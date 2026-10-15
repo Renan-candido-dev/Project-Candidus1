@@ -262,17 +262,27 @@ function clipFor(c, tr, p) {
 /* ---------- linha do tempo ---------- */
 /* VO_DELAY: quanto tempo após o início da cena a narração começa.
    Se houver narração (audio/duracoes.js), a cena é esticada para a fala caber. */
-const VO_DELAY = .3, VO_TAIL = .45;
+const VO_DELAY = .3, VO_TAIL = .7;
 function makeTimeline(scenes, vo = []) {
   let acc = 0;
   scenes.forEach((s, i) => {
-    s.vo = vo[i] || 0;
+    s.vo = vo[i] || 0; s.idx = i; s.video = vo.video;
     if (s.vo) s.d = Math.max(s.d, VO_DELAY + s.vo + VO_TAIL);
     s.start = acc; acc += s.d;
   });
   return { scenes, duration: acc };
 }
-const voDur = v => (typeof VO !== 'undefined' && VO[v]) || [];
+const voDur = v => Object.assign((typeof VO !== 'undefined' && VO[v]) || [], { video: v });
+/* sincronia voz × imagem: momento (s, dentro da cena) em que a narração chega ao trecho `frase`.
+   Estimativa proporcional ao texto, contando as pausas de pontuação. Sem narração, usa `fb`. */
+function cue(sc, frase, fb) {
+  const txt = sc && sc.vo && typeof VO_TXT !== 'undefined' && VO_TXT[sc.video] && VO_TXT[sc.video][sc.idx];
+  if (!txt) return fb;
+  const peso = s => s.length + (s.match(/[.?!:]/g) || []).length * 6 + (s.match(/[,;]/g) || []).length * 2;
+  const i = txt.toLowerCase().indexOf(frase.toLowerCase());
+  if (i < 0) return fb;
+  return Math.max(fb * .5, VO_DELAY + sc.vo * peso(txt.slice(0, i)) / peso(txt) - .2);
+}
 
 const TR_DUR = .42, FADE_DUR = .3;
 function renderFrame(c, tl, t) {

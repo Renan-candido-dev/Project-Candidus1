@@ -6,8 +6,8 @@ de tipografia cinética do vídeo de referência, usando a identidade Candidus
 
 | Vídeo | Arquivo | Duração |
 |---|---|---|
-| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 37,8 s |
-| 2 · Serviços e planos (dor → como atuamos → planos) | `out/candidus-proposta.mp4` | 57,2 s |
+| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 47 s (com narração) |
+| 2 · Serviços e planos (dor → como atuamos → planos) | `out/candidus-proposta.mp4` | 79 s (com narração) |
 
 ## Pré-visualizar
 Sirva a pasta e abra o player (fontes não carregam via `file://`):
@@ -26,6 +26,17 @@ cd videos && npx serve .        # ou: python3 -m http.server
 - Verde profundo, dourado e branco; logo original e foto do Renan sem alterações.
 - Uma única animação de entrada (surge deslizando levemente para cima) e transição por dissolve.
 - Textos dentro da área segura do Instagram (x 120–940, y 300–1480), longe dos botões e da legenda.
+
+## Narração
+A voz lê tudo o que está escrito na tela (texto em `roteiro.json`, uma fala por cena).
+Cada cena se estende para a fala caber, e cada texto/cartão entra no momento em que a voz chega
+a ele (`cue()` em `engine.js`). Os efeitos abaixam automaticamente quando a voz fala.
+
+```bash
+pip install piper-tts sherpa-onnx numpy
+python3 gerar_audio.py --narrar --voz faber --velocidade 1.0   # outras: cadu, jeff, dora, alex, santa
+python3 gerar_audio.py                                          # sem narração (só efeitos)
+```
 
 ## Som (sem música de fundo)
 Efeitos próprios da Candidus, discretos, gerados por `gerar_audio.py`:

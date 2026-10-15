@@ -1,32 +1,23 @@
 {
-  "_comentario": "Uma fala por cena, na mesma ordem das cenas de cada vídeo. Texto vazio = cena sem narração. Escreva siglas como se lê (ex.: bê-pê-ó).",
+  "_comentario": "Uma fala por cena, na mesma ordem das cenas de cada vídeo. A narração lê o que está escrito na tela. Escreva como se fala: siglas por extenso (bê-pê-ó), valores por extenso.",
   "1": [
-    "Apresentando...",
-    "Candidus, Gestão Financeira.",
-    "Você sabe para onde vai o dinheiro da sua empresa?",
-    "Chega o fim do mês e o caixa some? Contas atrasadas, juros e planilhas confusas.",
-    "Calma. A Candidus cuida disso para você.",
-    "Com o bê-pê-ó financeiro, nós assumimos a rotina financeira da sua empresa e entregamos números claros para você decidir.",
-    "Você foca no seu negócio. Nós cuidamos dos números.",
-    "Contas a pagar e a receber, conciliação bancária, fluxo de caixa, relatórios, indicadores e reuniões de resultado.",
-    "Candidus vem do latim: claro, transparente. É assim que tratamos os seus números.",
-    "Organização. Planejamento. Resultados.",
-    "Então, o que você está esperando?",
-    "Vamos conversar? Chame a gente no direct."
+    "Você sabe quanto sua empresa realmente lucra?",
+    "Sem números claros, cada decisão vira um palpite. Caixa apertado. Lucro desconhecido. Contas misturadas.",
+    "Para isso existe a Candidus, Gestão Financeira.",
+    "O que é bê-pê-ó financeiro? Bê-pê-ó financeiro é a terceirização da rotina financeira da sua empresa. Você foca no negócio. Nós cuidamos dos números.",
+    "Como a Candidus ajuda: organização de contas a pagar e receber. Conciliação bancária e acompanhamento do caixa. E relatórios para apoiar as decisões.",
+    "Renan Cândido, fundador da Candidus.",
+    "Quer entender como organizar o financeiro da sua empresa? Envie gestão no dirécti."
   ],
   "2": [
-    "Sua empresa vende bem...",
-    "Mas o dinheiro nunca sobra?",
-    "Você se identifica? Não sabe o lucro real, mistura a conta pessoal com a da empresa, paga juros por atraso e decide no achismo?",
-    "Sem gestão financeira, a sua empresa anda no escuro.",
-    "É para isso que existe a Candidus Gestão Financeira.",
-    "Com o bê-pê-ó financeiro, assumimos a rotina da sua empresa: lançamentos, conciliação, relatórios e reuniões para decidir junto com você.",
-    "Por que isso é importante? Controle do que entra e do que sai, previsibilidade de caixa, e decisões baseadas em números.",
+    "Sua empresa vende bem... mas o dinheiro nunca sobra?",
+    "Você se identifica? Não sabe quanto a empresa realmente lucra. Mistura contas pessoais com as da empresa. Não sabe quanto terá em caixa.",
+    "É para isso que existe a Candidus, Gestão Financeira.",
+    "Como a Candidus atua: com o bê-pê-ó financeiro, assumimos a rotina financeira da sua empresa. Organizamos contas a pagar e receber. Conciliamos o banco e acompanhamos o caixa. E entregamos relatórios para suas decisões.",
     "Conheça nossos planos.",
-    "Candidus Essencial: setecentos e cinquenta reais por mês, para organizar o seu financeiro.",
-    "Candidus Gestão: mil e quinhentos reais por mês, para ter controle e previsibilidade.",
-    "Candidus Estratégico: dois mil e quinhentos reais por mês, para tomar decisões com base nos números.",
-    "Qual é o plano ideal para a sua empresa?",
-    "Agende uma conversa. Chame a gente no direct."
+    "Candidus Essencial: setecentos e cinquenta reais por mês.",
+    "Candidus Gestão: mil e quinhentos reais por mês. Para empresas que querem controle e previsibilidade. Tudo do Essencial, fluxo de caixa projetado, relatório de receitas e despesas, indicadores financeiros e reunião mensal de resultados.",
+    "Candidus Estratégico: dois mil e quinhentos reais por mês. Para empresas que querem tomar decisões com base nos números. Tudo do Gestão, análise de custos e despesas, indicadores de rentabilidade, análise de lucratividade, relatórios gerenciais personalizados e reuniões para discutir melhorias.",
+    "Qual plano faz sentido para sua empresa? Envie gestão no dirécti, e vamos conversar."
   ]
 }

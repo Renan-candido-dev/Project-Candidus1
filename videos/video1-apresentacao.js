@@ -74,7 +74,7 @@ const VIDEO1 = makeTimeline([
       T(c, 'O PROBLEMA', W / 2, 560, t, .1, { size: 34, weight: 700, color: C.gold2, ls: 8 });
       TP(c, 'Sem números claros, cada decisão vira um palpite.', W / 2, 670, t, .2, { size: 62, weight: 800, maxW: 780 });
       CFG1.problemas.forEach((s, i) => {
-        const f = fu(t, .9 + i * .25), y = 980 + i * 125, w = 560;
+        const f = fu(t, cue(this, s, .9 + i * .25)), y = 980 + i * 125, w = 560;
         if (f.a <= 0) return;
         c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
         c.strokeStyle = 'rgba(236,201,107,.55)'; c.lineWidth = 2; rr(c, W / 2 - w / 2, y - 48, w, 96, 48); c.stroke();
@@ -95,16 +95,17 @@ const VIDEO1 = makeTimeline([
       bgDark(c, t);
       T(c, 'O QUE É BPO FINANCEIRO?', W / 2, 600, t, .1, { size: 40, weight: 800, color: C.gold2, ls: 3 });
       line(c, W / 2 - 70, 660, W / 2 + 70, P(t, .2, .5), C.gold, 3);
-      TP(c, CFG1.bpo, W / 2, 770, t, .35, { size: 62, weight: 700, maxW: 800 });
-      T(c, 'Você foca no negócio.', W / 2, 1180, t, 1.6, { size: 44, weight: 600, color: C.gold2 });
-      T(c, 'Nós cuidamos dos números.', W / 2, 1245, t, 1.6, { size: 44, weight: 600, color: C.gold2 });
+      TP(c, CFG1.bpo, W / 2, 770, t, cue(this, 'financeiro é a', .35), { size: 62, weight: 700, maxW: 800 });
+      T(c, 'Você foca no negócio.', W / 2, 1180, t, cue(this, 'Você foca', 1.6), { size: 44, weight: 600, color: C.gold2 });
+      T(c, 'Nós cuidamos dos números.', W / 2, 1245, t, cue(this, 'Nós cuidamos', 1.6), { size: 44, weight: 600, color: C.gold2 });
   } },
 
   /* 5 · Serviços em 3 grupos */
   { d: 7.6, tr: 'fade', draw(c, t) {
       bgDark(c, t);
       T(c, 'COMO A CANDIDUS AJUDA', W / 2, 470, t, .1, { size: 40, weight: 800, color: C.gold2, ls: 3 });
-      CFG1.servicos.forEach((s, i) => numCard(c, t, .4 + i * .6, i + 1, s, 560 + i * 235));
+      const ditos = ['organização de contas', 'conciliação bancária', 'relatórios para'];
+      CFG1.servicos.forEach((s, i) => numCard(c, t, cue(this, ditos[i], .4 + i * .6), i + 1, s, 560 + i * 235));
   } },
 
   /* 6 · Fundador */
@@ -124,6 +125,6 @@ const VIDEO1 = makeTimeline([
       bgDark(c, t);
       smallLogo(c, t, .1, 560);
       TP(c, CFG1.ctaPergunta, W / 2, 860, t, .3, { size: 60, weight: 800, maxW: 800 });
-      ctaPill(c, t, 1.1, CFG1.ctaAcao, 1200);
+      ctaPill(c, t, cue(this, 'Envie', 1.1), CFG1.ctaAcao, 1200);
   } }
-]);
+], voDur('1'));

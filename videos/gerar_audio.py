@@ -69,7 +69,7 @@ def sintetizar(voz, texto, out, velocidade):
         salvar(out, np.array(a.samples, dtype=np.float32), a.sample_rate)
     else:
         subprocess.run([piper_bin(), '-m', modelo(voz), '-f', out, '--length-scale', str(velocidade),
-                        '--sentence-silence', '0.18'], input=texto.encode('utf-8'), check=True,
+                        '--sentence-silence', '0.32'], input=texto.encode('utf-8'), check=True,
                        stderr=subprocess.DEVNULL)
 
 
@@ -123,6 +123,7 @@ def narracao(voz, velocidade):
     with open(os.path.join(AUDIO, 'duracoes.js'), 'w', encoding='utf-8') as f:
         f.write('/* gerado por gerar_audio.py — duração (s) da narração de cada cena */\n')
         f.write('const VO = ' + json.dumps(dur) + ';\n')
+        f.write('const VO_TXT = ' + json.dumps({v: roteiro[v] for v in dur}, ensure_ascii=False) + ';\n')
 
 
 # ---------------------------------------------------------------- trilha

@@ -33,7 +33,7 @@ const CFG2 = {
 };
 
 /* cartão de plano: preço mostrado direto, sem contagem */
-function planCard(c, t, pl) {
+function planCard(c, t, pl, sc) {
   const w = 800, x = W / 2 - w / 2;
   const temItens = pl.itens.length > 0;
   const h = temItens ? 1120 : 470;
@@ -50,12 +50,12 @@ function planCard(c, t, pl) {
   txt(c, '/mês', px + pw + 14, y + 335, { size: 44, weight: 600, align: 'left' });
   c.restore();
   if (!temItens) return;
-  TP(c, pl.desc, W / 2, y + 420, t, .5, { size: 38, weight: 500, maxW: 700, color: '#e6dfcf' });
-  line(c, x + 70, y + 535, x + w - 70, P(t, .7, .5), 'rgba(236,201,107,.45)', 2);
+  TP(c, pl.desc, W / 2, y + 420, t, cue(sc, 'para empresas', .5), { size: 38, weight: 500, maxW: 700, color: '#e6dfcf' });
+  line(c, x + 70, y + 535, x + w - 70, P(t, cue(sc, 'para empresas', .5) + .2, .5), 'rgba(236,201,107,.45)', 2);
   // tamanho único para todos os itens do cartão (o do item mais longo que caiba)
   const isz = Math.min(...pl.itens.map((s, i) => fitSize(c, s, w - 148 - 50, 38, i === 0 ? 800 : 600)));
   pl.itens.forEach((s, i) => {
-    const yy = y + 615 + i * 84, st = .9 + i * .15, q = fu(t, st);
+    const yy = y + 615 + i * 84, st = cue(sc, s, .9 + i * .15), q = fu(t, st);
     check(c, x + 100, yy + q.dy, 24, P(t, st, .4));
     const wt = i === 0 ? 800 : 600;
     T(c, s, x + 148, yy + 2, t, st, { size: isz, weight: wt, align: 'left',
@@ -69,15 +69,16 @@ const VIDEO2 = makeTimeline([
       bgDark(c, t);
       T(c, 'Sua empresa', W / 2, 720, t, .15, { size: 70, weight: 700 });
       T(c, 'vende bem…', W / 2, 815, t, .15, { size: 70, weight: 700 });
-      T(c, '…mas o dinheiro', W / 2, 960, t, 1.2, { size: 84, weight: 900, color: 'goldgrad' });
-      T(c, 'nunca sobra?', W / 2, 1070, t, 1.2, { size: 84, weight: 900, color: 'goldgrad' });
+      T(c, '…mas o dinheiro', W / 2, 960, t, cue(this, 'mas o dinheiro', 1.2), { size: 84, weight: 900, color: 'goldgrad' });
+      T(c, 'nunca sobra?', W / 2, 1070, t, cue(this, 'mas o dinheiro', 1.2), { size: 84, weight: 900, color: 'goldgrad' });
   } },
 
   /* 2 · Dores principais */
   { d: 6, tr: 'fade', draw(c, t) {
       bgDark(c, t);
       T(c, 'VOCÊ SE IDENTIFICA?', W / 2, 560, t, .1, { size: 44, weight: 800, color: C.gold2, ls: 3 });
-      CFG2.dores.forEach((s, i) => numCard(c, t, .45 + i * .5, i + 1, s, 650 + i * 235, { icon: 'menos' }));
+      const ditos = ['quanto a empresa', 'mistura', 'quanto terá'];
+      CFG2.dores.forEach((s, i) => numCard(c, t, cue(this, ditos[i], .45 + i * .5), i + 1, s, 650 + i * 235, { icon: 'menos' }));
   } },
 
   /* 3 · Entrada da logo (assinatura sonora) */
@@ -91,8 +92,9 @@ const VIDEO2 = makeTimeline([
   { d: 8, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) {
       bgDark(c, t);
       T(c, 'COMO A CANDIDUS ATUA', W / 2, 450, t, .1, { size: 40, weight: 800, color: C.gold2, ls: 3 });
-      TP(c, CFG2.atuacao, W / 2, 560, t, .3, { size: 50, weight: 700, maxW: 800 });
-      CFG2.passos.forEach((s, i) => numCard(c, t, 1 + i * .55, i + 1, s, 760 + i * 225, { h: 180 }));
+      TP(c, CFG2.atuacao, W / 2, 560, t, cue(this, 'com o bê-pê-ó', .3), { size: 50, weight: 700, maxW: 800 });
+      const ditos = ['organizamos', 'conciliamos', 'entregamos'];
+      CFG2.passos.forEach((s, i) => numCard(c, t, cue(this, ditos[i], 1 + i * .55), i + 1, s, 760 + i * 225, { h: 180 }));
   } },
 
   /* 5 · Chamada dos planos */
@@ -104,16 +106,16 @@ const VIDEO2 = makeTimeline([
   } },
 
   /* 6–8 · Planos */
-  { d: 4.6, tr: 'fade', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[0]); } },
-  { d: 10, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[1]); } },
-  { d: 11, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[2]); } },
+  { d: 4.6, tr: 'fade', draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[0], this); } },
+  { d: 10, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[1], this); } },
+  { d: 11, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) { bgDark(c, t); planCard(c, t, CFG2.planos[2], this); } },
 
   /* 9 · Chamada final */
   { d: 7, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) {
       bgDark(c, t);
       smallLogo(c, t, .1, 560);
       TP(c, CFG2.ctaPergunta, W / 2, 860, t, .3, { size: 64, weight: 800, maxW: 800 });
-      ctaPill(c, t, 1.1, CFG2.ctaAcao, 1160);
-      T(c, CFG2.ctaFim, W / 2, 1300, t, 1.3, { size: 48, weight: 600 });
+      ctaPill(c, t, cue(this, 'Envie', 1.1), CFG2.ctaAcao, 1160);
+      T(c, CFG2.ctaFim, W / 2, 1300, t, cue(this, 'e vamos', 1.3), { size: 48, weight: 600 });
   } }
-]);
+], voDur('2'));
