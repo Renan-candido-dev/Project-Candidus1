@@ -8,7 +8,7 @@
      estilo corporativo/inspirador. Saída: audio/musica.mp3
 
 Uso:   python3 gerar_audio.py [--voz faber|cadu|jeff] [--velocidade 0.95]
-Requer: pip install piper-tts numpy   (o modelo de voz é baixado sozinho)
+Requer: pip install piper-tts sherpa-onnx numpy   (o modelo de voz é baixado sozinho)
 """
 import argparse, json, os, subprocess, sys, tarfile, urllib.request, wave
 import numpy as np
@@ -33,6 +33,44 @@ def modelo(voz):
             t.extractall(CACHE)
         os.remove(arq)
     return onnx
+
+
+# vozes do modelo Kokoro (multilíngue) com sotaque pt-BR: nome -> id do locutor
+KOKORO = {'dora': 42, 'alex': 43, 'santa': 44}
+PIPER = ['faber', 'cadu', 'jeff']
+_kokoro = None
+
+
+def kokoro_tts():
+    global _kokoro
+    if _kokoro is None:
+        import sherpa_onnx
+        d = os.path.join(CACHE, 'kokoro-multi-lang-v1_0')
+        if not os.path.exists(os.path.join(d, 'model.onnx')):
+            os.makedirs(CACHE, exist_ok=True)
+            arq = d + '.tar.bz2'
+            print('Baixando modelo Kokoro (~350 MB)...')
+            urllib.request.urlretrieve('https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_0.tar.bz2', arq)
+            with tarfile.open(arq) as t:
+                t.extractall(CACHE)
+            os.remove(arq)
+        k = sherpa_onnx.OfflineTtsKokoroModelConfig(
+            model=d + '/model.onnx', voices=d + '/voices.bin', tokens=d + '/tokens.txt',
+            data_dir=d + '/espeak-ng-data', lexicon=d + '/lexicon-us-en.txt', lang='pt-br')
+        _kokoro = sherpa_onnx.OfflineTts(sherpa_onnx.OfflineTtsConfig(
+            model=sherpa_onnx.OfflineTtsModelConfig(kokoro=k, num_threads=4)))
+    return _kokoro
+
+
+def sintetizar(voz, texto, out, velocidade):
+    """gera um wav com a fala; velocidade < 1 = mais rápido"""
+    if voz in KOKORO:
+        a = kokoro_tts().generate(texto, sid=KOKORO[voz], speed=1 / velocidade)
+        salvar(out, np.array(a.samples, dtype=np.float32), a.sample_rate)
+    else:
+        subprocess.run([piper_bin(), '-m', modelo(voz), '-f', out, '--length-scale', str(velocidade),
+                        '--sentence-silence', '0.18'], input=texto.encode('utf-8'), check=True,
+                       stderr=subprocess.DEVNULL)
 
 
 def piper_bin():
@@ -64,7 +102,6 @@ def salvar(path, x, sr, canais=1):
 
 
 def narracao(voz, velocidade):
-    onnx = modelo(voz)
     roteiro = json.load(open(os.path.join(ROOT, 'roteiro.json'), encoding='utf-8'))
     dur = {}
     for v in ('1', '2'):
@@ -76,9 +113,7 @@ def narracao(voz, velocidade):
                 dur[v].append(0)
                 if os.path.exists(out): os.remove(out)
                 continue
-            subprocess.run([piper_bin(), '-m', onnx, '-f', out, '--length-scale', str(velocidade),
-                            '--sentence-silence', '0.18'], input=texto.encode('utf-8'), check=True,
-                           stderr=subprocess.DEVNULL)
+            sintetizar(voz, texto, out, velocidade)
             x, sr = ler_wav(out)
             x = aparar(x, sr)
             x = x / (np.max(np.abs(x)) + 1e-9) * 0.9
@@ -210,12 +245,24 @@ def importar(pasta, video):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('--voz', default='faber', choices=['faber', 'cadu', 'jeff'])
+    ap.add_argument('--voz', default='faber', choices=PIPER + list(KOKORO),
+                    help='faber, cadu, jeff (Piper, masculinas) · dora (feminina), alex, santa (Kokoro)')
+    ap.add_argument('--amostras', action='store_true', help='gera amostras-voz/voz-*.mp3 de todas as vozes')
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true')
     ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
     ap.add_argument('--video', choices=['1', '2'], help='vídeo da narração importada')
     a = ap.parse_args()
+    if a.amostras:
+        os.makedirs(os.path.join(ROOT, 'amostras-voz'), exist_ok=True)
+        frase = 'Olá! Aqui é a Candidus Gestão Financeira. Organização, planejamento e resultados para a sua empresa.'
+        for vz in PIPER + list(KOKORO):
+            tmp = os.path.join(AUDIO, '_amostra.wav'); os.makedirs(AUDIO, exist_ok=True)
+            sintetizar(vz, frase, tmp, a.velocidade)
+            subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', tmp, '-b:a', '96k',
+                            os.path.join(ROOT, 'amostras-voz', f'voz-{vz}.mp3')], check=True)
+            os.remove(tmp); print('  amostra:', vz)
+        sys.exit()
     if a.importar:
         if not a.video: ap.error('use --video 1 ou --video 2 junto com --importar')
         print('Importando narração:'); importar(a.importar, a.video); sys.exit()

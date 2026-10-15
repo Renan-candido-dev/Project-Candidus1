@@ -27,10 +27,10 @@ cd videos && npx serve .        # ou: python3 -m http.server
   `roteiro.json`. Cada cena é esticada automaticamente para a fala caber.
 - **Música:** trilha original composta por código (`gerar_audio.py`), livre de direitos autorais.
   Na mixagem, a música abaixa sozinha quando a voz entra.
-- Amostras das vozes disponíveis: `amostras-voz/` (faber, cadu, jeff).
+- Amostras das vozes disponíveis em `amostras-voz/`: faber, cadu, jeff, alex, santa (masculinas) e dora (feminina). Gere de novo com `python3 gerar_audio.py --amostras`.
 
 ```bash
-pip install piper-tts numpy
+pip install piper-tts sherpa-onnx numpy
 python3 gerar_audio.py --voz faber --velocidade 0.95   # gera audio/ (voz + trilha)
 ```
 
