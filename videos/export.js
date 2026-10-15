@@ -82,8 +82,8 @@ function mixAudio(videoTmp, starts, duration) {
   if (mus && vl.length) {
     fl.push('[vo]asplit[vo1][vo2]');
     fl.push(`${mus}[vo1]sidechaincompress=threshold=0.02:ratio=5:attack=30:release=500[duck]`);
-    fl.push('[duck][vo2]amix=inputs=2:normalize=0,alimiter=limit=0.95[a]');
-  } else fl.push(`${mus || '[vo]'}alimiter=limit=0.95[a]`);
+    fl.push('[duck][vo2]amix=inputs=2:normalize=0,loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100[a]');
+  } else fl.push(`${mus || '[vo]'}loudnorm=I=-15:TP=-1.5:LRA=11,aresample=44100[a]`);
   const r = require('child_process').spawnSync('ffmpeg', ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', fl.join(';'),
     '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', duration.toFixed(3), '-movflags', '+faststart', OUT],
     { stdio: 'inherit' });
