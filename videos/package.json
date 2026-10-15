@@ -1,0 +1,10 @@
+{
+  "name": "candidus-videos",
+  "private": true,
+  "description": "Vídeos promocionais da Candidus Gestão Financeira gerados em JavaScript (canvas)",
+  "scripts": {
+    "export:apresentacao": "node export.js 1",
+    "export:proposta": "node export.js 2"
+  },
+  "devDependencies": { "playwright": "^1.56.1" }
+}
