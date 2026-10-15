@@ -1,164 +1,129 @@
 /* =====================================================================
    VÍDEO 1 · Apresentação da Candidus (Instagram Reels / TikTok)
-   Foco: BPO financeiro. Edite os textos em CFG.
+   ~37 s · textos dentro da área segura do Instagram (x 120–940, y 300–1480)
+   sfx: [nome, segundos após o início da cena] — ver gerar_audio.py
    ===================================================================== */
 const CFG1 = {
-  nome: 'RENAN CÂNDIDO',
-  cargo: 'Fundador · Candidus Gestão Financeira',
+  nome: 'Renan Cândido',
+  cargo: 'Fundador da Candidus',
+  problemas: ['Caixa apertado', 'Lucro desconhecido', 'Contas misturadas'],
   servicos: [
-    'Contas a pagar e a receber',
-    'Conciliação bancária',
-    'Fluxo de caixa projetado',
-    'Relatório de receitas e despesas',
-    'Indicadores financeiros',
-    'Análise de custos e lucratividade',
-    'Reunião mensal de resultados'
+    'Organização de contas a pagar e receber.',
+    'Conciliação bancária e acompanhamento do caixa.',
+    'Relatórios para apoiar as decisões.'
   ],
-  cta: 'Chame no direct · link na bio'
+  bpo: 'BPO financeiro é a terceirização da rotina financeira da sua empresa.',
+  ctaPergunta: 'Quer entender como organizar o financeiro da sua empresa?',
+  ctaAcao: 'Envie ‘GESTÃO’ no direct.'
 };
 
+/* cartão numerado (usado nas listas curtas) */
+function numCard(c, t, start, n, texto, y, o = {}) {
+  const { w = 800, h = 190, icon = 'num' } = o;
+  const f = fu(t, start); if (f.a <= 0) return;
+  const x = W / 2 - w / 2;
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.fillStyle = 'rgba(255,255,255,.045)'; rr(c, x, y, w, h, 28); c.fill();
+  c.strokeStyle = 'rgba(236,201,107,.35)'; c.lineWidth = 2; rr(c, x, y, w, h, 28); c.stroke();
+  const cx = x + 80, cy = y + h / 2;
+  if (icon === 'num') {
+    c.fillStyle = goldGrad(c, cx - 36, cy - 36, cx + 36, cy + 36); c.beginPath(); c.arc(cx, cy, 36, 0, Math.PI * 2); c.fill();
+    txt(c, String(n), cx, cy + 2, { size: 38, weight: 900, color: C.dark });
+  } else {
+    c.strokeStyle = C.gold2; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, 34, 0, Math.PI * 2); c.stroke();
+    c.lineCap = 'round'; c.beginPath(); c.moveTo(cx - 13, cy); c.lineTo(cx + 13, cy); c.stroke();
+  }
+  const lines = wrap(c, texto, w - 190, 42, 700);
+  const lh = 42 * 1.3, y0 = cy - (lines.length - 1) * lh / 2;
+  lines.forEach((l, i) => txt(c, l, x + 150, y0 + i * lh + 2, { size: 42, weight: 700, align: 'left' }));
+  c.restore();
+}
+
+/* botão dourado de chamada para ação */
+function ctaPill(c, t, start, texto, y, w = 780) {
+  const f = fu(t, start); if (f.a <= 0) return;
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.shadowColor = 'rgba(201,150,42,.35)'; c.shadowBlur = 40;
+  c.fillStyle = goldGrad(c, W / 2 - w / 2, 0, W / 2 + w / 2, 0); rr(c, W / 2 - w / 2, y - 66, w, 132, 66); c.fill();
+  c.restore();
+  txt(c, texto, W / 2, y + 2 + f.dy, { size: 48, weight: 900, color: C.dark, alpha: f.a });
+}
+
+function smallLogo(c, t, start, y, sc = .55) {
+  const f = fu(t, start);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  drawImg(c, IMG.icone, W / 2 + 10 * sc, y - 210 * sc, 300 * sc);
+  drawImg(c, IMG.nome, W / 2, y, 860 * sc);
+  drawImg(c, IMG.gestao, W / 2 + 38 * sc, y + 165 * sc, 590 * sc);
+  c.restore();
+}
+
 const VIDEO1 = makeTimeline([
-  /* 1 · "APRESENTANDO" em máquina de escrever */
-  { d: 2.4, draw(c, t) {
-      bgGold(c);
-      typewriter(c, 'APRESENTANDO', W / 2, H * .46, t, { start: .2, cps: 13, size: 90, color: C.ink });
-      txt(c, 'a sua nova gestão financeira', W / 2, H * .46 + 110, { size: 40, weight: 600, color: C.ink, alpha: P(t, 1.3, .5) });
-  } },
-
-  /* 2 · Logo */
-  { d: 3.8, tr: 'circle', draw(c, t) {
+  /* 1 · Pergunta de abertura */
+  { d: 3.6, sfx: [['abertura', .05]], draw(c, t) {
       bgDark(c, t);
-      logoFull(c, W / 2, H * .47, 1, t, .15);
-      const p = P(t, 1.9, .6);
-      line(c, W / 2 - 360, H * .47 + 330, W / 2 + 360, p, C.gold, 2);
-      txt(c, 'ORGANIZAÇÃO  •  PLANEJAMENTO  •  RESULTADOS', W / 2, H * .47 + 385, { size: 30, weight: 600, ls: 3, alpha: P(t, 2.2, .6) });
+      line(c, W / 2 - 80, 700, W / 2 + 80, P(t, .1, .6), C.gold, 3);
+      T(c, 'Você sabe quanto', W / 2, 800, t, .15, { size: 76, weight: 700 });
+      T(c, 'sua empresa', W / 2, 895, t, .15, { size: 76, weight: 700 });
+      T(c, 'realmente lucra?', W / 2, 1035, t, .6, { size: 86, weight: 900, color: 'goldgrad' });
   } },
 
-  /* 3 · Pergunta-gancho com letras espalhadas (como na referência) */
-  { d: 4.4, tr: 'up', draw(c, t) {
-      bgGold(c);
-      chars(c, 'VOCÊ SABE', W / 2, H * .34, t, { size: 120, color: C.ink, mode: 'scatter', start: .1, stagger: .05, dur: .8, seed: 3 });
-      chars(c, 'PARA ONDE VAI', W / 2, H * .34 + 150, t, { size: 92, color: C.ink, mode: 'drop', start: .9, stagger: .035 });
-      const p = P(t, 1.7, .6, E.back);
-      txt(c, 'O DINHEIRO', W / 2, H * .34 + 320, { size: 150, weight: 900, color: C.cream, scale: p, shadow: 18 });
-      chars(c, 'DA SUA EMPRESA?', W / 2, H * .34 + 470, t, { size: 84, color: C.ink, mode: 'rise', start: 2.3, stagger: .03 });
-  } },
-
-  /* 4 · Bateria do caixa descarregando */
-  { d: 3.6, draw(c, t) {
-      bgGold(c);
-      const pt = P(t, 0, .5, E.back);
-      txt(c, 'CAIXA NO FIM DO MÊS?', W / 2, H * .3, { size: 70, weight: 900, color: C.cream, scale: pt, shadow: 14 });
-      // bateria
-      const bw = 520, bh = 230, bx = W / 2 - bw / 2 - 20, by = H * .42;
-      const lvl = lerp(1, .08, P(t, .6, 2.2, E.inOut));
-      c.lineWidth = 16; c.strokeStyle = C.ink; rr(c, bx, by, bw, bh, 30); c.stroke();
-      c.fillStyle = C.ink; rr(c, bx + bw + 8, by + bh * .3, 34, bh * .4, 10); c.fill();
-      const col = lvl > .5 ? C.dark : lvl > .25 ? '#8a5a12' : C.red;
-      c.fillStyle = col; rr(c, bx + 24, by + 24, (bw - 48) * lvl, bh - 48, 14); c.fill();
-      txt(c, Math.round(lvl * 100) + '%', W / 2 - 20, by + bh / 2, { size: 80, weight: 900, color: lvl > .3 ? C.cream : C.ink });
-      if (lvl < .2 && Math.floor(t * 6) % 2) cross(c, bx + bw + 60, by - 20, 40, 1);
-      ['contas atrasadas', 'juros e multas', 'planilhas confusas'].forEach((s, i) =>
-        txt(c, s, W / 2, by + bh + 130 + i * 72, { size: 50, weight: 700, color: C.ink, alpha: P(t, 1.2 + i * .45, .4) }));
-  } },
-
-  /* 5 · "Calma. A Candidus cuida disso." */
-  { d: 3.4, tr: 'torn', draw(c, t) {
+  /* 2 · O problema */
+  { d: 5, tr: 'fade', draw(c, t) {
       bgDark(c, t);
-      txt(c, 'CALMA,', W / 2, H * .38, { size: 70, weight: 600, color: C.gold2, alpha: P(t, .2, .4), ls: 6 });
-      const p = P(t, .55, .6, E.back);
-      txt(c, 'A CANDIDUS', W / 2, H * .38 + 140, { size: 140, weight: 600, fam: SERIF, color: C.cream, scale: p, ls: 4 });
-      chars(c, 'CUIDA DISSO', W / 2, H * .38 + 270, t, { size: 76, color: C.gold2, mode: 'rise', start: 1.2, stagger: .04, ls: 6 });
-      chars(c, 'PARA VOCÊ', W / 2, H * .38 + 360, t, { size: 76, color: C.gold2, mode: 'rise', start: 1.5, stagger: .04, ls: 6 });
-  } },
-
-  /* 6 · O que é BPO financeiro */
-  { d: 5, draw(c, t) {
-      bgDark(c, t);
-      txt(c, 'O QUE É', W / 2, H * .25, { size: 44, weight: 700, color: C.gold2, ls: 10, alpha: P(t, .1, .4) });
-      chars(c, 'BPO', W / 2, H * .25 + 190, t, { size: 300, weight: 900, color: 'goldgrad', mode: 'drop', start: .2, stagger: .12, dur: .6 });
-      txt(c, 'FINANCEIRO', W / 2, H * .25 + 370, { size: 82, weight: 800, ls: lerp(40, 14, P(t, .8, 1)), alpha: P(t, .8, .5) });
-      line(c, W / 2 - 160, H * .25 + 450, W / 2 + 160, P(t, 1.3, .5), C.gold, 3);
-      para(c, 'Terceirização da rotina financeira: nós executamos o operacional e entregamos números claros para você decidir.',
-        W / 2, H * .25 + 540, { size: 46, weight: 500, maxW: 880, alpha: P(t, 1.6, .6) });
-  } },
-
-  /* 7 · Você foca no negócio, nós nos números */
-  { d: 4, tr: 'left', draw(c, t) {
-      bgGold(c);
-      const a = P(t, .1, .5, E.back);
-      txt(c, 'VOCÊ FOCA', W / 2, H * .36, { size: 110, weight: 900, color: C.ink, scale: a });
-      txt(c, 'NO SEU NEGÓCIO.', W / 2, H * .36 + 120, { size: 80, weight: 800, color: C.ink, alpha: P(t, .4, .4) });
-      const b = P(t, 1.3, .5, E.back);
-      txt(c, 'NÓS CUIDAMOS', W / 2, H * .36 + 330, { size: 110, weight: 900, color: C.cream, scale: b, shadow: 14 });
-      txt(c, 'DOS NÚMEROS.', W / 2, H * .36 + 450, { size: 80, weight: 800, color: C.cream, alpha: P(t, 1.6, .4), shadow: 10 });
-      // sublinhado desenhado
-      line(c, W / 2 - 300, H * .36 + 515, W / 2 + 300, P(t, 2, .6), C.ink, 8);
-  } },
-
-  /* 8 · Lista de serviços em "pílulas" */
-  { d: 6.2, draw(c, t) {
-      bgGold(c);
-      // título que entra girando e se acomoda
-      const p = P(t, 0, .7, E.back);
-      txt(c, 'O QUE FAZEMOS', W / 2, H * .2, { size: 92, weight: 900, color: C.ink, rot: (1 - p) * -.35, scale: lerp(.6, 1, p), alpha: clamp(p * 2) });
-      const items = CFG1.servicos, top = H * .2 + 140, gap = 132;
-      items.forEach((s, i) => {
-        const q = P(t, .6 + i * .3, .55, E.back);
-        if (q <= 0) return;
-        const x = W / 2 + (1 - q) * 700, y = top + i * gap, w = 860, h = 100;
-        c.save(); c.globalAlpha = clamp(q * 1.5);
-        c.fillStyle = C.cream; rr(c, x - w / 2, y, w, h, h / 2); c.fill();
-        check(c, x - w / 2 + 56, y + h / 2, 28, P(t, .9 + i * .3, .4), C.dark);
-        txt(c, s, x - w / 2 + 110, y + h / 2 + 2, { size: 40, weight: 700, color: C.ink, align: 'left' });
+      T(c, 'O PROBLEMA', W / 2, 560, t, .1, { size: 34, weight: 700, color: C.gold2, ls: 8 });
+      TP(c, 'Sem números claros, cada decisão vira um palpite.', W / 2, 670, t, .2, { size: 62, weight: 800, maxW: 780 });
+      CFG1.problemas.forEach((s, i) => {
+        const f = fu(t, .9 + i * .25), y = 980 + i * 125, w = 560;
+        if (f.a <= 0) return;
+        c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+        c.strokeStyle = 'rgba(236,201,107,.55)'; c.lineWidth = 2; rr(c, W / 2 - w / 2, y - 48, w, 96, 48); c.stroke();
         c.restore();
+        txt(c, s, W / 2, y + 2 + f.dy, { size: 40, weight: 600, alpha: f.a });
       });
   } },
 
-  /* 9 · Foto do fundador */
-  { d: 5, tr: 'circle', draw(c, t, d) {
+  /* 3 · Entrada da logo (assinatura sonora) */
+  { d: 3.8, tr: 'fade', sfx: [['logo', .3]], draw(c, t) {
+      bgDark(c, t);
+      T(c, 'Para isso existe a', W / 2, 600, t, .1, { size: 46, weight: 600, color: C.gold2, ls: 2 });
+      logoFull(c, W / 2, 1000, .84, t, .3);
+  } },
+
+  /* 4 · O que é BPO financeiro */
+  { d: 6.2, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) {
+      bgDark(c, t);
+      T(c, 'O QUE É BPO FINANCEIRO?', W / 2, 600, t, .1, { size: 40, weight: 800, color: C.gold2, ls: 3 });
+      line(c, W / 2 - 70, 660, W / 2 + 70, P(t, .2, .5), C.gold, 3);
+      TP(c, CFG1.bpo, W / 2, 770, t, .35, { size: 62, weight: 700, maxW: 800 });
+      T(c, 'Você foca no negócio.', W / 2, 1180, t, 1.6, { size: 44, weight: 600, color: C.gold2 });
+      T(c, 'Nós cuidamos dos números.', W / 2, 1245, t, 1.6, { size: 44, weight: 600, color: C.gold2 });
+  } },
+
+  /* 5 · Serviços em 3 grupos */
+  { d: 7.6, tr: 'fade', draw(c, t) {
+      bgDark(c, t);
+      T(c, 'COMO A CANDIDUS AJUDA', W / 2, 470, t, .1, { size: 40, weight: 800, color: C.gold2, ls: 3 });
+      CFG1.servicos.forEach((s, i) => numCard(c, t, .4 + i * .6, i + 1, s, 560 + i * 235));
+  } },
+
+  /* 6 · Fundador */
+  { d: 5, tr: 'fade', sfx: [['transicao', 0]], draw(c, t, d) {
       c.fillStyle = C.dark2; c.fillRect(0, 0, W, H);
-      cover(c, IMG.foto, 0, 0, W, H, lerp(1.0, 1.08, t / d), .85, .3);
+      cover(c, IMG.foto, 0, 0, W, H, lerp(1.0, 1.04, t / d), .85, .3);
       const g = c.createLinearGradient(0, H * .45, 0, H);
-      g.addColorStop(0, 'rgba(0,23,10,0)'); g.addColorStop(.55, 'rgba(0,23,10,.88)'); g.addColorStop(1, 'rgba(0,23,10,.97)');
+      g.addColorStop(0, 'rgba(0,23,10,0)'); g.addColorStop(.5, 'rgba(0,23,10,.85)'); g.addColorStop(1, 'rgba(0,23,10,.97)');
       c.fillStyle = g; c.fillRect(0, 0, W, H);
-      const y = H * .7;
-      line(c, 90, y - 70, 250, P(t, .4, .5), C.gold, 4);
-      txt(c, CFG1.nome, 90, y, { size: 78, weight: 800, align: 'left', alpha: P(t, .5, .5), ls: 2 });
-      txt(c, CFG1.cargo, 90, y + 70, { size: 36, weight: 600, align: 'left', color: C.gold2, alpha: P(t, .8, .5) });
-      txt(c, '“Candidus”, do latim: claro, transparente.', 90, y + 170, { size: 46, weight: 600, fam: SERIF, italic: true, align: 'left', alpha: P(t, 1.5, .6) });
-      txt(c, 'É assim que tratamos os seus números.', 90, y + 230, { size: 46, weight: 600, fam: SERIF, italic: true, align: 'left', color: C.gold2, alpha: P(t, 2.2, .6) });
+      line(c, 120, 1190, 260, P(t, .4, .5), C.gold, 4);
+      T(c, CFG1.nome, 120, 1270, t, .5, { size: 80, weight: 800, align: 'left' });
+      T(c, CFG1.cargo, 120, 1355, t, .75, { size: 44, weight: 600, align: 'left', color: C.gold2 });
   } },
 
-  /* 10 · Organização · Planejamento · Resultados */
-  { d: 3.8, tr: 'up', draw(c, t) {
+  /* 7 · Chamada final */
+  { d: 6.6, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) {
       bgDark(c, t);
-      ['ORGANIZAÇÃO', 'PLANEJAMENTO', 'RESULTADOS'].forEach((s, i) => {
-        const p = P(t, .15 + i * .55, .55, E.back), y = H * .34 + i * 230;
-        c.fillStyle = C.gold; c.globalAlpha = clamp(p);
-        c.beginPath(); c.arc(W / 2, y - 105, 14 * clamp(p), 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
-        txt(c, s, W / 2, y, { size: 104, weight: 900, color: i === 2 ? 'goldgrad' : C.cream, scale: p });
-      });
-  } },
-
-  /* 11 · "Então, o que você está esperando?" */
-  { d: 3.2, draw(c, t) {
-      bgDark(c, t);
-      const sw = P(t, 1.1, .5, E.inOut);
-      txt(c, 'ENTÃO, O QUE', W / 2, H * .42, { size: 84, weight: 700, alpha: P(t, .1, .4) });
-      txt(c, 'VOCÊ ESTÁ', W / 2 - (1 - sw) * 120, H * .42 + 110, { size: 84, weight: 700, alpha: P(t, .4, .4), rot: (1 - sw) * -.08 });
-      txt(c, 'ESPERANDO?', W / 2, H * .42 + 240, { size: 128, weight: 900, color: 'goldgrad', scale: P(t, 1.1, .6, E.back) });
-  } },
-
-  /* 12 · CTA final com logo */
-  { d: 5.2, tr: 'torn', draw(c, t) {
-      bgDark(c, t);
-      logoFull(c, W / 2, H * .36, .95, t, .1);
-      const p = P(t, 1.5, .6, E.back);
-      const pulse = 1 + Math.sin(t * 5) * .025 * P(t, 2.2, .3);
-      c.save(); c.translate(W / 2, H * .64); c.scale(p * pulse, p * pulse);
-      c.fillStyle = goldGrad(c, -380, 0, 380, 0); rr(c, -380, -70, 760, 140, 70); c.fill(); c.restore();
-      txt(c, 'VAMOS CONVERSAR?', W / 2, H * .64 + 2, { size: 60, weight: 900, color: C.dark, scale: p * pulse });
-      txt(c, CFG1.cta, W / 2, H * .64 + 140, { size: 40, weight: 600, alpha: P(t, 2, .5) });
+      smallLogo(c, t, .1, 560);
+      TP(c, CFG1.ctaPergunta, W / 2, 860, t, .3, { size: 60, weight: 800, maxW: 800 });
+      ctaPill(c, t, 1.1, CFG1.ctaAcao, 1200);
   } }
-], voDur('1'));
+]);

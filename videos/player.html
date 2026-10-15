@@ -72,7 +72,8 @@
   async function loadAudio() {
     ac = new AudioContext();
     const get = async u => { try { const r = await fetch(u); if (!r.ok) return null; return await ac.decodeAudioData(await r.arrayBuffer()); } catch (e) { return null; } };
-    bufs = { music: await get('audio/musica.mp3'), whoosh: await get('audio/sfx-whoosh.mp3'), impacto: await get('audio/sfx-impacto.mp3'),
+    const sfx = {}; for (const n of ['abertura', 'transicao', 'logo']) sfx[n] = await get(`audio/sfx-${n}.mp3`);
+    bufs = { music: await get('audio/musica.mp3'), sfx,
              vo: await Promise.all(TL.scenes.map((s, i) => s.vo ? get(`audio/v${V}/${String(i).padStart(2, '0')}.wav`) : null)) };
   }
   function stopAudio() { srcs.forEach(s => { try { s.stop(); } catch (e) {} }); srcs = []; }
@@ -85,8 +86,7 @@
       s.buffer = buf; s.connect(g).connect(ac.destination); s.start(now + Math.max(0, at - from), off); srcs.push(s);
     };
     play(bufs.music, 0, .5);
-    TL.scenes.forEach((s, i) => { if (i === 0) return;
-      if ((s.tr || 'cut') === 'cut') play(bufs.impacto, s.start, .4); else play(bufs.whoosh, s.start - .45, .5); });
+    TL.scenes.forEach(s => (s.sfx || []).forEach(([n, off]) => play(bufs.sfx[n], s.start + off, .8)));
     TL.scenes.forEach((s, i) => play(bufs.vo[i], s.start + VO_DELAY, 1));
   }
   btn.onclick = async () => {

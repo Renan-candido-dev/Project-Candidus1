@@ -1,7 +1,7 @@
 /* Exporta os vídeos para MP4 (1080x1920, 30 fps, H.264).
    Uso:  node export.js 1          -> out/candidus-apresentacao.mp4
          node export.js 2          -> out/candidus-proposta.mp4
-         node export.js 2 --music trilha.mp3   (troca a trilha gerada por outra)
+         node export.js 2 --music trilha.mp3   (adiciona uma música de fundo)
          node export.js 1 --sem-audio          (vídeo mudo)
    Áudio: rode antes `python3 gerar_audio.py` (narração + trilha em audio/).
    Requisitos: Node 18+, playwright (npm i playwright) e ffmpeg no PATH. */
@@ -14,7 +14,7 @@ const path = require('path');
 const ROOT = __dirname;
 const v = process.argv[2] === '2' ? '2' : '1';
 const mi = process.argv.indexOf('--music');
-const music = mi > 0 ? process.argv[mi + 1] : path.join(ROOT, 'audio', 'musica.mp3');
+const music = mi > 0 ? process.argv[mi + 1] : path.join(ROOT, 'audio', 'musica.mp3'); // só se existir
 const semAudio = process.argv.includes('--sem-audio');
 const FPS = 30;
 const OUT = path.join(ROOT, 'out', v === '2' ? 'candidus-proposta.mp4' : 'candidus-apresentacao.mp4');
@@ -39,7 +39,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   const duration = await page.evaluate(() => window.DURATION);
   const frames = Math.round(duration * FPS);
 
-  const scenes = await page.evaluate(() => TL.scenes.map(s => ({ start: s.start, tr: s.tr || 'cut' })));
+  const scenes = await page.evaluate(() => TL.scenes.map(s => ({ start: s.start, tr: s.tr || 'cut', sfx: s.sfx || [] })));
   const VIDEO_TMP = OUT.replace(/\.mp4$/, '.video.mp4');
   const args = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', VIDEO_TMP];
@@ -58,20 +58,17 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   console.log(`\nOK -> ${OUT} (${duration.toFixed(1)}s)`);
 })();
 
-/* Mixagem: batida/trilha + efeitos nas transições (whoosh nas transições
-   deslizantes, impacto nos cortes secos) + narração, se existir.
-   A música abaixa automaticamente (sidechain) quando há voz. */
-const WHOOSH_PICO = .45; // o pico do whoosh coincide com a troca de cena
+/* Mixagem: efeitos sonoros de cada cena + narração e música, se existirem.
+   Os efeitos e a música abaixam automaticamente (sidechain) quando há voz. */
 function mixAudio(videoTmp, scenes, duration) {
   const VO_DELAY = .3, A = f => path.join(ROOT, 'audio', f);
   const voices = scenes.map((s, i) => ({ f: A(`v${v}/${String(i).padStart(2, '0')}.wav`), at: s.start + VO_DELAY }))
                        .filter(x => fs.existsSync(x.f));
+  // efeitos definidos em cada cena: sfx: [[nome, segundos após o início da cena], ...]
+  const GANHO = { abertura: .9, transicao: .55, logo: .85 };
   const fx = [];
-  scenes.forEach((s, i) => {
-    if (i === 0) return;
-    if (s.tr === 'cut') fx.push({ f: A('sfx-impacto.mp3'), at: s.start, g: .55 });
-    else fx.push({ f: A('sfx-whoosh.mp3'), at: Math.max(0, s.start - WHOOSH_PICO), g: .7 });
-  });
+  scenes.forEach(s => s.sfx.forEach(([nome, off]) =>
+    fx.push({ f: A(`sfx-${nome}.mp3`), at: s.start + off, g: GANHO[nome] ?? .6 })));
   const fxOk = fx.filter(x => fs.existsSync(x.f));
   const hasMusic = music && fs.existsSync(music);
   if (semAudio || (!hasMusic && !voices.length && !fxOk.length)) { fs.copyFileSync(videoTmp, OUT); return; }
@@ -94,7 +91,8 @@ function mixAudio(videoTmp, scenes, duration) {
   const mixTo = (labels, out) => fl.push(labels.length === 1
     ? `${labels[0]}apad=whole_dur=${D}[${out}]`
     : `${labels.join('')}amix=inputs=${labels.length}:normalize=0:duration=longest,apad=whole_dur=${D}[${out}]`);
-  const final = 'loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[a]';
+  // com voz ou música: normaliza para -14 LUFS; só efeitos: mantém os níveis definidos (discretos)
+  const final = (vl.length || hasMusic) ? 'loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[a]' : 'alimiter=limit=0.9[a]';
   if (bed.length) mixTo(bed, 'bed');
   if (vl.length) mixTo(vl, 'vo');
   if (bed.length && vl.length) {

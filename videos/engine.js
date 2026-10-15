@@ -70,6 +70,12 @@ function measure(c, s, size, weight = 800, fam = SANS, ls = 0) {
   const w = c.measureText(s).width; c.restore(); return w;
 }
 
+/* maior tamanho de fonte (até size, mínimo min) em que o texto cabe em maxW */
+function fitSize(c, s, maxW, size, weight = 700, min = 30, fam = SANS, ls = 0) {
+  while (size > min && measure(c, s, size, weight, fam, ls) > maxW) size -= 1;
+  return size;
+}
+
 function wrap(c, s, maxW, size, weight = 600, fam = SANS) {
   const words = s.split(' '); const lines = []; let line = '';
   for (const w of words) {
@@ -134,6 +140,14 @@ function typewriter(c, s, x, y, t, o = {}) {
   }
 }
 
+/* ---------- animação padrão (surge deslizando levemente para cima) ---------- */
+const RISE = 36, IN_DUR = .55;
+function fu(t, start, dur = IN_DUR) { const p = P(t, start, dur, E.out); return { a: p, dy: (1 - p) * RISE }; }
+/* texto com a animação padrão */
+function T(c, s, x, y, t, start, o = {}) { const f = fu(t, start); txt(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a }); }
+/* parágrafo com a animação padrão; retorna a altura usada */
+function TP(c, s, x, y, t, start, o = {}) { const f = fu(t, start); return para(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a }); }
+
 /* ---------- formas ---------- */
 function rr(c, x, y, w, h, r) {
   c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
@@ -196,7 +210,7 @@ function logoFull(c, cx, cy, sc, t, start = 0) {
 
 /* ---------- fundos ---------- */
 function grid(c, col, a) {
-  c.save(); c.globalAlpha = a; c.strokeStyle = col; c.lineWidth = 1;
+  c.save(); c.globalAlpha *= a; c.strokeStyle = col; c.lineWidth = 1;
   for (let x = 0; x <= W; x += 60) { c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, H); c.stroke(); }
   for (let y = 0; y <= H; y += 60) { c.beginPath(); c.moveTo(0, y + .5); c.lineTo(W, y + .5); c.stroke(); }
   c.restore();
@@ -207,14 +221,15 @@ function bgDark(c, t = 0) {
   g.addColorStop(0, '#04361c'); g.addColorStop(.55, C.dark); g.addColorStop(1, C.dark2);
   c.fillStyle = g; c.fillRect(0, 0, W, H);
   grid(c, '#ffffff', .035);
-  // partículas douradas flutuando
+  // partículas douradas flutuando (save/restore preserva a opacidade da transição)
+  c.save(); const base = c.globalAlpha;
   for (let i = 0; i < 26; i++) {
     const x = rnd(i) * W, sp = 20 + rnd(i + 50) * 40;
     const y = (rnd(i + 9) * H - t * sp) % H; const yy = y < 0 ? y + H : y;
-    c.globalAlpha = .12 + rnd(i + 3) * .25; c.fillStyle = C.gold2;
+    c.globalAlpha = base * (.12 + rnd(i + 3) * .25); c.fillStyle = C.gold2;
     c.beginPath(); c.arc(x, yy, 1.5 + rnd(i + 7) * 3, 0, Math.PI * 2); c.fill();
   }
-  c.globalAlpha = 1;
+  c.restore();
 }
 
 function bgGold(c) {
@@ -248,27 +263,30 @@ function clipFor(c, tr, p) {
 /* VO_DELAY: quanto tempo após o início da cena a narração começa.
    Se houver narração (audio/duracoes.js), a cena é esticada para a fala caber. */
 const VO_DELAY = .3, VO_TAIL = .45;
-const BPM = 120, BEAT = 60 / BPM; // igual ao BPM de gerar_audio.py
 function makeTimeline(scenes, vo = []) {
   let acc = 0;
   scenes.forEach((s, i) => {
     s.vo = vo[i] || 0;
     if (s.vo) s.d = Math.max(s.d, VO_DELAY + s.vo + VO_TAIL);
-    // arredonda para o tempo da batida: cada troca de cena cai num tempo da música
-    s.d = Math.max(BEAT, Math.round(s.d / BEAT) * BEAT);
     s.start = acc; acc += s.d;
   });
   return { scenes, duration: acc };
 }
 const voDur = v => (typeof VO !== 'undefined' && VO[v]) || [];
 
-const TR_DUR = .42;
+const TR_DUR = .42, FADE_DUR = .3;
 function renderFrame(c, tl, t) {
   const { scenes } = tl;
   let i = scenes.findIndex(s => t < s.start + s.d); if (i < 0) i = scenes.length - 1;
   const s = scenes[i]; const lt = t - s.start;
   c.save(); c.clearRect(0, 0, W, H);
-  if (i > 0 && s.tr && s.tr !== 'cut' && lt < TR_DUR) {
+  if (i > 0 && s.tr === 'fade' && lt < FADE_DUR) {
+    // dissolve: a nova cena fica por baixo e a anterior (congelada) some rápido por cima,
+    // antes que os textos novos apareçam — assim os textos nunca se sobrepõem
+    const prev = scenes[i - 1];
+    s.draw(c, lt, s.d);
+    c.save(); c.globalAlpha = 1 - E.inOut(lt / FADE_DUR); prev.draw(c, prev.d - .001, prev.d); c.restore();
+  } else if (i > 0 && s.tr && s.tr !== 'cut' && lt < TR_DUR) {
     const prev = scenes[i - 1];
     c.save(); prev.draw(c, prev.d - .001 + lt * .3, prev.d); c.restore();
     c.save(); clipFor(c, s.tr, E.inOut(lt / TR_DUR)); s.draw(c, lt, s.d); c.restore();

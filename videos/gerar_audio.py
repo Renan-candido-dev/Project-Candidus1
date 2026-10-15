@@ -360,6 +360,61 @@ def comercial(segundos=110, bpm=BPM, seed=5):
     return np.tanh(st / (np.max(np.abs(st)) + 1e-9) * 1.2) * .9
 
 
+def reverb(x, dur=1.2, mix=.25, seed=1):
+    """reverb por convolução com ruído decaindo (sala ampla e suave)"""
+    rng = np.random.default_rng(seed)
+    n = int(dur * SR); t = np.arange(n) / SR
+    ir = rng.standard_normal(n) * np.exp(-t * 5.5 / dur); ir = lowpass(ir, 6000); ir /= np.sqrt((ir ** 2).sum())
+    m = len(x) + n - 1; k = 1 << (m - 1).bit_length()
+    wet = np.fft.irfft(np.fft.rfft(x, k) * np.fft.rfft(ir, k), k)[:m]
+    out = np.zeros(m); out[:len(x)] = x
+    return out * (1 - mix) + wet * mix * 2.5
+
+
+def estereo(x, larg=.0):
+    return np.stack([x * (1 - larg), x * (1 + larg)], 1)
+
+
+def efeitos_candidus():
+    """efeitos discretos e cinematográficos, sem música:
+       abertura  – impacto curto e suave
+       transicao – sopro leve para trocas de cena
+       logo      – assinatura sonora breve (acorde grave + arpejo de sinos + brilho)"""
+    rng = np.random.default_rng(21)
+    # abertura
+    n = int(1.0 * SR); t = np.arange(n) / SR
+    corpo = np.sin(2 * np.pi * np.cumsum(44 + 28 * np.exp(-t * 18)) / SR) * np.exp(-t * 4) * env(n, .008, .2)
+    ar = lowpass(rng.standard_normal(n), 1400) * np.exp(-t * 9) * env(n, .004, .2)
+    # camada média (audível em caixa de celular): "tum" suave em ~180–360 Hz
+    fm = np.cumsum(170 + 120 * np.exp(-t * 25)) / SR
+    meio = (np.sin(2 * np.pi * fm) * .8 + np.sin(4 * np.pi * fm) * .25) * np.exp(-t * 9) * env(n, .006, .2)
+    ab = reverb(corpo * .8 + meio * .7 + .45 * ar, dur=1.4, mix=.3)
+    ab = ab / np.max(np.abs(ab)) * .5
+    # transição
+    n = int(.6 * SR); t = np.arange(n) / SR
+    forma = np.sin(np.pi * t / t[-1]) ** 2
+    nz = lowpass(rng.standard_normal(n), 700 + 2600 * forma); nz = nz - lowpass(nz, 250)
+    tr = nz * forma; tr = tr / np.max(np.abs(tr)) * .3
+    pan = np.linspace(-.5, .5, n)
+    trs = np.stack([tr * (1 - np.clip(pan, 0, 1)), tr * (1 + np.clip(pan, -1, 0))], 1)
+    # assinatura da logo
+    d = 2.6; n = int(d * SR); t = np.arange(n) / SR; lg = np.zeros(n)
+    swell = np.where(t < .55, (t / .55) ** 1.5, np.exp(-(t - .55) * 1.9))
+    for f, a in ((73.42, .6), (146.83, .7), (220, .55), (293.66, .4), (369.99, .2)):  # Ré maior, grave a médio
+        lg += a * np.sin(2 * np.pi * f * t) * swell
+    lg *= .13
+    for k, m in enumerate((74, 81, 86, 90, 93)):  # D5 A5 D6 F#6 A6
+        t0 = .32 + k * .085; i0 = int(t0 * SR); m_n = n - i0; tt = np.arange(m_n) / SR; f = nota(m)
+        idx = 1.2 * np.exp(-tt * 7)
+        sino = np.sin(2 * np.pi * f * tt + idx * np.sin(2 * np.pi * f * 3.5 * tt)) * np.exp(-tt * 2.6) * env(m_n, .003, .3)
+        lg[i0:] += sino * .28 * (1 - k * .08)
+    brilho = rng.standard_normal(n); brilho = brilho - lowpass(brilho, 5500)
+    lg += brilho * np.where(t < .9, t / .9, np.exp(-(t - .9) * 3)) * .02
+    lg = reverb(lg * env(n, .01, .4), dur=1.8, mix=.35)
+    lg = lg / np.max(np.abs(lg)) * .55
+    return {'abertura': estereo(ab), 'transicao': trs, 'logo': np.stack([lg, np.r_[np.zeros(200), lg[:-200]]], 1)}
+
+
 def efeitos():
     """whoosh (transição deslizando) e impacto (corte seco)"""
     rng = np.random.default_rng(9)
@@ -434,7 +489,8 @@ if __name__ == '__main__':
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
     ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só batida + efeitos)')
-    ap.add_argument('--estilo', default='comercial', choices=['comercial', 'batida', 'suave'])
+    ap.add_argument('--estilo', default='nenhuma', choices=['nenhuma', 'comercial', 'batida', 'suave'],
+                    help='música de fundo (padrão: nenhuma, só efeitos)')
     ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
     ap.add_argument('--video', choices=['1', '2'], help='vídeo da narração importada')
     a = ap.parse_args()
@@ -456,11 +512,14 @@ if __name__ == '__main__':
         print('Narração:'); narracao(a.voz, a.velocidade)
     elif not a.so_musica:
         sem_narracao()
+    for velho in ('musica.mp3', 'sfx-whoosh.mp3', 'sfx-impacto.mp3'):
+        if os.path.exists(os.path.join(AUDIO, velho)): os.remove(os.path.join(AUDIO, velho))
     if a.estilo == 'suave':
         print('Trilha suave:'); musica()
     elif a.estilo == 'batida':
-        print('Batida eletrônica:'); salvar_mp3('musica', batida()); print('  audio/musica.mp3')
-    else:
-        print('Trilha comercial:'); salvar_mp3('musica', comercial()); print('  audio/musica.mp3')
-    for nome, sig in efeitos().items():
+        print('Batida eletrônica:'); salvar_mp3('musica', batida())
+    elif a.estilo == 'comercial':
+        print('Trilha comercial:'); salvar_mp3('musica', comercial())
+    print('Efeitos:')
+    for nome, sig in efeitos_candidus().items():
         salvar_mp3('sfx-' + nome, sig); print('  audio/sfx-' + nome + '.mp3')

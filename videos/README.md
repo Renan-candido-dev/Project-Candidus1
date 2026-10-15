@@ -6,8 +6,8 @@ de tipografia cinética do vídeo de referência, usando a identidade Candidus
 
 | Vídeo | Arquivo | Duração |
 |---|---|---|
-| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 50 s |
-| 2 · Proposta comercial (dor → solução → planos) | `out/candidus-proposta.mp4` | 71,5 s |
+| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 37,8 s |
+| 2 · Serviços e planos (dor → como atuamos → planos) | `out/candidus-proposta.mp4` | 57,2 s |
 
 ## Pré-visualizar
 Sirva a pasta e abra o player (fontes não carregam via `file://`):
@@ -22,19 +22,23 @@ cd videos && npx serve .        # ou: python3 -m http.server
 - Vídeo 2: objeto `CFG2` em `video2-proposta.js` (dores, rotina, planos, preços, CTA).
 - Cores, fontes e animações compartilhadas: `engine.js`.
 
-## Som: batida + transições
-- **Trilha:** estilo comercial/corporativo (piano, sinos, palmas, baixo) a 120 BPM, composta por código
-  (`gerar_audio.py`), livre de direitos autorais. Outros estilos: `--estilo batida` (eletrônica) e `--estilo suave`.
-- **Transições:** *whoosh* nas transições deslizantes e *impacto* nos cortes secos.
-- As durações das cenas são arredondadas para o tempo da batida (`BPM` em `engine.js`),
-  então toda troca de cena cai exatamente num tempo da música.
+## Direção visual
+- Verde profundo, dourado e branco; logo original e foto do Renan sem alterações.
+- Uma única animação de entrada (surge deslizando levemente para cima) e transição por dissolve.
+- Textos dentro da área segura do Instagram (x 120–940, y 300–1480), longe dos botões e da legenda.
+
+## Som (sem música de fundo)
+Efeitos próprios da Candidus, discretos, gerados por `gerar_audio.py`:
+- `sfx-abertura` – impacto curto e suave na abertura;
+- `sfx-transicao` – sopro leve nas transições principais;
+- `sfx-logo` – assinatura sonora breve na entrada da logo (acorde grave + arpejo de sinos).
+
+Cada cena define seus efeitos em `sfx: [[nome, segundos]]`.
 
 ```bash
 pip install numpy
-python3 gerar_audio.py                    # trilha comercial + efeitos (sem narração)
-python3 gerar_audio.py --estilo batida    # batida eletrônica
-python3 gerar_audio.py --estilo suave     # trilha mais calma
-python3 gerar_audio.py --narrar --voz dora  # opcional: com narração (faber, cadu, jeff, dora, alex, santa)
+python3 gerar_audio.py                      # só efeitos (padrão)
+python3 gerar_audio.py --estilo comercial   # opcional: adiciona música de fundo
 ```
 
 ### Usar a sua própria voz (ou uma voz licenciada)
