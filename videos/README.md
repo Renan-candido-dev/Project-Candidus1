@@ -34,6 +34,17 @@ pip install piper-tts numpy
 python3 gerar_audio.py --voz faber --velocidade 0.95   # gera audio/ (voz + trilha)
 ```
 
+### Usar a sua própria voz (ou uma voz licenciada)
+Grave (ou gere numa ferramenta de voz com licença comercial) **um arquivo por cena**, lendo
+as falas do `roteiro.json` na ordem: `00.mp3`, `01.mp3`, `02.mp3`... Coloque numa pasta e rode:
+
+```bash
+python3 gerar_audio.py --importar minha-voz/apresentacao --video 1
+python3 gerar_audio.py --importar minha-voz/proposta --video 2
+node export.js 1 && node export.js 2
+```
+O silêncio do começo e do fim é cortado, o volume é normalizado e cada cena se ajusta à duração da sua fala.
+
 ## Exportar MP4
 Requer Node 18+, ffmpeg e Playwright (`npm i`).
 

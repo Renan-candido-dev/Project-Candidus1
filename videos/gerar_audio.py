@@ -178,12 +178,47 @@ def musica(segundos=110, bpm=100, seed=7):
     print('  trilha: audio/musica.mp3', segundos, 's')
 
 
+# ---------------------------------------------------------------- narração própria
+def importar(pasta, video):
+    """Usa uma narração gravada/gerada fora daqui (sua voz ou voz licenciada).
+    A pasta deve ter um arquivo por cena: 00.mp3, 01.mp3, ... (mp3/wav/m4a/ogg),
+    na mesma ordem do roteiro.json. Cena sem arquivo fica sem narração."""
+    destino = os.path.join(AUDIO, 'v' + video); os.makedirs(destino, exist_ok=True)
+    n = len(json.load(open(os.path.join(ROOT, 'roteiro.json'), encoding='utf-8'))[video])
+    js = os.path.join(AUDIO, 'duracoes.js')
+    dur = json.loads(open(js, encoding='utf-8').read().split('const VO = ', 1)[1].rstrip().rstrip(';')) if os.path.exists(js) else {}
+    dur[video] = []
+    for i in range(n):
+        src = next((os.path.join(pasta, f'{i:02d}.{e}') for e in ('wav', 'mp3', 'm4a', 'ogg', 'aac')
+                    if os.path.exists(os.path.join(pasta, f'{i:02d}.{e}'))), None)
+        out = os.path.join(destino, f'{i:02d}.wav')
+        if not src:
+            dur[video].append(0)
+            if os.path.exists(out): os.remove(out)
+            continue
+        tmp = out + '.tmp.wav'
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', src, '-ac', '1', '-ar', str(SR), tmp], check=True)
+        x, sr = ler_wav(tmp); os.remove(tmp)
+        x = aparar(x, sr); x = x / (np.max(np.abs(x)) + 1e-9) * 0.9
+        salvar(out, x, sr)
+        dur[video].append(round(len(x) / sr, 3))
+        print(f'  vídeo {video} · cena {i:02d} · {dur[video][-1]:.2f}s  <- {os.path.basename(src)}')
+    with open(js, 'w', encoding='utf-8') as f:
+        f.write('/* gerado por gerar_audio.py — duração (s) da narração de cada cena */\n')
+        f.write('const VO = ' + json.dumps(dur) + ';\n')
+
+
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--voz', default='faber', choices=['faber', 'cadu', 'jeff'])
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true')
+    ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
+    ap.add_argument('--video', choices=['1', '2'], help='vídeo da narração importada')
     a = ap.parse_args()
+    if a.importar:
+        if not a.video: ap.error('use --video 1 ou --video 2 junto com --importar')
+        print('Importando narração:'); importar(a.importar, a.video); sys.exit()
     if not a.so_musica:
         print('Narração:'); narracao(a.voz, a.velocidade)
     print('Trilha:'); musica()
