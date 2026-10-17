@@ -339,6 +339,7 @@ const MENU = [
     {ico:'↘',label:'Contas a receber',view:'contas-receber'},
     {ico:'↗',label:'Contas a pagar',view:'contas-pagar'},
     {ico:'≋',label:'Fluxo de caixa',view:'fluxo-caixa'},
+    {ico:'↗',label:'Fluxo projetado',view:'projecao'},
     {ico:'▭',label:'Cartões',view:'cartoes'},
     {ico:'↧',label:'Importar extrato',view:'importar'},
     {ico:'⇄',label:'Conciliação',view:'conciliacao'},
@@ -403,7 +404,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -3969,6 +3970,131 @@ function indCV(data, ini, fim){
     else if(d.comportamento==='fixo') r.fixo+=v;
     else { r.semClass+=v; if(d.natureza==='custo') r.variavel+=v; else r.fixo+=v; } });
   return r;
+}
+
+/* ===================== FLUXO PROJETADO (CENÁRIOS) ===================== */
+const PJ_PADRAO={
+  otimista:  {nome:'Otimista',  cor:'var(--green)', inad:0,  atraso:0,  recVenc:90, ajS:0},
+  realista:  {nome:'Realista',  cor:'var(--teal)',  inad:5,  atraso:10, recVenc:50, ajS:0},
+  pessimista:{nome:'Pessimista',cor:'var(--red)',   inad:15, atraso:30, recVenc:20, ajS:10},
+};
+const PJ_PARAM=[
+  ['inad','Inadimplência','% das entradas previstas que não entram'],
+  ['atraso','Atraso nos recebimentos','dias que os clientes atrasam, em média'],
+  ['recVenc','Vencidos que ainda entram','% do que já está vencido a receber e entra no 1º mês'],
+  ['ajS','Variação nas saídas','% a mais (ou a menos) nas saídas previstas'],
+];
+let pjMeses=6, pjSel='realista', pjBase=null, pjSaldo=0, pjInadAtual=null, pjCen=null;
+function pjCarregarCen(){ try{ const s=JSON.parse(localStorage.getItem('candidus_cenarios')||'null'); if(s) return Object.fromEntries(Object.keys(PJ_PADRAO).map(k=>[k,{...PJ_PADRAO[k],...(s[k]||{}),nome:PJ_PADRAO[k].nome,cor:PJ_PADRAO[k].cor}])); }catch(e){} return JSON.parse(JSON.stringify(PJ_PADRAO)); }
+function pjSalvarCen(){ try{ localStorage.setItem('candidus_cenarios',JSON.stringify(pjCen)); }catch(e){} }
+const pjAddDias=(iso,n)=>{ const t=new Date(iso+'T00:00:00Z'); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
+// aplica um cenário à base → saldo mês a mês
+function projetar(itens, saldoIni, hoje, meses, p){
+  const yms=[]; { let [a,m]=[+hoje.slice(0,4),+hoje.slice(5,7)]; for(let i=0;i<meses;i++){ const [y,mm]=addMes(a,m,i); yms.push(`${y}-${String(mm).padStart(2,'0')}`); } }
+  const B=Object.fromEntries(yms.map(k=>[k,{ent:0,sai:0,entVenc:0,saiVenc:0,rec:0}]));
+  let foraHorizonte=0;
+  itens.forEach(x=>{
+    const v=Number(x.valor||0);
+    if(x.tipo==='entrada'){
+      let data, val;
+      if(!x.data){ data=pjAddDias(hoje,p.atraso); val=v*p.recVenc/100; }
+      else { data=pjAddDias(x.data,p.atraso); val=v*(1-p.inad/100); }
+      const k=data.slice(0,7); if(!B[k]){ foraHorizonte+=val; return; }
+      B[k].ent+=val; if(!x.data) B[k].entVenc+=val; if(x.origem==='rec_receber') B[k].rec+=val;
+    } else {
+      const val=v*(1+p.ajS/100), k=(x.data||hoje).slice(0,7); if(!B[k]) return;
+      B[k].sai+=val; if(!x.data) B[k].saiVenc+=val;
+    }
+  });
+  let s=saldoIni; let min={v:saldoIni,ym:yms[0]}, primeiroNeg=null;
+  const linhas=yms.map(k=>{ const b=B[k], ini=s; s=ini+b.ent-b.sai;
+    if(s<min.v) min={v:s,ym:k}; if(s<0&&!primeiroNeg) primeiroNeg=k;
+    return {ym:k, ini, ent:b.ent, sai:b.sai, fim:s, entVenc:b.entVenc, saiVenc:b.saiVenc, rec:b.rec}; });
+  return {linhas, fim:s, min, primeiroNeg, foraHorizonte};
+}
+async function renderProjecao(){
+  pjCen=pjCarregarCen();
+  $('main').innerHTML=`<div class="page-h"><h1>Fluxo de caixa projetado</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div></div>
+    <div class="updated">Parte do saldo de hoje e soma o que está em aberto + as próximas ocorrências dos recorrentes. Os cenários mudam inadimplência, atraso e saídas.</div>
+    <div class="filters">
+      <div class="fg"><label>Horizonte</label><select id="pjMeses">${[3,6,12].map(n=>`<option value="${n}" ${pjMeses===n?'selected':''}>${n} meses</option>`).join('')}</select></div>
+    </div>
+    <div id="pjArea"><div class="loading">Projetando…</div></div>`;
+  $('pjMeses').onchange=e=>{ pjMeses=+e.target.value; loadProjecao(); };
+  await loadProjecao();
+}
+async function loadProjecao(){
+  $('pjArea').innerHTML='<div class="loading">Projetando…</div>';
+  try{
+    const hoje=todayStr(); const [y,m]=[+hoje.slice(0,4),+hoje.slice(5,7)]; const [fy,fm]=addMes(y,m,pjMeses);
+    const ate=pjAddDias(`${fy}-${String(fm).padStart(2,'0')}-01`,-1);
+    const [base,res]=await Promise.all([ db.rpc('projecao_base',{ p_company:companyId||null, p_ate:ate }), db.rpc('resumo_financeiro',{ p_company:companyId||null }) ]);
+    if(base.error) throw base.error; if(res.error) throw res.error;
+    pjBase=base.data||{itens:[]};
+    const R=(res.data||[]).reduce((s,x)=>{ s.saldo+=Number(x.saldo||0); s.ab+=Number(x.receber_aberto||0); s.ve+=Number(x.receber_vencido||0); return s; },{saldo:0,ab:0,ve:0});
+    pjSaldo=R.saldo; pjInadAtual=R.ab?R.ve/R.ab*100:null;
+    drawProjecao();
+  }catch(err){ $('pjArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_projecao.sql?</div></div>`; }
+}
+function drawProjecao(){
+  const hoje=todayStr(), itens=pjBase.itens||[];
+  const P=Object.fromEntries(Object.keys(pjCen).map(k=>[k,projetar(itens,pjSaldo,hoje,pjMeses,pjCen[k])]));
+  const sel=P[pjSel], pior=P.pessimista;
+  const venc=t=>itens.filter(x=>!x.data&&x.tipo===t).reduce((s,x)=>s+Number(x.valor),0);
+  const recQtd=itens.filter(x=>x.origem&&x.origem.startsWith('rec_')).reduce((s,x)=>s+Number(x.qtd||0),0);
+  const cards=[
+    {lbl:'Saldo hoje',val:money(pjSaldo),cls:pjSaldo<0?'neg':''},
+    {lbl:`Saldo em ${ymLabel(sel.linhas[sel.linhas.length-1].ym)} (${pjCen[pjSel].nome.toLowerCase()})`,val:money(sel.fim),cls:sel.fim<0?'neg':''},
+    {lbl:`Menor saldo (${pjCen[pjSel].nome.toLowerCase()})`,val:money(sel.min.v),cls:sel.min.v<0?'neg':'',sub:'em '+ymLabel(sel.min.ym)},
+    {lbl:'Pior cenário',val:pior.primeiroNeg?'Fica negativo':'Não fica negativo',cls:pior.primeiroNeg?'neg':'pos',sub:pior.primeiroNeg?'a partir de '+ymLabel(pior.primeiroNeg):'no horizonte escolhido'},
+  ];
+  const alerta=P[pjSel].primeiroNeg?`<div class="box warnbox" style="margin-bottom:12px">⚠️ No cenário <b>${pjCen[pjSel].nome.toLowerCase()}</b> o caixa fica negativo em <b>${ymLabel(P[pjSel].primeiroNeg)}</b> (menor saldo: ${money(P[pjSel].min.v)}). Antecipe recebimentos, renegocie pagamentos ou planeje captação.</div>`:'';
+  const labels=sel.linhas.map(l=>ymLabel(l.ym));
+  const graf=svgLinhas({ labels:['Hoje',...labels], series:Object.keys(pjCen).map(k=>({nome:pjCen[k].nome, cor:pjCen[k].cor, vals:[pjSaldo,...P[k].linhas.map(l=>l.fim)], forte:k===pjSel})) });
+  const tab=Object.keys(pjCen).map(k=>`<button type="button" data-pjsel="${k}" class="${k===pjSel?'on':''}">${pjCen[k].nome}</button>`).join('');
+  const linhas=sel.linhas.map(l=>`<tr><td>${ymLabel(l.ym)}</td><td class="r">${money(l.ini)}</td>
+    <td class="r" style="color:var(--green)">${money(l.ent)}${l.entVenc?`<div class="dre-av">inclui ${money(l.entVenc)} de vencidos</div>`:''}</td>
+    <td class="r" style="color:var(--red)">${money(l.sai)}${l.saiVenc?`<div class="dre-av">inclui ${money(l.saiVenc)} vencidos</div>`:''}</td>
+    <td class="r ${l.fim<0?'dre-neg':''}"><b>${money(l.fim)}</b></td></tr>`).join('');
+  const params=`<table class="dre-tbl"><thead><tr><th>Premissa</th>${Object.keys(pjCen).map(k=>`<th class="r" style="color:${pjCen[k].cor}">${pjCen[k].nome}</th>`).join('')}</tr></thead><tbody>
+    ${PJ_PARAM.map(([key,lbl,dica])=>`<tr><td title="${esc(dica)}">${lbl} <span class="ind-i">ⓘ</span><div class="dre-av">${esc(dica)}</div></td>${Object.keys(pjCen).map(k=>`<td class="r"><input type="number" step="1" data-pjp="${k}|${key}" value="${pjCen[k][key]}" style="width:78px;text-align:right;padding:6px 8px"> ${key==='atraso'?'d':'%'}</td>`).join('')}</tr>`).join('')}
+    </tbody></table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px;flex-wrap:wrap">
+      <span class="hint">${pjInadAtual!=null?`Referência: hoje ${fmtPct(pjInadAtual)} do que você tem a receber já está vencido.`:''}</span>
+      <button class="lnk" id="pjReset">Restaurar padrão</button></div>`;
+  $('pjArea').innerHTML=`${alerta}<div class="cards">${cards.map(c=>`<div class="kpi"><div class="lbl">${c.lbl}</div><div class="val ${c.cls||''}">${c.val}</div>${c.sub?`<div class="meta">${c.sub}</div>`:''}</div>`).join('')}</div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel"><h3><span class="dot t"></span>Saldo projetado por cenário</h3>${graf}</div>
+      <div class="panel"><h3><span class="dot a"></span>Premissas dos cenários</h3>${params}</div>
+    </div>
+    <div class="panel" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="dot t"></span>Mês a mês</h3><div class="seg" style="max-width:360px">${tab}</div></div>
+      <table id="pjTab" style="margin-top:10px"><thead><tr><th>Mês</th><th class="r">Saldo inicial</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Saldo final</th></tr></thead><tbody>${linhas}</tbody></table>
+      <div class="hint" style="margin-top:8px">Base: ${money(venc('entrada'))} vencidos a receber · ${money(venc('saida'))} vencidos a pagar (entram no 1º mês) · ${recQtd} ocorrência(s) de recorrentes ainda não lançadas.${sel.foraHorizonte>0.005?` ${money(sel.foraHorizonte)} de recebimentos caíram depois do horizonte por causa do atraso.`:''}</div></div>`;
+  $('pjArea').querySelectorAll('[data-pjsel]').forEach(b=>b.onclick=()=>{ pjSel=b.dataset.pjsel; drawProjecao(); });
+  $('pjArea').querySelectorAll('[data-pjp]').forEach(inp=>inp.onchange=()=>{ const [k,key]=inp.dataset.pjp.split('|'); let v=Number(inp.value);
+    if(!isFinite(v)) v=0; if(key==='inad'||key==='recVenc') v=Math.min(100,Math.max(0,v)); if(key==='atraso') v=Math.max(0,Math.round(v)); if(key==='ajS') v=Math.max(-100,v);
+    pjCen[k][key]=v; pjSalvarCen(); drawProjecao(); });
+  $('pjReset').onclick=()=>{ pjCen=JSON.parse(JSON.stringify(PJ_PADRAO)); pjSalvarCen(); drawProjecao(); };
+}
+// gráfico de linhas (mesma escala), aceita negativo; série "forte" fica mais grossa
+function svgLinhas({labels, series, h=250}){
+  const W=Math.max(520, labels.length*62), H=h, pl=74, pr=16, pt=14, pb=26;
+  const all=series.flatMap(s=>s.vals.filter(v=>v!=null&&isFinite(v)));
+  if(!all.length) return '<div class="empty" style="padding:28px">Sem dados.</div>';
+  let max=Math.max(0,...all), min=Math.min(0,...all); if(max===min) max=min+1;
+  const pad=(max-min)*0.08; max+=pad; if(min<0) min-=pad;
+  const y=v=>pt+(max-v)/(max-min)*(H-pt-pb), gw=(W-pl-pr)/Math.max(1,labels.length-1), x=i=>pl+i*gw;
+  let g='';
+  for(let i=0;i<=4;i++){ const v=min+(max-min)*i/4; g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" class="sc-grid"/><text x="${pl-8}" y="${y(v)+4}" class="sc-ax" text-anchor="end">${moneyCurto(v)}</text>`; }
+  if(min<0) g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" style="stroke:var(--red)" stroke-dasharray="4 3"/>`;
+  labels.forEach((lb,i)=>{ g+=`<text x="${x(i)}" y="${H-8}" class="sc-ax" text-anchor="middle">${esc(lb)}</text>`; });
+  series.slice().sort((a,b)=>(a.forte?1:0)-(b.forte?1:0)).forEach(s=>{
+    g+=`<path d="${s.vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ')}" fill="none" style="stroke:${s.cor};opacity:${s.forte?1:.55}" stroke-width="${s.forte?3:2}"/>`;
+    s.vals.forEach((v,i)=>{ g+=`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${s.forte?4:3}" style="fill:${s.cor};opacity:${s.forte?1:.55}"><title>${esc(s.nome)} · ${esc(labels[i])}: ${money(v)}</title></circle>`; });
+  });
+  const leg=series.map(s=>`<span><span class="sc-dot sc-line" style="background:${s.cor}"></span>${esc(s.nome)}${s.forte?' (selecionado)':''}</span>`).join('');
+  return `<div class="sc-leg">${leg}</div><div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="sc-svg">${g}</svg></div>`;
 }
 
 /* ===================== BAIXA EM LOTE ===================== */
