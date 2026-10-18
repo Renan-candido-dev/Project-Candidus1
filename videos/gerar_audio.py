@@ -38,7 +38,33 @@ def modelo(voz):
 # vozes do modelo Kokoro (multilíngue) com sotaque pt-BR: nome -> id do locutor
 KOKORO = {'dora': 42, 'alex': 43, 'santa': 44}
 PIPER = ['faber', 'cadu', 'jeff']
+# Supertonic 3 (Supertone, licença OpenRAIL-M): vozes naturais, 31 idiomas. f1–f5 femininas, m1–m5 masculinas
+SUPERTONIC = {f'f{i}': i - 1 for i in range(1, 6)} | {f'm{i}': i + 4 for i in range(1, 6)}
+ST_NOME = 'sherpa-onnx-supertonic-3-tts-int8-2026-05-11'
 _kokoro = None
+_supertonic = None
+
+
+def supertonic_tts():
+    global _supertonic
+    if _supertonic is None:
+        import sherpa_onnx
+        d = os.path.join(CACHE, ST_NOME)
+        if not os.path.exists(os.path.join(d, 'tts.json')):
+            os.makedirs(CACHE, exist_ok=True); arq = d + '.tar.bz2'
+            print('Baixando modelo Supertonic 3 (~130 MB)...')
+            urllib.request.urlretrieve(f'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/{ST_NOME}.tar.bz2', arq)
+            with tarfile.open(arq) as t:
+                t.extractall(CACHE)
+            os.remove(arq)
+        f = lambda n: os.path.join(d, n)
+        _supertonic = sherpa_onnx.OfflineTts(sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(
+            supertonic=sherpa_onnx.OfflineTtsSupertonicModelConfig(
+                duration_predictor=f('duration_predictor.int8.onnx'), text_encoder=f('text_encoder.int8.onnx'),
+                vector_estimator=f('vector_estimator.int8.onnx'), vocoder=f('vocoder.int8.onnx'),
+                tts_json=f('tts.json'), unicode_indexer=f('unicode_indexer.bin'), voice_style=f('voice.bin')),
+            num_threads=4, provider='cpu')))
+    return _supertonic
 
 
 def kokoro_tts():
@@ -64,7 +90,13 @@ def kokoro_tts():
 
 def sintetizar(voz, texto, out, velocidade):
     """gera um wav com a fala; velocidade < 1 = mais rápido"""
-    if voz in KOKORO:
+    if voz in SUPERTONIC:
+        import sherpa_onnx
+        g = sherpa_onnx.GenerationConfig(); g.sid = SUPERTONIC[voz]; g.num_steps = 16
+        g.speed = 1 / velocidade; g.extra['lang'] = 'pt'
+        a = supertonic_tts().generate(texto, g)
+        salvar(out, np.array(a.samples, dtype=np.float32), a.sample_rate)
+    elif voz in KOKORO:
         a = kokoro_tts().generate(texto, sid=KOKORO[voz], speed=1 / velocidade)
         salvar(out, np.array(a.samples, dtype=np.float32), a.sample_rate)
     else:
@@ -101,29 +133,43 @@ def salvar(path, x, sr, canais=1):
         w.writeframes((x * 32767).astype(np.int16).tobytes())
 
 
+PAUSA = .38  # silêncio entre frases (s)
+
+
 def narracao(voz, velocidade):
+    """sintetiza cada frase separadamente e junta com pausas fixas: assim o instante
+    exato de cada frase é conhecido e a imagem sincroniza com a voz (VO_SEG)"""
+    import re
     roteiro = json.load(open(os.path.join(ROOT, 'roteiro.json'), encoding='utf-8'))
-    dur = {}
+    dur, segs = {}, {}
+    tmp = os.path.join(AUDIO, '_frase.wav')
     for v in ('1', '2'):
         pasta = os.path.join(AUDIO, 'v' + v); os.makedirs(pasta, exist_ok=True)
-        dur[v] = []
+        dur[v], segs[v] = [], []
         for i, texto in enumerate(roteiro[v]):
             out = os.path.join(pasta, f'{i:02d}.wav')
             if not texto.strip():
-                dur[v].append(0)
+                dur[v].append(0); segs[v].append([])
                 if os.path.exists(out): os.remove(out)
                 continue
-            sintetizar(voz, texto, out, velocidade)
-            x, sr = ler_wav(out)
-            x = aparar(x, sr)
-            x = x / (np.max(np.abs(x)) + 1e-9) * 0.9
+            frases = [f for f in re.split(r'(?<=[.?!:…])\s+', texto.strip()) if f]
+            partes, marcas, t, sr = [], [], 0.0, None
+            for k, frase in enumerate(frases):
+                sintetizar(voz, frase, tmp, velocidade)
+                x, sr = ler_wav(tmp); x = aparar(x, sr)
+                if k: partes.append(np.zeros(int(PAUSA * sr))); t += PAUSA
+                marcas.append([round(t, 3), round(len(x) / sr, 3), frase])
+                partes.append(x); t += len(x) / sr
+            x = np.concatenate(partes); x = x / (np.max(np.abs(x)) + 1e-9) * 0.9
             salvar(out, x, sr)
-            dur[v].append(round(len(x) / sr, 3))
-            print(f'  vídeo {v} · cena {i:02d} · {dur[v][-1]:.2f}s  {texto[:60]}')
+            dur[v].append(round(len(x) / sr, 3)); segs[v].append(marcas)
+            print(f'  vídeo {v} · cena {i:02d} · {dur[v][-1]:.2f}s · {len(frases)} frase(s)  {texto[:50]}')
+    if os.path.exists(tmp): os.remove(tmp)
     with open(os.path.join(AUDIO, 'duracoes.js'), 'w', encoding='utf-8') as f:
-        f.write('/* gerado por gerar_audio.py — duração (s) da narração de cada cena */\n')
+        f.write('/* gerado por gerar_audio.py — narração: duração por cena e [início, duração, frase] de cada frase */\n')
         f.write('const VO = ' + json.dumps(dur) + ';\n')
         f.write('const VO_TXT = ' + json.dumps({v: roteiro[v] for v in dur}, ensure_ascii=False) + ';\n')
+        f.write('const VO_SEG = ' + json.dumps(segs, ensure_ascii=False) + ';\n')
 
 
 # ---------------------------------------------------------------- trilha
@@ -484,8 +530,8 @@ def importar(pasta, video):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('--voz', default='faber', choices=PIPER + list(KOKORO),
-                    help='faber, cadu, jeff (Piper, masculinas) · dora (feminina), alex, santa (Kokoro)')
+    ap.add_argument('--voz', default='faber', choices=list(SUPERTONIC) + PIPER + list(KOKORO),
+                    help='f1–f5 / m1–m5 (Supertonic, mais naturais) · faber, cadu, jeff (Piper) · dora, alex, santa (Kokoro)')
     ap.add_argument('--amostras', action='store_true', help='gera amostras-voz/voz-*.mp3 de todas as vozes')
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
@@ -498,7 +544,7 @@ if __name__ == '__main__':
     if a.amostras:
         os.makedirs(os.path.join(ROOT, 'amostras-voz'), exist_ok=True)
         frase = 'Olá! Aqui é a Candidus Gestão Financeira. Organização, planejamento e resultados para a sua empresa.'
-        for vz in PIPER + list(KOKORO):
+        for vz in list(SUPERTONIC) + PIPER + list(KOKORO):
             tmp = os.path.join(AUDIO, '_amostra.wav'); os.makedirs(AUDIO, exist_ok=True)
             sintetizar(vz, frase, tmp, a.velocidade)
             subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', tmp, '-b:a', '96k',

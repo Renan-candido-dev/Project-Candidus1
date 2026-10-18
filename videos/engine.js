@@ -279,6 +279,14 @@ function cue(sc, frase, fb) {
   const txt = sc && sc.vo && typeof VO_TXT !== 'undefined' && VO_TXT[sc.video] && VO_TXT[sc.video][sc.idx];
   if (!txt) return fb;
   const peso = s => s.length + (s.match(/[.?!:]/g) || []).length * 6 + (s.match(/[,;]/g) || []).length * 2;
+  // preciso: início real de cada frase (gerado frase a frase); dentro da frase, proporcional ao texto
+  const segs = typeof VO_SEG !== 'undefined' && VO_SEG[sc.video] && VO_SEG[sc.video][sc.idx];
+  if (segs && segs.length) {
+    for (const [ini, dur, f] of segs) {
+      const j = f.toLowerCase().indexOf(frase.toLowerCase());
+      if (j >= 0) return Math.max(fb * .5, VO_DELAY + ini + dur * peso(f.slice(0, j)) / peso(f) - .2);
+    }
+  }
   const i = txt.toLowerCase().indexOf(frase.toLowerCase());
   if (i < 0) return fb;
   return Math.max(fb * .5, VO_DELAY + sc.vo * peso(txt.slice(0, i)) / peso(txt) - .2);
