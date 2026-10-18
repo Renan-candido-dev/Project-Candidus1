@@ -359,6 +359,7 @@ const MENU = [
   {g:'Controladoria', items:[
     {ico:'◆',label:'DRE',view:'dre'},
     {ico:'⊞',label:'Custos e centros de custo',view:'custos'},
+    {ico:'🔒',label:'Fechamento mensal',view:'fechamento'},
     {ico:'▤',label:'Orçamento',view:'orcamento'},
     {ico:'◈',label:'Realizado x Orçado',view:'realizado-orcado'},
     {ico:'◎',label:'Indicadores',view:'indicadores'},
@@ -404,7 +405,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -4095,6 +4096,100 @@ function svgLinhas({labels, series, h=250}){
   });
   const leg=series.map(s=>`<span><span class="sc-dot sc-line" style="background:${s.cor}"></span>${esc(s.nome)}${s.forte?' (selecionado)':''}</span>`).join('');
   return `<div class="sc-leg">${leg}</div><div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="sc-svg">${g}</svg></div>`;
+}
+
+/* ===================== FECHAMENTO MENSAL ===================== */
+let fcCo='', fcAno=new Date().getFullYear();
+async function renderFechamento(){
+  fcCo=companyId||fcCo||(companies[0]&&companies[0].id)||'';
+  $('main').innerHTML=`<div class="page-h"><h1>Fechamento mensal</h1><div class="spacer"></div></div>
+    <div class="updated">Mês fechado não aceita lançamento, alteração, cancelamento, baixa retroativa nem importação com data/competência nele. Baixar em mês aberto uma conta de mês fechado continua liberado. Só administrador ou gestor reabre, com motivo.</div>
+    <div class="filters">
+      <div class="fg"><label>Empresa</label><select id="fcCo" ${companyId?'disabled':''}>${companies.map(c=>`<option value="${c.id}" ${c.id===fcCo?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
+      <div class="fg"><label>Ano</label><input id="fcAno" type="number" value="${fcAno}" style="max-width:110px"></div>
+    </div>
+    <div id="fcArea"><div class="loading">Carregando…</div></div>`;
+  $('fcCo').onchange=e=>{ fcCo=e.target.value; loadFechamento(); };
+  $('fcAno').onchange=e=>{ fcAno=+e.target.value||fcAno; loadFechamento(); };
+  await loadFechamento();
+}
+async function loadFechamento(){
+  if(!fcCo){ $('fcArea').innerHTML='<div class="panel"><div class="empty">Cadastre uma empresa primeiro.</div></div>'; return; }
+  $('fcArea').innerHTML='<div class="loading">Carregando…</div>';
+  try{
+    const [per,hist]=await Promise.all([
+      db.from('periodos_fechados').select('competencia,fechado_em,observacao,profiles(nome,email)').eq('company_id',fcCo).gte('competencia',`${fcAno}-01-01`).lte('competencia',`${fcAno}-12-01`),
+      db.from('fechamento_historico').select('competencia,acao,motivo,created_at,profiles(nome,email)').eq('company_id',fcCo).order('created_at',{ascending:false}).limit(30),
+    ]);
+    if(per.error) throw per.error; if(hist.error) throw hist.error;
+    const fech=Object.fromEntries((per.data||[]).map(p=>[p.competencia.slice(0,7),p]));
+    const hoje=todayStr().slice(0,7);
+    const quem=p=>p&&p.profiles?esc(p.profiles.nome||p.profiles.email):'—';
+    const dt=s=>s?new Date(s).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
+    const meses=[...Array(12)].map((_,i)=>`${fcAno}-${String(i+1).padStart(2,'0')}`).filter(ym=>ym<=hoje);
+    const rows=meses.map(ym=>{ const f=fech[ym], m=+ym.slice(5,7);
+      return `<tr><td><b>${MESNOME[m-1]}</b></td>
+        <td>${f?'<span class="pill st-pago">🔒 Fechado</span>':'<span class="pill st-a_receber">Aberto</span>'}</td>
+        <td>${f?`${quem(f)}<div class="dre-av">${dt(f.fechado_em)}</div>`:''}</td>
+        <td style="font-size:13px">${f&&f.observacao?esc(f.observacao):''}</td>
+        <td><div class="act">${f?`<button class="lnk" data-fcreabrir="${ym}">Reabrir</button>`:`<button class="mini" data-fcfechar="${ym}">Fechar mês</button>`}</div></td></tr>`; }).join('');
+    const hrows=(hist.data||[]).map(h=>`<tr><td>${dt(h.created_at)}</td><td>${h.acao==='fechar'?'🔒 Fechou':'🔓 Reabriu'}</td><td>${MESCURTO[+h.competencia.slice(5,7)-1]}/${h.competencia.slice(0,4)}</td><td>${quem(h)}</td><td style="font-size:13px">${h.motivo?esc(h.motivo):''}</td></tr>`).join('');
+    $('fcArea').innerHTML=`<div class="panel"><h3><span class="dot t"></span>${esc(coName(fcCo))} · ${fcAno}</h3>
+      ${meses.length?`<table><thead><tr><th>Mês</th><th>Situação</th><th>Fechado por</th><th>Observação</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Nenhum mês desse ano começou ainda.</div>'}</div>
+      <div class="panel" style="margin-top:16px"><h3><span class="dot a"></span>Histórico de fechamentos e reaberturas</h3>
+      ${hrows?`<table><thead><tr><th>Quando</th><th>Ação</th><th>Mês</th><th>Usuário</th><th>Observação / motivo</th></tr></thead><tbody>${hrows}</tbody></table>`:'<div class="empty">Nenhum fechamento ainda.</div>'}</div>`;
+    $('fcArea').querySelectorAll('[data-fcfechar]').forEach(b=>b.onclick=()=>openFecharMes(b.dataset.fcfechar));
+    $('fcArea').querySelectorAll('[data-fcreabrir]').forEach(b=>b.onclick=()=>openReabrirMes(b.dataset.fcreabrir));
+  }catch(err){ $('fcArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_fechamento.sql?</div></div>`; }
+}
+async function openFecharMes(ym){
+  const m=+ym.slice(5,7), titulo=`${MESNOME[m-1]}/${ym.slice(0,4)}`;
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal"><div class="modal-h"><h2>Fechar ${titulo}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="loading">Conferindo pendências…</div></div></div></div>`;
+  $('mx').onclick=closeModal;
+  const { data:ck, error }=await db.rpc('checklist_fechamento',{ p_company:fcCo, p_mes:ym+'-01' });
+  if(error){ $('modalRoot').querySelector('.modal-b').innerHTML=`<div class="empty">Erro: ${esc(error.message)}</div>`; return; }
+  const itens=[
+    ['nao_conciliados','movimento(s) do extrato sem conciliar','Conciliação','conciliacao'],
+    ['sem_categoria','lançamento(s) sem categoria (ficam fora da DRE)','DRE','dre'],
+    ['sem_mapeamento','categoria(s) sem mapeamento na DRE','DRE','dre'],
+    ['sem_centro_custo','categoria(s) de despesa com lançamento sem centro de custo','Custos','custos'],
+    ['vencidos_receber','conta(s) a receber vencidas no mês ainda em aberto','Contas a receber','contas-receber'],
+    ['vencidos_pagar','conta(s) a pagar vencidas no mês ainda em aberto','Contas a pagar','contas-pagar'],
+  ];
+  const pend=itens.filter(([k])=>Number(ck[k]||0)>0);
+  const lista=itens.map(([k,txt,ir,view])=>{ const n=Number(ck[k]||0);
+    return `<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
+      <span style="width:22px">${n?'⚠️':'✅'}</span><span style="flex:1;${n?'':'color:var(--muted)'}">${n?`<b>${n}</b> ${txt}`:txt.replace(/^.*?\(s\)\s*/,'Nenhum(a) ')}</span>
+      ${n?`<button class="lnk" data-fcir="${view}">Ir para ${ir}</button>`:''}</div>`; }).join('');
+  $('modalRoot').querySelector('.modal').innerHTML=`<div class="modal-h"><h2>Fechar ${titulo}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box">${pend.length?`Encontrei <b>${pend.length}</b> ponto(s) de atenção. Dá pra fechar mesmo assim, mas o ideal é resolver antes de enviar os números.`:'Tudo certo pra fechar. ✅'}</div>
+      ${lista}
+      <div class="field" style="margin-top:12px"><label>Observação (opcional)</label><textarea id="fcObs" rows="2" placeholder="Ex.: conferido com o extrato e enviado ao cliente"></textarea></div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">${pend.length?'Fechar mesmo assim':'Fechar mês'}</button></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('modalRoot').querySelectorAll('[data-fcir]').forEach(b=>b.onclick=()=>{ closeModal(); setView(b.dataset.fcir); });
+  $('mSave').onclick=async ()=>{
+    $('mSave').disabled=true;
+    const { error:e2 }=await db.rpc('fechar_periodo',{ p_company:fcCo, p_mes:ym+'-01', p_obs:$('fcObs').value.trim()||null });
+    if(e2){ $('mSave').disabled=false; toast('Erro: '+e2.message,'err'); return; }
+    closeModal(); toast(`${titulo} fechado. 🔒`); loadFechamento();
+  };
+}
+function openReabrirMes(ym){
+  const m=+ym.slice(5,7), titulo=`${MESNOME[m-1]}/${ym.slice(0,4)}`;
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Reabrir ${titulo}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box">Reabrir libera alterações nos números desse mês. Fica registrado no histórico quem reabriu e por quê. Só administrador ou gestor.</div>
+      <div class="field"><label>Motivo *</label><textarea id="fcMot" rows="3" placeholder="Ex.: cliente enviou nota fiscal atrasada"></textarea></div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave" style="background:var(--amber)">Reabrir</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('mSave').onclick=async ()=>{
+    const mot=$('fcMot').value.trim(); if(mot.length<5){ toast('Informe o motivo (mínimo 5 caracteres).','err'); return; }
+    $('mSave').disabled=true;
+    const { error }=await db.rpc('reabrir_periodo',{ p_company:fcCo, p_mes:ym+'-01', p_motivo:mot });
+    if(error){ $('mSave').disabled=false; toast('Erro: '+error.message,'err'); return; }
+    closeModal(); toast(`${titulo} reaberto.`); loadFechamento();
+  };
 }
 
 /* ===================== BAIXA EM LOTE ===================== */
