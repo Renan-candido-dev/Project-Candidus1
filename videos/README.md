@@ -31,11 +31,13 @@ cd videos && npx serve .        # ou: python3 -m http.server
 A voz lê tudo o que está escrito na tela (texto em `roteiro.json`, uma fala por cena).
 A fala é gerada frase a frase (com pausas fixas), então o início de cada frase é exato; cada
 texto/cartão entra no momento em que a voz chega a ele (`cue()` em `engine.js`, dados em `VO_SEG`).
+`--conferir N` gera até N versões de cada frase e escolhe a que o Whisper transcreve mais fiel ao
+roteiro (checagem automática de pronúncia). Grafias fonéticas no roteiro: “Cândidos”, “bê-pê-ó”, “dirécti”.
 Voz padrão: **Supertonic 3** (Supertone, licença OpenRAIL-M, uso comercial permitido), modelo baixado do GitHub. Os efeitos abaixam automaticamente quando a voz fala.
 
 ```bash
 pip install piper-tts sherpa-onnx numpy
-python3 gerar_audio.py --narrar --voz m5 --velocidade 0.95     # Supertonic 3: f1–f5 (femininas), m1–m5 (masculinas)
+python3 gerar_audio.py --narrar --voz m5 --velocidade 0.95 --conferir 5   # Supertonic 3: f1–f5 (femininas), m1–m5 (masculinas)
 # também: faber, cadu, jeff (Piper) · dora, alex, santa (Kokoro) · amostras: python3 gerar_audio.py --amostras
 python3 gerar_audio.py                                          # sem narração (só efeitos)
 ```

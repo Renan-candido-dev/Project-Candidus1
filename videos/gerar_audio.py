@@ -134,9 +134,61 @@ def salvar(path, x, sr, canais=1):
 
 
 PAUSA = .38  # silêncio entre frases (s)
+WHISPER = 'sherpa-onnx-whisper-small'
+_asr = None
 
 
-def narracao(voz, velocidade):
+def transcrever(path):
+    """transcreve um wav com Whisper (usado para conferir a pronúncia da voz sintética)"""
+    global _asr
+    import sherpa_onnx
+    if _asr is None:
+        d = os.path.join(CACHE, WHISPER)
+        if not os.path.exists(os.path.join(d, 'small-tokens.txt')):
+            os.makedirs(CACHE, exist_ok=True); arq = d + '.tar.bz2'
+            print('Baixando Whisper small (~640 MB) para conferir a pronúncia...')
+            urllib.request.urlretrieve(f'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/{WHISPER}.tar.bz2', arq)
+            with tarfile.open(arq) as t:
+                t.extractall(CACHE)
+            os.remove(arq)
+        _asr = sherpa_onnx.OfflineRecognizer.from_whisper(
+            encoder=os.path.join(d, 'small-encoder.int8.onnx'), decoder=os.path.join(d, 'small-decoder.int8.onnx'),
+            tokens=os.path.join(d, 'small-tokens.txt'), language='pt', task='transcribe', num_threads=4)
+    x, sr = ler_wav(path)
+    st = _asr.create_stream(); st.accept_waveform(sr, x); _asr.decode_stream(st)
+    return st.result.text
+
+
+def normalizar(t):
+    """texto -> forma comparável (sem acento/pontuação; grafias fonéticas -> grafia normal)"""
+    import re, unicodedata
+    t = t.lower().replace('bê-pê-ó', 'bpo').replace('bê pê ó', 'bpo').replace('dirécti', 'direct')
+    t = unicodedata.normalize('NFD', t); t = ''.join(ch for ch in t if unicodedata.category(ch) != 'Mn')
+    t = re.sub(r'[^a-z0-9 ]+', ' ', t)
+    return re.sub(r'\s+', ' ', t).strip()
+
+
+def nota_pronuncia(path, frase):
+    import difflib
+    return difflib.SequenceMatcher(None, normalizar(transcrever(path)), normalizar(frase)).ratio()
+
+
+def sintetizar_conferido(voz, frase, out, velocidade, tentativas):
+    """gera até `tentativas` versões da frase e fica com a que o Whisper entende melhor"""
+    if tentativas <= 1:
+        sintetizar(voz, frase, out, velocidade); return None
+    melhor, cand = -1, out + '.cand.wav'
+    for _ in range(tentativas):
+        sintetizar(voz, frase, cand, velocidade)
+        n = nota_pronuncia(cand, frase)
+        if n > melhor:
+            melhor = n; os.replace(cand, out)
+        if melhor >= .97: break
+    if os.path.exists(cand): os.remove(cand)
+    return melhor
+
+
+def narracao(voz, velocidade, tentativas=0):
     """sintetiza cada frase separadamente e junta com pausas fixas: assim o instante
     exato de cada frase é conhecido e a imagem sincroniza com a voz (VO_SEG)"""
     import re
@@ -155,7 +207,9 @@ def narracao(voz, velocidade):
             frases = [f for f in re.split(r'(?<=[.?!:…])\s+', texto.strip()) if f]
             partes, marcas, t, sr = [], [], 0.0, None
             for k, frase in enumerate(frases):
-                sintetizar(voz, frase, tmp, velocidade)
+                n = sintetizar_conferido(voz, frase, tmp, velocidade, tentativas)
+                if n is not None:
+                    print(f'      {n:.2f} {"✓" if n >= .9 else "⚠"}  {frase}')
                 x, sr = ler_wav(tmp); x = aparar(x, sr)
                 if k: partes.append(np.zeros(int(PAUSA * sr))); t += PAUSA
                 marcas.append([round(t, 3), round(len(x) / sr, 3), frase])
@@ -535,7 +589,9 @@ if __name__ == '__main__':
     ap.add_argument('--amostras', action='store_true', help='gera amostras-voz/voz-*.mp3 de todas as vozes')
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
-    ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só batida + efeitos)')
+    ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só efeitos)')
+    ap.add_argument('--conferir', type=int, default=0, metavar='N',
+                    help='gera até N versões de cada frase e escolhe a que o Whisper entende melhor')
     ap.add_argument('--estilo', default='nenhuma', choices=['nenhuma', 'comercial', 'batida', 'suave'],
                     help='música de fundo (padrão: nenhuma, só efeitos)')
     ap.add_argument('--importar', metavar='PASTA', help='usa narração própria: PASTA/00.mp3, 01.mp3, ...')
@@ -556,7 +612,7 @@ if __name__ == '__main__':
         print('Importando narração:'); importar(a.importar, a.video); sys.exit()
     os.makedirs(AUDIO, exist_ok=True)
     if a.narrar:
-        print('Narração:'); narracao(a.voz, a.velocidade)
+        print('Narração:'); narracao(a.voz, a.velocidade, a.conferir)
     elif not a.so_musica:
         sem_narracao()
     for velho in ('musica.mp3', 'sfx-whoosh.mp3', 'sfx-impacto.mp3'):
