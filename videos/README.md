@@ -35,7 +35,7 @@ Voz padrão: **Supertonic 3** (Supertone, licença OpenRAIL-M, uso comercial per
 
 ```bash
 pip install piper-tts sherpa-onnx numpy
-python3 gerar_audio.py --narrar --voz f2 --velocidade 0.95     # Supertonic 3: f1–f5 (femininas), m1–m5 (masculinas)
+python3 gerar_audio.py --narrar --voz m5 --velocidade 0.95     # Supertonic 3: f1–f5 (femininas), m1–m5 (masculinas)
 # também: faber, cadu, jeff (Piper) · dora, alex, santa (Kokoro) · amostras: python3 gerar_audio.py --amostras
 python3 gerar_audio.py                                          # sem narração (só efeitos)
 ```
