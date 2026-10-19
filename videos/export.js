@@ -61,7 +61,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 /* Mixagem: efeitos sonoros de cada cena + narração e música, se existirem.
    Os efeitos e a música abaixam automaticamente (sidechain) quando há voz. */
 function mixAudio(videoTmp, scenes, duration) {
-  const VO_DELAY = .3, A = f => path.join(ROOT, 'audio', f);
+  const VO_DELAY = .25, A = f => path.join(ROOT, 'audio', f);
   const voices = scenes.map((s, i) => ({ f: A(`v${v}/${String(i).padStart(2, '0')}.wav`), at: s.start + VO_DELAY }))
                        .filter(x => fs.existsSync(x.f));
   // efeitos definidos em cada cena: sfx: [[nome, segundos após o início da cena], ...]

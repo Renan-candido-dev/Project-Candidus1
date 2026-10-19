@@ -39,7 +39,7 @@ function planCard(c, t, pl, sc) {
   const h = temItens ? 1120 : 470;
   const y = temItens ? 330 : 720;
   const f = fu(t, .05, .6);
-  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
   c.fillStyle = 'rgba(0,23,10,.75)'; rr(c, x, y, w, h, 40); c.fill();
   c.lineWidth = 3; c.strokeStyle = goldGrad(c, x, y, x + w, y + h); rr(c, x, y, w, h, 40); c.stroke();
   txt(c, pl.tag, W / 2, y + 80, { size: 32, weight: 700, color: C.gold2, ls: 10 });

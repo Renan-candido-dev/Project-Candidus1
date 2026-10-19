@@ -17,7 +17,7 @@ function numCard(c, t, start, n, texto, y, o = {}) {
   const { w = 800, h = 190, icon = 'num' } = o;
   const f = fu(t, start); if (f.a <= 0) return;
   const x = W / 2 - w / 2;
-  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
   c.fillStyle = 'rgba(255,255,255,.045)'; rr(c, x, y, w, h, 28); c.fill();
   c.strokeStyle = 'rgba(236,201,107,.35)'; c.lineWidth = 2; rr(c, x, y, w, h, 28); c.stroke();
   const cx = x + 80, cy = y + h / 2;
@@ -36,7 +36,7 @@ function numCard(c, t, start, n, texto, y, o = {}) {
 
 function ctaPill(c, t, start, texto, y, w = 780) {
   const f = fu(t, start); if (f.a <= 0) return;
-  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
   c.shadowColor = 'rgba(201,150,42,.35)'; c.shadowBlur = 40;
   c.fillStyle = goldGrad(c, W / 2 - w / 2, 0, W / 2 + w / 2, 0); rr(c, W / 2 - w / 2, y - 66, w, 132, 66); c.fill();
   c.restore();
@@ -45,7 +45,7 @@ function ctaPill(c, t, start, texto, y, w = 780) {
 
 function smallLogo(c, t, start, y, sc = .55) {
   const f = fu(t, start);
-  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
   drawImg(c, IMG.icone, W / 2 + 10 * sc, y - 210 * sc, 300 * sc);
   drawImg(c, IMG.nome, W / 2, y, 860 * sc);
   drawImg(c, IMG.gestao, W / 2 + 38 * sc, y + 165 * sc, 590 * sc);
@@ -121,6 +121,18 @@ function mesaBaguncada(c, t) {          // referência: contas espalhadas à noi
   c.fillStyle = topo; c.fillRect(0, 0, W, 900);
 }
 
+function papeisVoando(c, t) {          // caos: contas voando pela tela
+  const carimbos = ['VENCIDO', '', 'ATRASADO', '', 'COBRANÇA', 'VENCIDO', '', 'ATRASADO', '', 'VENCIDO', '', ''];
+  for (let i = 0; i < 12; i++) {
+    const t0 = i * .16, p = clamp((t - t0) / 2.6);
+    if (p <= 0) continue;
+    const x0 = rnd(i + 1) * W, x = x0 + (rnd(i + 2) - .5) * 500 * p, y = H + 200 - p * (H + 600) * (.7 + rnd(i + 3) * .5);
+    c.save(); c.globalAlpha *= .9; c.translate(x, y); c.scale(.8, .8);
+    papel(c, 0, 0, (rnd(i + 4) - .5) * 1.2 + p * (rnd(i + 5) - .5) * 5, carimbos[i], i * 7);
+    c.restore();
+  }
+}
+
 function relatorio(c, t, start) {       // referência: gráfico no papel
   const f = fu(t, start, .7); if (f.a <= 0) return;
   c.save(); c.globalAlpha *= f.a; c.translate(W / 2, 880 + f.dy); c.rotate(-.04);
@@ -150,7 +162,7 @@ function relatorio(c, t, start) {       // referência: gráfico no papel
 
 function chip(c, t, start, texto, x, y, w) {
   const f = fu(t, start); if (f.a <= 0) return;
-  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+  c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
   c.fillStyle = 'rgba(236,201,107,.12)'; rr(c, x - w / 2, y - 48, w, 96, 48); c.fill();
   c.strokeStyle = 'rgba(236,201,107,.6)'; c.lineWidth = 2; rr(c, x - w / 2, y - 48, w, 96, 48); c.stroke();
   c.restore();
@@ -167,7 +179,8 @@ function checkLinha(c, t, start, texto, y) {
 const VIDEO1 = makeTimeline([
   /* 1 · Você sabe quanto lucra? */
   { d: 2.6, sfx: [['abertura', .05]], draw(c, t) {
-      bgDark(c, t);
+      mesaBaguncada(c, t + 2);                       // o problema aparece já no primeiro quadro
+      c.fillStyle = 'rgba(0,10,4,.45)'; c.fillRect(0, 0, W, H);
       T(c, 'Você sabe quanto', W / 2, 800, t, .15, { size: 76, weight: 700 });
       T(c, 'a sua empresa', W / 2, 895, t, .15, { size: 76, weight: 700 });
       T(c, 'realmente lucra?', W / 2, 1030, t, cue(this, 'realmente', .6), { size: 86, weight: 900, color: 'goldgrad' });
@@ -199,9 +212,15 @@ const VIDEO1 = makeTimeline([
 
   /* 5 · Financeiro bagunçado */
   { d: 3.6, tr: 'fade', sfx: [['transicao', 0]], draw(c, t) {
-      mesaBaguncada(c, t);
-      T(c, 'Então o seu financeiro', W / 2, 470, t, .2, { size: 62, weight: 700 });
-      T(c, 'está bagunçado.', W / 2, 580, t, cue(this, 'bagunçado', .6), { size: 92, weight: 900, color: '#ff8a6b' });
+      bgDark(c, t);
+      c.fillStyle = 'rgba(120,20,10,.22)'; c.fillRect(0, 0, W, H);
+      papeisVoando(c, t);
+      const faixa = c.createLinearGradient(0, 700, 0, 1080);                  // apoio de leitura atrás do texto
+      faixa.addColorStop(0, 'rgba(0,8,3,0)'); faixa.addColorStop(.25, 'rgba(0,8,3,.82)');
+      faixa.addColorStop(.75, 'rgba(0,8,3,.82)'); faixa.addColorStop(1, 'rgba(0,8,3,0)');
+      c.fillStyle = faixa; c.fillRect(0, 700, W, 380);
+      T(c, 'Então o seu financeiro', W / 2, 830, t, .2, { size: 62, weight: 700, shadow: 30 });
+      T(c, 'está bagunçado.', W / 2, 950, t, cue(this, 'bagunçado', .6), { size: 96, weight: 900, color: '#ff8a6b', shadow: 30 });
   } },
 
   /* 6 · Vou te ajudar */
@@ -234,7 +253,7 @@ const VIDEO1 = makeTimeline([
       T(c, 'E VOCÊ, EMPRESÁRIO, PERGUNTA:', W / 2, 650, t, .1, { size: 36, weight: 800, color: C.gold2, ls: 3 });
       const f = fu(t, cue(this, 'mas como', .6));
       if (f.a > 0) {
-        c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy);
+        c.save(); c.globalAlpha *= f.a; c.translate(0, f.dy); if (f.blur > .3) c.filter = `blur(${f.blur.toFixed(1)}px)`;
         c.fillStyle = C.cream; rr(c, 140, 740, 800, 300, 40); c.fill();
         c.beginPath(); c.moveTo(240, 1035); c.lineTo(220, 1110); c.lineTo(320, 1035); c.fill();
         c.restore();

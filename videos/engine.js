@@ -48,7 +48,7 @@ function font(size, weight = 800, fam = SANS, italic = false) { return `${italic
 
 function txt(c, s, x, y, o = {}) {
   const { size = 80, weight = 800, fam = SANS, color = C.cream, align = 'center', ls = 0,
-          alpha = 1, scale = 1, rot = 0, italic = false, base = 'middle', shadow = 0, stroke = 0 } = o;
+          alpha = 1, scale = 1, rot = 0, italic = false, base = 'middle', shadow = 0, stroke = 0, blur = 0 } = o;
   if (alpha <= 0) return;
   c.save();
   c.globalAlpha *= alpha;
@@ -56,6 +56,7 @@ function txt(c, s, x, y, o = {}) {
   c.font = font(size, weight, fam, italic);
   c.letterSpacing = ls + 'px';
   c.textAlign = align; c.textBaseline = base;
+  if (blur > .3) c.filter = `blur(${blur.toFixed(1)}px)`;
   if (shadow) { c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = shadow; c.shadowOffsetY = shadow / 3; }
   c.fillStyle = color === 'goldgrad' ? goldGrad(c, -size * s.length * .35, -size / 2, size * s.length * .35, size / 2) : color;
   // compensa o espaçamento extra que o canvas adiciona após o último caractere
@@ -87,9 +88,9 @@ function wrap(c, s, maxW, size, weight = 600, fam = SANS) {
 }
 
 function para(c, s, x, y, o = {}) {
-  const { size = 44, weight = 500, fam = SANS, maxW = 860, lh = 1.35, color = C.cream, alpha = 1, align = 'center' } = o;
+  const { size = 44, weight = 500, fam = SANS, maxW = 860, lh = 1.35, color = C.cream, alpha = 1, align = 'center', blur = 0 } = o;
   const lines = wrap(c, s, maxW, size, weight, fam);
-  lines.forEach((l, i) => txt(c, l, x, y + i * size * lh, { size, weight, fam, color, alpha, align }));
+  lines.forEach((l, i) => txt(c, l, x, y + i * size * lh, { size, weight, fam, color, alpha, align, blur }));
   return lines.length * size * lh;
 }
 
@@ -142,11 +143,11 @@ function typewriter(c, s, x, y, t, o = {}) {
 
 /* ---------- animação padrão (surge deslizando levemente para cima) ---------- */
 const RISE = 36, IN_DUR = .55;
-function fu(t, start, dur = IN_DUR) { const p = P(t, start, dur, E.out); return { a: p, dy: (1 - p) * RISE }; }
+function fu(t, start, dur = IN_DUR) { const p = P(t, start, dur, E.out); return { a: p, dy: (1 - p) * RISE, blur: (1 - p) * 14 }; }
 /* texto com a animação padrão */
-function T(c, s, x, y, t, start, o = {}) { const f = fu(t, start); txt(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a }); }
+function T(c, s, x, y, t, start, o = {}) { const f = fu(t, start); txt(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a, blur: f.blur }); }
 /* parágrafo com a animação padrão; retorna a altura usada */
-function TP(c, s, x, y, t, start, o = {}) { const f = fu(t, start); return para(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a }); }
+function TP(c, s, x, y, t, start, o = {}) { const f = fu(t, start); return para(c, s, x, y + f.dy, { ...o, alpha: (o.alpha ?? 1) * f.a, blur: f.blur }); }
 
 /* ---------- formas ---------- */
 function rr(c, x, y, w, h, r) {
@@ -206,6 +207,16 @@ function logoFull(c, cx, cy, sc, t, start = 0) {
   drawImg(c, IMG.nome, cx, cy, 900 * sc, { alpha: p2, scale: lerp(1.12, 1, p2) });
   const p3 = P(t, start + .9, .7);
   drawImg(c, IMG.gestao, cx + 40 * sc, cy + 170 * sc - (1 - p3) * 30, 620 * sc, { alpha: p3 });
+  // reflexo de luz atravessando a logo
+  const ps = P(t, start + 1.2, 1.1, E.inOut);
+  if (ps > 0 && ps < 1) {
+    const bx = cx - 600 * sc + ps * 1200 * sc;
+    c.save(); c.beginPath(); c.moveTo(bx - 60 * sc, cy - 420 * sc); c.lineTo(bx + 40 * sc, cy - 420 * sc);
+    c.lineTo(bx - 40 * sc, cy + 220 * sc); c.lineTo(bx - 140 * sc, cy + 220 * sc); c.closePath(); c.clip();
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha *= .55;
+    drawImg(c, IMG.nome, cx, cy, 900 * sc); logoIcon(c, cx + 20 * sc, cy - 230 * sc, 330 * sc, 1);
+    c.restore();
+  }
 }
 
 /* ---------- fundos ---------- */
@@ -217,19 +228,54 @@ function grid(c, col, a) {
 }
 
 function bgDark(c, t = 0) {
-  const g = c.createRadialGradient(W / 2, H * .38, 80, W / 2, H * .5, H * .85);
-  g.addColorStop(0, '#04361c'); g.addColorStop(.55, C.dark); g.addColorStop(1, C.dark2);
+  const g = c.createRadialGradient(W / 2, H * .4, 60, W / 2, H * .5, H * .9);
+  g.addColorStop(0, '#05391d'); g.addColorStop(.5, C.dark); g.addColorStop(1, '#000d05');
   c.fillStyle = g; c.fillRect(0, 0, W, H);
-  grid(c, '#ffffff', .035);
-  // partículas douradas flutuando (save/restore preserva a opacidade da transição)
-  c.save(); const base = c.globalAlpha;
-  for (let i = 0; i < 26; i++) {
-    const x = rnd(i) * W, sp = 20 + rnd(i + 50) * 40;
-    const y = (rnd(i + 9) * H - t * sp) % H; const yy = y < 0 ? y + H : y;
-    c.globalAlpha = base * (.12 + rnd(i + 3) * .25); c.fillStyle = C.gold2;
-    c.beginPath(); c.arc(x, yy, 1.5 + rnd(i + 7) * 3, 0, Math.PI * 2); c.fill();
+  // luzes desfocadas (bokeh) — profundidade de campo
+  c.save(); const base = c.globalAlpha; c.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 9; i++) {
+    const x = rnd(i * 3 + 1) * W + Math.sin(t * .25 + i) * 60, y = rnd(i * 3 + 2) * H + Math.cos(t * .2 + i * 1.7) * 80;
+    const r = 120 + rnd(i * 3 + 3) * 260, quente = i % 3 !== 0;
+    const b = c.createRadialGradient(x, y, 0, x, y, r);
+    b.addColorStop(0, quente ? 'rgba(236,190,90,.10)' : 'rgba(60,170,110,.08)'); b.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = base; c.fillStyle = b; c.fillRect(x - r, y - r, r * 2, r * 2);
   }
   c.restore();
+  // poeira dourada fina
+  c.save(); const a0 = c.globalAlpha;
+  for (let i = 0; i < 18; i++) {
+    const x = rnd(i) * W + Math.sin(t * .5 + i) * 20, sp = 12 + rnd(i + 50) * 25;
+    const y = (rnd(i + 9) * H - t * sp) % H, yy = y < 0 ? y + H : y;
+    c.globalAlpha = a0 * (.08 + rnd(i + 3) * .18); c.fillStyle = C.gold2;
+    c.beginPath(); c.arc(x, yy, 1.2 + rnd(i + 7) * 2.2, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+/* acabamento de cinema aplicado a todo quadro: vinheta + granulação de filme */
+let _grao = null;
+function grao() {
+  if (_grao) return _grao;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d');
+  const im = g.createImageData(256, 256);
+  for (let k = 0; k < im.data.length; k += 4) { const v = 128 + (rnd(k * .37) - .5) * 255; im.data[k] = im.data[k + 1] = im.data[k + 2] = v; im.data[k + 3] = 255; }
+  g.putImageData(im, 0, 0); return (_grao = cv);
+}
+function acabamento(c, t) {
+  const v = c.createRadialGradient(W / 2, H / 2, H * .32, W / 2, H / 2, H * .78);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.42)');
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+  if (typeof document === 'undefined') return;
+  c.save(); c.globalAlpha = .07; c.globalCompositeOperation = 'overlay';
+  const f = Math.floor(t * FPS), ox = (rnd(f) * 256) | 0, oy = (rnd(f + 99) * 256) | 0;
+  c.translate(-ox, -oy); c.fillStyle = c.createPattern(grao(), 'repeat'); c.fillRect(0, 0, W + 256, H + 256);
+  c.restore();
+}
+
+/* câmera: avanço lento e leve deriva em cada cena */
+function camera(c, lt, d, idx) {
+  const p = clamp(lt / Math.max(d, .01)), z = 1 + .035 * p;
+  c.translate(W / 2 + Math.sin(idx * 1.3) * 10 * p, H / 2 + Math.cos(idx * .9) * 8 * p); c.scale(z, z); c.translate(-W / 2, -H / 2);
 }
 
 function bgGold(c) {
@@ -262,7 +308,7 @@ function clipFor(c, tr, p) {
 /* ---------- linha do tempo ---------- */
 /* VO_DELAY: quanto tempo após o início da cena a narração começa.
    Se houver narração (audio/duracoes.js), a cena é esticada para a fala caber. */
-const VO_DELAY = .3, VO_TAIL = .7;
+const VO_DELAY = .25, VO_TAIL = .4;
 function makeTimeline(scenes, vo = []) {
   let acc = 0;
   scenes.forEach((s, i) => {
@@ -297,20 +343,28 @@ function renderFrame(c, tl, t) {
   const { scenes } = tl;
   let i = scenes.findIndex(s => t < s.start + s.d); if (i < 0) i = scenes.length - 1;
   const s = scenes[i]; const lt = t - s.start;
+  const desenha = (sc, k, tt) => { c.save(); camera(c, tt, sc.d, k); sc.draw(c, tt, sc.d); c.restore(); };
   c.save(); c.clearRect(0, 0, W, H);
   if (i > 0 && s.tr === 'fade' && lt < FADE_DUR) {
-    // dissolve: a nova cena fica por baixo e a anterior (congelada) some rápido por cima,
-    // antes que os textos novos apareçam — assim os textos nunca se sobrepõem
+    // dissolve: a nova cena fica por baixo e a anterior (congelada) some rápido por cima
     const prev = scenes[i - 1];
-    s.draw(c, lt, s.d);
-    c.save(); c.globalAlpha = 1 - E.inOut(lt / FADE_DUR); prev.draw(c, prev.d - .001, prev.d); c.restore();
+    desenha(s, i, lt);
+    c.save(); c.globalAlpha = 1 - E.inOut(lt / FADE_DUR); desenha(prev, i - 1, prev.d - .001); c.restore();
   } else if (i > 0 && s.tr && s.tr !== 'cut' && lt < TR_DUR) {
     const prev = scenes[i - 1];
-    c.save(); prev.draw(c, prev.d - .001 + lt * .3, prev.d); c.restore();
-    c.save(); clipFor(c, s.tr, E.inOut(lt / TR_DUR)); s.draw(c, lt, s.d); c.restore();
+    desenha(prev, i - 1, prev.d - .001);
+    c.save(); clipFor(c, s.tr, E.inOut(lt / TR_DUR)); desenha(s, i, lt); c.restore();
   } else {
-    s.draw(c, lt, s.d);
+    desenha(s, i, lt);
   }
+  // brilho quente sutil nas trocas de cena (light leak)
+  if (i > 0 && lt < .6) {
+    const a = Math.sin(Math.PI * lt / .6) * .16;
+    const lk = c.createLinearGradient(0, 0, W, H * .6);
+    lk.addColorStop(0, `rgba(255,190,90,${a})`); lk.addColorStop(.5, `rgba(255,150,60,${a * .4})`); lk.addColorStop(1, 'rgba(0,0,0,0)');
+    c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = lk; c.fillRect(0, 0, W, H); c.restore();
+  }
+  acabamento(c, t);
   // fade final para preto
   const tail = tl.duration - t;
   if (tail < .5) { c.globalAlpha = 1 - tail / .5; c.fillStyle = '#000'; c.fillRect(0, 0, W, H); c.globalAlpha = 1; }

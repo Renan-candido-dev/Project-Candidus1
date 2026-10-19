@@ -133,7 +133,7 @@ def salvar(path, x, sr, canais=1):
         w.writeframes((x * 32767).astype(np.int16).tobytes())
 
 
-PAUSA = .38  # silêncio entre frases (s)
+PAUSA = .26  # silêncio entre frases (s)
 WHISPER = 'sherpa-onnx-whisper-small'
 _asr = None
 
