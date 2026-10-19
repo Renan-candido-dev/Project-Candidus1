@@ -1,2 +1,4 @@
 .cache/
 node_modules/
+out/*.video.mp4
+audio/_*.wav
