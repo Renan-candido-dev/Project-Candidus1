@@ -37,7 +37,8 @@ Voz padrão: **Supertonic 3** (Supertone, licença OpenRAIL-M, uso comercial per
 
 ```bash
 pip install piper-tts sherpa-onnx numpy
-python3 gerar_audio.py --narrar --voz faber --velocidade 0.92 --conferir 6   # faber = voz brasileira nativa (Piper)
+python3 gerar_audio.py --narrar --voz cadu --velocidade 0.92 --conferir 6    # cadu = voz brasileira nativa (Piper)
+# refazer só algumas cenas: --refazer 2:6,2:7
 # outras: cadu, jeff (pt-BR nativas) · f1–f5, m1–m5 (Supertonic, sotaque estrangeiro) · dora, alex, santa (Kokoro)
 # também: faber, cadu, jeff (Piper) · dora, alex, santa (Kokoro) · amostras: python3 gerar_audio.py --amostras
 python3 gerar_audio.py                                          # sem narração (só efeitos)

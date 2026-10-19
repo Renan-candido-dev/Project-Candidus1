@@ -163,6 +163,10 @@ def normalizar(t):
     """texto -> forma comparável (sem acento/pontuação; grafias fonéticas -> grafia normal)"""
     import re, unicodedata
     t = t.lower().replace('bê-pê-ó', 'bpo').replace('bê pê ó', 'bpo').replace('dirécti', 'direct')
+    # números: o Whisper escreve em algarismos ("R$ 2.500"); o roteiro, por extenso
+    t = re.sub(r'(?<=\d)[.,](?=\d{3}\b)', '', t).replace('r$', ' ').replace('reais', ' ')
+    for ext, num in (('dois mil e quinhentos', '2500'), ('mil e quinhentos', '1500'), ('setecentos e cinquenta', '750')):
+        t = t.replace(ext, num)
     t = unicodedata.normalize('NFD', t); t = ''.join(ch for ch in t if unicodedata.category(ch) != 'Mn')
     t = re.sub(r'[^a-z0-9 ]+', ' ', t)
     return re.sub(r'\s+', ' ', t).strip()
@@ -188,18 +192,25 @@ def sintetizar_conferido(voz, frase, out, velocidade, tentativas):
     return melhor
 
 
-def narracao(voz, velocidade, tentativas=0):
+def narracao(voz, velocidade, tentativas=0, so=None):
     """sintetiza cada frase separadamente e junta com pausas fixas: assim o instante
     exato de cada frase é conhecido e a imagem sincroniza com a voz (VO_SEG)"""
     import re
     roteiro = json.load(open(os.path.join(ROOT, 'roteiro.json'), encoding='utf-8'))
     dur, segs = {}, {}
     tmp = os.path.join(AUDIO, '_frase.wav')
+    antigo = {}
+    if so:  # mantém as cenas que não serão refeitas
+        t0 = open(os.path.join(AUDIO, 'duracoes.js'), encoding='utf-8').read()
+        antigo = {'VO': json.loads(re.search(r'const VO = (.*);', t0).group(1)),
+                  'SEG': json.loads(re.search(r'const VO_SEG = (.*);', t0).group(1))}
     for v in ('1', '2'):
         pasta = os.path.join(AUDIO, 'v' + v); os.makedirs(pasta, exist_ok=True)
         dur[v], segs[v] = [], []
         for i, texto in enumerate(roteiro[v]):
             out = os.path.join(pasta, f'{i:02d}.wav')
+            if so and f'{v}:{i}' not in so:
+                dur[v].append(antigo['VO'][v][i]); segs[v].append(antigo['SEG'][v][i]); continue
             if not texto.strip():
                 dur[v].append(0); segs[v].append([])
                 if os.path.exists(out): os.remove(out)
@@ -590,6 +601,7 @@ if __name__ == '__main__':
     ap.add_argument('--velocidade', type=float, default=0.95, help='< 1 fala mais rápido')
     ap.add_argument('--so-musica', action='store_true', help='só refaz a trilha, mantém a narração atual')
     ap.add_argument('--narrar', action='store_true', help='inclui narração (sem isso: só efeitos)')
+    ap.add_argument('--refazer', metavar='V:CENA,...', help='refaz só estas cenas (ex.: 2:6,2:7), mantendo as outras')
     ap.add_argument('--conferir', type=int, default=0, metavar='N',
                     help='gera até N versões de cada frase e escolhe a que o Whisper entende melhor')
     ap.add_argument('--estilo', default='nenhuma', choices=['nenhuma', 'comercial', 'batida', 'suave'],
@@ -612,7 +624,7 @@ if __name__ == '__main__':
         print('Importando narração:'); importar(a.importar, a.video); sys.exit()
     os.makedirs(AUDIO, exist_ok=True)
     if a.narrar:
-        print('Narração:'); narracao(a.voz, a.velocidade, a.conferir)
+        print('Narração:'); narracao(a.voz, a.velocidade, a.conferir, set(a.refazer.split(',')) if a.refazer else None)
     elif not a.so_musica:
         sem_narracao()
     for velho in ('musica.mp3', 'sfx-whoosh.mp3', 'sfx-impacto.mp3'):
