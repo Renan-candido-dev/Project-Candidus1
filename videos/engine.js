@@ -267,8 +267,8 @@ function acabamento(c, t) {
   c.fillStyle = v; c.fillRect(0, 0, W, H);
   if (typeof document === 'undefined') return;
   c.save(); c.globalAlpha = .045; c.globalCompositeOperation = 'overlay';
-  const f = Math.floor(t * FPS / 2),   // grão troca a cada 2 quadros (arquivo menor, mesmo visual) ox = (rnd(f) * 256) | 0, oy = (rnd(f + 99) * 256) | 0;
-  c.translate(-ox, -oy); c.fillStyle = c.createPattern(grao(), 'repeat'); c.fillRect(0, 0, W + 256, H + 256);
+  // grão estático: dá textura de filme sem pesar a compressão do vídeo
+  c.fillStyle = c.createPattern(grao(), 'repeat'); c.fillRect(0, 0, W + 256, H + 256);
   c.restore();
 }
 

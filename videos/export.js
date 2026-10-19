@@ -42,7 +42,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
   const scenes = await page.evaluate(() => TL.scenes.map(s => ({ start: s.start, tr: s.tr || 'cut', sfx: s.sfx || [] })));
   const VIDEO_TMP = OUT.replace(/\.mp4$/, '.video.mp4');
   const args = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
-                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'slow', '-crf', '21', '-maxrate', '12M', '-bufsize', '24M', '-movflags', '+faststart', VIDEO_TMP];
+                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'slow', '-crf', '22', '-maxrate', '5M', '-bufsize', '10M', '-movflags', '+faststart', VIDEO_TMP];
   const ff = spawn('ffmpeg', args, { stdio: ['pipe', 'inherit', 'inherit'] });
 
   for (let f = 0; f < frames; f++) {
