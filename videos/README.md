@@ -6,8 +6,8 @@ de tipografia cinética do vídeo de referência, usando a identidade Candidus
 
 | Vídeo | Arquivo | Duração |
 |---|---|---|
-| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 66 s (roteiro conversado, com narração) |
-| 2 · Serviços e planos (dor → como atuamos → planos) | `out/candidus-proposta.mp4` | 76 s (com narração) |
+| 1 · Apresentação (foco em BPO financeiro) | `out/candidus-apresentacao.mp4` | 68 s (roteiro conversado, com narração) |
+| 2 · Serviços e planos (dor → como atuamos → planos) | `out/candidus-proposta.mp4` | 79 s (com narração) |
 
 ## Pré-visualizar
 Sirva a pasta e abra o player (fontes não carregam via `file://`):
