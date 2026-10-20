@@ -143,6 +143,9 @@ input[type=checkbox],input[type=radio]{width:16px!important;height:16px!importan
 .rel-prev{background:#e9eef2;border-radius:var(--radius);padding:14px;min-height:70vh}
 .rel-prev iframe{width:100%;height:78vh;border:0;background:#fff;border-radius:8px;box-shadow:var(--shadow)}
 @media (max-width:900px){.rel-wrap{grid-template-columns:1fr}}
+.timer-chip{position:fixed;right:18px;bottom:18px;z-index:900;background:var(--ink);color:#fff;border-radius:999px;padding:9px 10px 9px 16px;font-size:13px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.timer-chip button{margin-left:6px;background:var(--red);color:#fff;border:0;border-radius:999px;padding:5px 12px;font-weight:600;cursor:pointer}
+.tc-dot{width:8px;height:8px;border-radius:50%;background:#f87171;animation:tcp 1.2s infinite}@keyframes tcp{50%{opacity:.25}}
 .ind-grupo{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
 .ind-i{font-size:11px;color:var(--muted);cursor:help}
 .sc-svg{display:block}.sc-grid{stroke:var(--line);stroke-width:1}.sc-zero{stroke:var(--muted);stroke-width:1}
@@ -366,6 +369,7 @@ const MENU = [
     {ico:'⊞',label:'Custos e centros de custo',view:'custos'},
     {ico:'🔒',label:'Fechamento mensal',view:'fechamento'},
     {ico:'📄',label:'Relatório gerencial',view:'relatorio'},
+    {ico:'💼',label:'Rentabilidade do BPO',view:'rentabilidade'},
     {ico:'▤',label:'Orçamento',view:'orcamento'},
     {ico:'◈',label:'Realizado x Orçado',view:'realizado-orcado'},
     {ico:'◎',label:'Indicadores',view:'indicadores'},
@@ -411,7 +415,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -443,6 +447,7 @@ async function enterApp(session){
   await loadFavorites();
   try{ await db.rpc('gerar_recorrencias',{}); }catch(e){}  // gera contas recorrentes vencidas ao entrar
   setView('dashboard');
+  timerChip();  // cronômetro de horas que ficou rodando
 }
 async function loadCompanies(){
   const { data } = await db.from('companies').select('id,razao_social,nome_fantasia').order('razao_social');
@@ -1699,6 +1704,7 @@ async function changeTaskStatus(id,status){
   if(error){ toast('Erro ao atualizar.','err'); return; }
   if(status==='concluida' && t.recorrencia && t.recorrencia!=='nenhuma') await gerarProximaTarefa(t);
   toast('Status atualizado.'); loadTarefas();
+  if(status==='concluida') openApontamento({ co:t.company_id, descricao:t.titulo, task_id:t.id, titulo:'Tarefa concluída ✅', dica:'Quanto tempo levou? Isso alimenta a rentabilidade do cliente. Se não quiser apontar, clique em Pular.' });
 }
 async function gerarProximaTarefa(t){
   const novo={ company_id:t.company_id, titulo:t.titulo, descricao:t.descricao, categoria:t.categoria,
@@ -4389,6 +4395,161 @@ footer{margin-top:18px;padding-top:6px;border-top:1px solid var(--line);font-siz
 .sc-svg{display:block;max-width:100%;height:auto}.sc-grid{stroke:#e2e8f0}.sc-zero{stroke:#94a3b8}.sc-ax{font-size:10px;fill:#64748b}
 .sc-leg{display:flex;gap:12px;font-size:8.5pt;color:var(--muted);margin:0 0 4px}.sc-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}.sc-line{height:3px}
 `;
+
+/* ===================== RENTABILIDADE DO BPO ===================== */
+const ATIV_LBL={lancamentos:'Lançamentos',conciliacao:'Conciliação',cobranca:'Cobrança',pagamentos:'Pagamentos',fechamento:'Fechamento',relatorio:'Relatório',atendimento:'Atendimento ao cliente',outros:'Outros'};
+const fmtMin=m=>{ m=Math.round(Number(m||0)); return `${Math.floor(m/60)}h${String(m%60).padStart(2,'0')}`; };
+let rbAno=new Date().getFullYear(), rbMes=new Date().getMonth()+1, rbGestor=false;
+// ---- cronômetro (sobrevive a recarregar a página e funciona em qualquer tela) ----
+function timerGet(){ try{ return JSON.parse(localStorage.getItem('candidus_timer')||'null'); }catch(e){ return null; } }
+function timerSet(t){ try{ t?localStorage.setItem('candidus_timer',JSON.stringify(t)):localStorage.removeItem('candidus_timer'); }catch(e){} timerChip(); }
+let timerInt=null;
+function timerChip(){
+  let el=document.getElementById('timerChip'); const t=timerGet();
+  if(!t){ if(el) el.remove(); if(timerInt){ clearInterval(timerInt); timerInt=null; } return; }
+  if(!el){ el=document.createElement('div'); el.id='timerChip'; el.className='timer-chip'; document.body.appendChild(el); }
+  const upd=()=>{ const min=Math.max(0,Math.floor((Date.now()-t.inicio)/60000));
+    el.innerHTML=`<span class="tc-dot"></span>⏱ <b>${esc(coName(t.co))}</b> · ${ATIV_LBL[t.atividade]||''} · ${fmtMin(min)} <button id="tcStop">Parar</button>`;
+    const b=document.getElementById('tcStop'); if(b) b.onclick=()=>pararTimer(); };
+  upd(); if(!timerInt) timerInt=setInterval(upd,30000);
+}
+function iniciarTimer(){
+  if(timerGet()){ toast('Já tem um cronômetro rodando.','err'); return; }
+  const co0=companyId||(companies[0]&&companies[0].id)||'';
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Iniciar cronômetro</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="field"><label>Cliente</label><select id="tmCo">${companies.map(c=>`<option value="${c.id}" ${c.id===co0?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
+      <div class="field"><label>Atividade</label><select id="tmAt">${Object.entries(ATIV_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div class="hint">Pode navegar pelo sistema à vontade: o cronômetro fica no canto da tela até você parar.</div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">▶ Iniciar</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('mSave').onclick=()=>{ timerSet({co:$('tmCo').value, atividade:$('tmAt').value, inicio:Date.now()}); closeModal(); toast('Cronômetro iniciado.'); if(currentView==='rentabilidade') renderRentabilidade(); };
+}
+function pararTimer(){ const t=timerGet(); if(!t) return; openApontamento({co:t.co, atividade:t.atividade, minutos:Math.max(1,Math.round((Date.now()-t.inicio)/60000)), doTimer:true}); }
+// ---- apontamento manual / do cronômetro / ao concluir tarefa ----
+function openApontamento(p={}){
+  const co0=p.co||companyId||(companies[0]&&companies[0].id)||'';
+  const min=p.minutos||0;
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>${p.titulo||'Apontar horas'}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b">${p.dica?`<div class="box">${p.dica}</div>`:''}
+      <div class="field"><label>Cliente</label><select id="apCo">${companies.map(c=>`<option value="${c.id}" ${c.id===co0?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
+      <div class="row2"><div class="field"><label>Data</label><input id="apData" type="date" value="${p.data||todayStr()}"></div>
+        <div class="field"><label>Atividade</label><select id="apAt">${Object.entries(ATIV_LBL).map(([k,v])=>`<option value="${k}" ${k===(p.atividade||'outros')?'selected':''}>${v}</option>`).join('')}</select></div></div>
+      <div class="row2"><div class="field"><label>Horas</label><input id="apH" type="number" min="0" max="24" step="1" value="${Math.floor(min/60)}"></div>
+        <div class="field"><label>Minutos</label><input id="apM" type="number" min="0" max="59" step="1" value="${min%60}"></div></div>
+      <div class="field"><label>Descrição (opcional)</label><input id="apDesc" value="${esc(p.descricao||'')}" placeholder="Ex.: conciliação de outubro"></div></div>
+    <div class="modal-f">${p.doTimer?'<button class="btn ghost" id="apDescartar" style="margin-right:auto;color:var(--red)">Descartar cronômetro</button>':''}
+      <button class="btn ghost" id="mCancel">${p.task_id?'Pular':'Cancelar'}</button><button class="btn" id="mSave">Salvar</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  if(p.doTimer) $('apDescartar').onclick=()=>{ timerSet(null); closeModal(); toast('Cronômetro descartado.'); };
+  $('mSave').onclick=async ()=>{
+    const minutos=(parseInt($('apH').value,10)||0)*60+(parseInt($('apM').value,10)||0);
+    if(minutos<=0){ toast('Informe o tempo.','err'); return; }
+    if(minutos>24*60){ toast('Máximo de 24h por apontamento.','err'); return; }
+    $('mSave').disabled=true;
+    const { error }=await db.from('bpo_apontamentos').insert({ company_id:$('apCo').value, data:$('apData').value||todayStr(), minutos, atividade:$('apAt').value,
+      descricao:$('apDesc').value.trim()||null, task_id:p.task_id||null });
+    if(error){ $('mSave').disabled=false; toast('Erro: '+error.message,'err'); return; }
+    if(p.doTimer) timerSet(null);
+    closeModal(); toast(`${fmtMin(minutos)} apontado(s).`); if(currentView==='rentabilidade') loadRentabilidade();
+  };
+}
+function openContrato(co, atual){
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Contrato — ${esc(coName(co))}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="field"><label>Honorário mensal (R$)</label><input id="ctHon" type="number" step="0.01" min="0" value="${atual?atual.honorario_mensal:''}"></div>
+      <div class="row2"><div class="field"><label>Início</label><input id="ctIni" type="date" value="${atual?atual.inicio:todayStr().slice(0,8)+'01'}"></div>
+        <div class="field"><label>Fim (opcional)</label><input id="ctFim" type="date" value="${atual&&atual.fim?atual.fim:''}"></div></div>
+      <div class="field"><label>Observação</label><input id="ctObs" value="${esc(atual&&atual.observacao||'')}" placeholder="Ex.: inclui 1 visita por mês"></div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">Salvar</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('mSave').onclick=async ()=>{
+    const hon=Number($('ctHon').value); if(!(hon>=0) || $('ctHon').value===''){ toast('Informe o honorário.','err'); return; }
+    if($('ctFim').value && $('ctFim').value<$('ctIni').value){ toast('O fim não pode ser antes do início.','err'); return; }
+    const { error }=await db.from('bpo_contratos').upsert({ company_id:co, honorario_mensal:hon, inicio:$('ctIni').value, fim:$('ctFim').value||null, observacao:$('ctObs').value.trim()||null });
+    if(error){ toast('Erro: '+error.message,'err'); return; }
+    closeModal(); toast('Contrato salvo.'); loadRentabilidade();
+  };
+}
+async function renderRentabilidade(){
+  const t=timerGet();
+  $('main').innerHTML=`<div class="page-h"><h1>Rentabilidade do BPO</h1><div class="spacer"></div>
+    <div class="hbtns">${t?`<button class="btn ghost" id="rbTimer">⏹ Parar cronômetro (${fmtMin((Date.now()-t.inicio)/60000)})</button>`:'<button class="btn ghost" id="rbTimer">⏱ Iniciar cronômetro</button>'}
+    <button class="btn" id="rbApontar">+ Apontar horas</button></div></div>
+    <div class="updated">Quanto cada cliente paga × quanto tempo sua equipe dedica. Honorários e custo/hora só aparecem para administrador e gestor.</div>
+    <div class="filters">
+      <div class="fg"><label>Ano</label><input id="rbAno" type="number" value="${rbAno}" style="max-width:110px"></div>
+      <div class="fg"><label>Período</label><select id="rbMes"><option value="0">Ano todo</option>${MES3.map((m,i)=>`<option value="${i+1}" ${rbMes===i+1?'selected':''}>${MESNOME[i]}</option>`).join('')}</select></div>
+    </div><div id="rbArea"><div class="loading">Carregando…</div></div>`;
+  $('rbTimer').onclick=()=>timerGet()?pararTimer():iniciarTimer();
+  $('rbApontar').onclick=()=>openApontamento();
+  $('rbAno').onchange=e=>{ rbAno=+e.target.value||rbAno; loadRentabilidade(); };
+  $('rbMes').onchange=e=>{ rbMes=+e.target.value; loadRentabilidade(); };
+  await loadRentabilidade();
+}
+async function loadRentabilidade(){
+  $('rbArea').innerHTML='<div class="loading">Calculando…</div>';
+  try{
+    const ini=mesIni(rbAno,rbMes||1), fim=mesIni(rbAno,rbMes||12), [ny,nm]=addMes(rbAno,rbMes||12,1);
+    const [rent,cfg,ger,aps,cts]=await Promise.all([
+      db.rpc('rentabilidade_bpo',{ p_ini:ini, p_fim:fim }),
+      db.from('app_config').select('valor').eq('chave','custo_hora').maybeSingle(),
+      db.rpc('is_gestor'),
+      db.from('bpo_apontamentos').select('id,company_id,data,minutos,atividade,descricao,user_id,profiles(nome,email)').gte('data',ini).lt('data',`${ny}-${String(nm).padStart(2,'0')}-01`).order('data',{ascending:false}).limit(300),
+      db.from('bpo_contratos').select('*'),
+    ]);
+    for(const r of [rent,ger,aps]) if(r.error) throw r.error;
+    rbGestor=!!ger.data;
+    const custoH=Number(cfg.data&&cfg.data.valor||0);
+    const contratos=Object.fromEntries((cts.data||[]).map(c=>[c.company_id,c]));
+    const L=(rent.data||[]).map(r=>{ const h=Number(r.minutos)/60, hon=Number(r.honorario), custo=h*custoH, mg=hon-custo;
+      return {...r, horas:h, hon, custo, mg, pct:hon?mg/hon*100:null, rph:h?hon/h:null, vol:Number(r.titulos)+Number(r.conciliados)}; })
+      .sort((a,b)=>rbGestor?(a.tem_contrato===b.tem_contrato?b.mg-a.mg:(a.tem_contrato?-1:1)):b.horas-a.horas);
+    const T=L.reduce((s,r)=>({hon:s.hon+r.hon,horas:s.horas+r.horas,custo:s.custo+r.custo,mg:s.mg+r.mg}),{hon:0,horas:0,custo:0,mg:0});
+    const per=rbMes?`${MESNOME[rbMes-1]}/${rbAno}`:`Ano ${rbAno}`;
+    let html='';
+    if(rbGestor){
+      const prej=L.filter(r=>r.tem_contrato&&r.mg<0);
+      html+=`<div class="box" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">Custo/hora da equipe (salário + encargos + estrutura ÷ horas produtivas): R$
+        <input id="rbCusto" type="number" step="0.01" min="0" value="${custoH||''}" style="width:110px;padding:6px 8px"> <button class="btn ghost" id="rbCustoSalvar">Salvar</button>
+        ${!custoH?'<span style="color:var(--amber)">⚠️ Defina o custo/hora pra calcular a margem.</span>':''}</div>`;
+      if(prej.length) html+=`<div class="box warnbox" style="margin-bottom:12px">⚠️ ${prej.length} cliente(s) dando <b>prejuízo</b> em ${per}: ${prej.map(r=>esc(r.empresa)).join(', ')}. Reveja o honorário ou o escopo.</div>`;
+      html+=`<div class="cards">
+        <div class="kpi"><div class="lbl">Receita do BPO (honorários)</div><div class="val">${money(T.hon)}</div></div>
+        <div class="kpi"><div class="lbl">Horas apontadas</div><div class="val">${fmtMin(T.horas*60)}</div></div>
+        <div class="kpi"><div class="lbl">Custo das horas</div><div class="val">${money(T.custo)}</div></div>
+        <div class="kpi"><div class="lbl">Margem</div><div class="val ${T.mg<0?'neg':'pos'}">${money(T.mg)}</div><div class="meta">${T.hon?fmtPct(T.mg/T.hon*100)+' dos honorários':''}</div></div>
+        <div class="kpi"><div class="lbl">R$ por hora (média)</div><div class="val">${T.horas?money(T.hon/T.horas):'—'}</div></div></div>`;
+    }
+    const linhas=L.map(r=>`<tr><td><b>${esc(r.empresa)}</b>${rbGestor&&contratos[r.company_id]?`<div class="dre-av">${money(contratos[r.company_id].honorario_mensal)}/mês</div>`:''}</td>
+      ${rbGestor?`<td class="r">${r.tem_contrato?money(r.hon):'<span style="color:var(--muted)">sem contrato</span>'}</td>`:''}
+      <td class="r">${fmtMin(r.minutos)}</td>
+      ${rbGestor?`<td class="r">${money(r.custo)}</td><td class="r ${r.mg<0?'dre-neg':'dre-pos'}"><b>${r.tem_contrato?money(r.mg):'—'}</b></td><td class="r">${r.pct!=null?fmtPct(r.pct):'—'}</td><td class="r">${r.rph!=null?money(r.rph):'—'}</td>`:''}
+      <td class="r">${r.titulos}</td><td class="r">${r.conciliados}</td><td class="r">${r.horas?(r.vol/r.horas).toFixed(1).replace('.',','):'—'}</td>
+      ${rbGestor?`<td><button class="lnk" data-rbct="${r.company_id}">${r.tem_contrato?'Contrato':'Definir contrato'}</button></td>`:''}</tr>`).join('');
+    // empresas sem nada no período mas que o gestor pode querer contratar
+    const semLinha=rbGestor?companies.filter(c=>!L.some(r=>r.company_id===c.id)):[];
+    html+=`<div class="panel" style="margin-top:16px"><h3><span class="dot t"></span>Por cliente · ${per}</h3>
+      ${L.length?`<div style="overflow-x:auto"><table><thead><tr><th>Cliente</th>${rbGestor?'<th class="r">Honorário</th>':''}<th class="r">Horas</th>${rbGestor?'<th class="r">Custo</th><th class="r">Margem</th><th class="r">Margem %</th><th class="r">R$/hora</th>':''}<th class="r">Títulos lançados</th><th class="r">Conciliados</th><th class="r">Itens/hora</th>${rbGestor?'<th></th>':''}</tr></thead><tbody>${linhas}</tbody></table></div>`:'<div class="empty">Nada no período. Defina contratos e aponte horas.</div>'}
+      ${semLinha.length?`<div class="hint" style="margin-top:8px">Sem contrato nem movimento no período: ${semLinha.map(c=>`<button class="lnk" data-rbct="${c.id}">${esc(c.nome_fantasia||c.razao_social)}</button>`).join(' · ')}</div>`:''}</div>`;
+    if(rbGestor && L.some(r=>r.tem_contrato)){
+      const lc=L.filter(r=>r.tem_contrato);
+      html+=`<div class="panel" style="margin-top:16px"><h3><span class="dot t"></span>Honorário × custo das horas</h3>${svgChart({ labels:lc.map(r=>r.empresa.length>14?r.empresa.slice(0,13)+'…':r.empresa),
+        series:[{nome:'Honorário',cor:'var(--teal)',vals:lc.map(r=>r.hon)},{nome:'Custo das horas',cor:'var(--amber)',vals:lc.map(r=>r.custo)}] })}</div>`;
+    }
+    const ap=(aps.data||[]);
+    const porAt={}; ap.forEach(a=>porAt[a.atividade]=(porAt[a.atividade]||0)+a.minutos);
+    html+=`<div class="panel" style="margin-top:16px"><h3><span class="dot a"></span>Apontamentos · ${per}</h3>
+      ${Object.keys(porAt).length?`<div class="hint" style="margin-bottom:8px">Por atividade: ${Object.entries(porAt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${ATIV_LBL[k]} ${fmtMin(v)}`).join(' · ')}</div>`:''}
+      ${ap.length?`<table><thead><tr><th>Data</th><th>Cliente</th><th>Atividade</th><th class="r">Tempo</th>${rbGestor?'<th>Usuário</th>':''}<th>Descrição</th><th></th></tr></thead><tbody>
+      ${ap.map(a=>`<tr><td>${fmtDate(a.data)}</td><td>${esc(coName(a.company_id))}</td><td>${ATIV_LBL[a.atividade]||a.atividade}</td><td class="r">${fmtMin(a.minutos)}</td>${rbGestor?`<td>${a.profiles?esc(a.profiles.nome||a.profiles.email):'—'}</td>`:''}<td style="font-size:13px">${esc(a.descricao||'')}</td>
+        <td>${(a.user_id===userId||rbGestor)?`<button class="lnk del" data-rbdel="${a.id}">Excluir</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhum apontamento no período.</div>'}</div>`;
+    $('rbArea').innerHTML=html;
+    if($('rbCustoSalvar')) $('rbCustoSalvar').onclick=async ()=>{ const v=Number($('rbCusto').value); if(!(v>=0)){ toast('Valor inválido.','err'); return; }
+      const { error }=await db.rpc('salvar_config',{ p_chave:'custo_hora', p_valor:v }); if(error){ toast('Erro: '+error.message,'err'); return; } toast('Custo/hora salvo.'); loadRentabilidade(); };
+    $('rbArea').querySelectorAll('[data-rbct]').forEach(b=>b.onclick=()=>openContrato(b.dataset.rbct, contratos[b.dataset.rbct]));
+    $('rbArea').querySelectorAll('[data-rbdel]').forEach(b=>b.onclick=async ()=>{ const ok=await confirmModal({titulo:'Excluir apontamento',texto:'Excluir este apontamento de horas?',ok:'Excluir',perigo:true}); if(!ok) return;
+      const { error }=await db.from('bpo_apontamentos').delete().eq('id',b.dataset.rbdel); if(error){ toast('Erro: '+error.message,'err'); return; } toast('Apontamento excluído.'); loadRentabilidade(); });
+  }catch(err){ $('rbArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_rentabilidade.sql?</div></div>`; }
+}
 
 /* ===================== BAIXA EM LOTE ===================== */
 let blState={co:'',tipo:'pagar',venc:'todas',rows:[],sel:new Set(),accs:[]};
