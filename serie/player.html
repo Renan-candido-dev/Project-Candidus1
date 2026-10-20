@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidus · Série</title>
+<link rel="stylesheet" href="../videos/assets/fonts.css">
+<style>
+  body { margin:0; background:#00170a; color:#f6f0e1; font-family:Montserrat, Arial, sans-serif; display:flex; flex-direction:column; align-items:center; gap:12px; padding:16px; }
+  canvas { height:min(78vh,1920px); max-width:100%; aspect-ratio:9/16; border-radius:14px; background:#000; }
+  .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; max-width:560px; }
+  select, button { background:#c9962a; color:#01210f; border:0; border-radius:999px; padding:9px 16px; font-weight:800; }
+  input[type=range] { flex:1; accent-color:#c9962a; }
+  body.export { padding:0; } body.export .bar { display:none; } body.export canvas { height:auto; width:1080px; border-radius:0; }
+</style>
+</head>
+<body>
+<div class="bar"><select id="sel"></select></div>
+<canvas id="cv" width="1080" height="1920"></canvas>
+<div class="bar"><button id="play">▶ Play</button><input id="seek" type="range" min="0" max="1000" value="0"><span id="tm">0s</span></div>
+<script src="engine.js"></script>
+<script src="videos.js"></script>
+<script>
+  const qs = new URLSearchParams(location.search), n = +(qs.get('n') || 1);
+  if (qs.has('export')) document.body.classList.add('export');
+  const V = montar(VIDEOS.find(v => v.dia === n) || VIDEOS[0]);
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  window.VID = V; window.DURATION = V.duration;
+  window.renderAt = t => renderFrame(ctx, V, Math.min(t, V.duration - 1e-3));
+  window.ready = Promise.all([
+    loadImg('foto', '../videos/assets/foto-renan.jpg'), loadImg('icone', '../videos/assets/logo-icone.png'),
+    loadImg('nome', '../videos/assets/logo-nome.png'), loadImg('gestao', '../videos/assets/logo-gestao.png'),
+    document.fonts.load("900 40px 'Montserrat'"), document.fonts.load("600 40px 'Cormorant Garamond'")
+  ]).then(() => document.fonts.ready);
+  const sel = document.getElementById('sel');
+  VIDEOS.forEach(v => { const o = new Option(`Dia ${v.dia} · ${v.titulo}`, v.dia); sel.add(o); }); sel.value = n;
+  sel.onchange = () => location.search = '?n=' + sel.value;
+  // pré-visualização com a trilha do vídeo
+  let playing = false, t0 = 0, cur = 0, audio = new Audio(`audio/trilha-${V.trilha}.mp3`);
+  const seek = document.getElementById('seek'), tm = document.getElementById('tm'), btn = document.getElementById('play');
+  const show = t => { cur = t; renderAt(t); seek.value = t / V.duration * 1000; tm.textContent = t.toFixed(1) + 's / ' + V.duration.toFixed(0) + 's'; };
+  const loop = now => { if (!playing) return; const t = (now - t0) / 1000; if (t >= V.duration) { playing = false; audio.pause(); btn.textContent = '▶ Play'; return; } show(t); requestAnimationFrame(loop); };
+  btn.onclick = () => { playing = !playing; btn.textContent = playing ? '❚❚ Pausa' : '▶ Play';
+    if (playing) { if (cur >= V.duration - .05) cur = 0; audio.currentTime = cur; audio.play().catch(() => {}); t0 = performance.now() - cur * 1000; requestAnimationFrame(loop); } else audio.pause(); };
+  seek.oninput = () => { playing = false; audio.pause(); btn.textContent = '▶ Play'; show(seek.value / 1000 * V.duration); };
+  window.ready.then(() => show(0));
+</script>
+</body>
+</html>
