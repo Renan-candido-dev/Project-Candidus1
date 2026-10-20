@@ -138,6 +138,11 @@ input[type=checkbox],input[type=radio]{width:16px!important;height:16px!importan
 .dre-lupa{color:var(--muted);font-size:12px}
 .dre-av{color:var(--muted);font-size:12px}
 .dre-tbl th{white-space:nowrap}
+.rel-wrap{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+.rel-cfg .field{margin-bottom:12px}.rel-chk{display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0;font-weight:400;cursor:pointer}
+.rel-prev{background:#e9eef2;border-radius:var(--radius);padding:14px;min-height:70vh}
+.rel-prev iframe{width:100%;height:78vh;border:0;background:#fff;border-radius:8px;box-shadow:var(--shadow)}
+@media (max-width:900px){.rel-wrap{grid-template-columns:1fr}}
 .ind-grupo{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
 .ind-i{font-size:11px;color:var(--muted);cursor:help}
 .sc-svg{display:block}.sc-grid{stroke:var(--line);stroke-width:1}.sc-zero{stroke:var(--muted);stroke-width:1}
@@ -360,6 +365,7 @@ const MENU = [
     {ico:'◆',label:'DRE',view:'dre'},
     {ico:'⊞',label:'Custos e centros de custo',view:'custos'},
     {ico:'🔒',label:'Fechamento mensal',view:'fechamento'},
+    {ico:'📄',label:'Relatório gerencial',view:'relatorio'},
     {ico:'▤',label:'Orçamento',view:'orcamento'},
     {ico:'◈',label:'Realizado x Orçado',view:'realizado-orcado'},
     {ico:'◎',label:'Indicadores',view:'indicadores'},
@@ -405,7 +411,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -2557,7 +2563,7 @@ function moneyCurto(v){ const a=Math.abs(v), s=v<0?'−':'';
   return s+'R$ '+a.toFixed(0); }
 // gráfico de barras agrupadas (aceita negativo) + linha opcional com escala própria (eixo direito)
 function svgChart({labels, series, line=null, h=240}){
-  const W=Math.max(520, labels.length*52), H=h, pl=70, pr=line?62:14, pt=14, pb=26;
+  const W=Math.max(560, labels.length*56), H=h, pl=84, pr=line?78:14, pt=14, pb=26;
   const all=series.flatMap(s=>s.vals.map(Number).filter(isFinite));
   if(!all.some(v=>v!==0)) return '<div class="empty" style="padding:28px">Sem dados neste ano.</div>';
   let max=Math.max(0,...all), min=Math.min(0,...all); if(max===min) max=min+1;
@@ -2566,13 +2572,13 @@ function svgChart({labels, series, line=null, h=240}){
   const gw=(W-pl-pr)/labels.length, bw=Math.min(20,(gw-12)/series.length);
   let g='';
   for(let i=0;i<=4;i++){ const v=min+(max-min)*i/4, yy=y(v);
-    g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" class="sc-grid"/><text x="${pl-8}" y="${yy+4}" class="sc-ax" text-anchor="end">${moneyCurto(v)}</text>`; }
-  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" class="sc-zero"/>`;
+    g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" class="sc-grid" stroke="#e2e8f0"/><text x="${pl-8}" y="${yy+4}" class="sc-ax" font-size="11" fill="#64748b" text-anchor="end">${moneyCurto(v)}</text>`; }
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" class="sc-zero" stroke="#94a3b8"/>`;
   labels.forEach((lb,i)=>{
     series.forEach((s,j)=>{ const v=Number(s.vals[i]||0); const x=pl+i*gw+(gw-bw*series.length)/2+j*bw;
       const top=y(Math.max(v,0)), hh=Math.max(v?1:0,Math.abs(y(v)-y(0)));
       g+=`<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${hh.toFixed(1)}" rx="2" style="fill:${v<0&&s.corNeg?s.corNeg:s.cor}"><title>${esc(s.nome)} · ${esc(lb)}: ${money(v)}</title></rect>`; });
-    g+=`<text x="${(pl+i*gw+gw/2).toFixed(1)}" y="${H-8}" class="sc-ax" text-anchor="middle">${esc(lb)}</text>`;
+    g+=`<text x="${(pl+i*gw+gw/2).toFixed(1)}" y="${H-8}" class="sc-ax" font-size="11" fill="#64748b" text-anchor="middle">${esc(lb)}</text>`;
   });
   if(line){
     const lv=line.vals.map(v=>v==null||!isFinite(v)?null:Number(v)); const ok=lv.filter(v=>v!=null);
@@ -2584,7 +2590,7 @@ function svgChart({labels, series, line=null, h=240}){
       g+=`<path d="${path}" fill="none" style="stroke:${line.cor}" stroke-width="2.5"/>`;
       lv.forEach((v,i)=>{ if(v==null) return; const x=pl+i*gw+gw/2;
         g+=`<circle cx="${x.toFixed(1)}" cy="${ly(v).toFixed(1)}" r="3.5" style="fill:${line.cor}"><title>${esc(line.nome)} · ${esc(labels[i])}: ${line.fmt(v)}</title></circle>`; });
-      [lmin,(lmin+lmax)/2,lmax].forEach(v=>{ g+=`<text x="${W-pr+6}" y="${ly(v)+4}" class="sc-ax">${line.fmt(v)}</text>`; });
+      [lmin,(lmin+lmax)/2,lmax].forEach(v=>{ g+=`<text x="${W-pr+6}" y="${ly(v)+4}" class="sc-ax" font-size="11" fill="#64748b">${line.fmt(v)}</text>`; });
     }
   }
   const leg=[...series.map(s=>`<span><span class="sc-dot" style="background:${s.cor}"></span>${esc(s.nome)}</span>`),
@@ -4132,7 +4138,7 @@ async function loadFechamento(){
         <td>${f?'<span class="pill st-pago">🔒 Fechado</span>':'<span class="pill st-a_receber">Aberto</span>'}</td>
         <td>${f?`${quem(f)}<div class="dre-av">${dt(f.fechado_em)}</div>`:''}</td>
         <td style="font-size:13px">${f&&f.observacao?esc(f.observacao):''}</td>
-        <td><div class="act">${f?`<button class="lnk" data-fcreabrir="${ym}">Reabrir</button>`:`<button class="mini" data-fcfechar="${ym}">Fechar mês</button>`}</div></td></tr>`; }).join('');
+        <td><div class="act">${f?`<button class="lnk" data-fcrel="${ym}">📄 Relatório</button><button class="lnk" data-fcreabrir="${ym}">Reabrir</button>`:`<button class="mini" data-fcfechar="${ym}">Fechar mês</button>`}</div></td></tr>`; }).join('');
     const hrows=(hist.data||[]).map(h=>`<tr><td>${dt(h.created_at)}</td><td>${h.acao==='fechar'?'🔒 Fechou':'🔓 Reabriu'}</td><td>${MESCURTO[+h.competencia.slice(5,7)-1]}/${h.competencia.slice(0,4)}</td><td>${quem(h)}</td><td style="font-size:13px">${h.motivo?esc(h.motivo):''}</td></tr>`).join('');
     $('fcArea').innerHTML=`<div class="panel"><h3><span class="dot t"></span>${esc(coName(fcCo))} · ${fcAno}</h3>
       ${meses.length?`<table><thead><tr><th>Mês</th><th>Situação</th><th>Fechado por</th><th>Observação</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Nenhum mês desse ano começou ainda.</div>'}</div>
@@ -4140,6 +4146,7 @@ async function loadFechamento(){
       ${hrows?`<table><thead><tr><th>Quando</th><th>Ação</th><th>Mês</th><th>Usuário</th><th>Observação / motivo</th></tr></thead><tbody>${hrows}</tbody></table>`:'<div class="empty">Nenhum fechamento ainda.</div>'}</div>`;
     $('fcArea').querySelectorAll('[data-fcfechar]').forEach(b=>b.onclick=()=>openFecharMes(b.dataset.fcfechar));
     $('fcArea').querySelectorAll('[data-fcreabrir]').forEach(b=>b.onclick=()=>openReabrirMes(b.dataset.fcreabrir));
+    $('fcArea').querySelectorAll('[data-fcrel]').forEach(b=>b.onclick=()=>{ currentView='relatorio'; renderMenu(); renderRelatorio({co:fcCo, mes:b.dataset.fcrel}); });
   }catch(err){ $('fcArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_fechamento.sql?</div></div>`; }
 }
 async function openFecharMes(ym){
@@ -4191,6 +4198,197 @@ function openReabrirMes(ym){
     closeModal(); toast(`${titulo} reaberto.`); loadFechamento();
   };
 }
+
+/* ===================== RELATÓRIO GERENCIAL (PDF) ===================== */
+const REL_SECOES=[['resumo','Resumo executivo'],['dre','DRE do mês'],['mc','Margem de contribuição e equilíbrio'],['fluxo','Fluxo de caixa (6 meses)'],
+  ['custos','Despesas por centro de custo e categoria'],['posicao','Contas a receber e a pagar'],['projecao','Projeção de caixa (3 meses)'],['obs','Observações do analista']];
+let relCfg=null;
+function relCfgPadrao(){
+  const h=todayStr(), [a,m]=addMes(+h.slice(0,4),+h.slice(5,7),-1);
+  let bpo=''; try{ bpo=localStorage.getItem('candidus_bpo_nome')||''; }catch(e){}
+  return { co:companyId||'', mes:`${a}-${String(m).padStart(2,'0')}`, bpo, obs:'', secoes:Object.fromEntries(REL_SECOES.map(([k])=>[k,true])) };
+}
+async function renderRelatorio(preset){
+  relCfg=relCfg||relCfgPadrao(); if(preset) Object.assign(relCfg,preset);
+  if(companyId) relCfg.co=companyId;
+  $('main').innerHTML=`<div class="page-h"><h1>Relatório gerencial</h1><div class="spacer"></div>
+    <button class="btn" id="relPrint">Imprimir / Salvar PDF</button></div>
+    <div class="updated">Monte o relatório do mês pro cliente. Na janela de impressão, escolha <b>“Salvar como PDF”</b>.</div>
+    <div class="rel-wrap">
+      <div class="panel rel-cfg">
+        <div class="field"><label>Empresa</label><select id="relCo" ${companyId?'disabled':''}><option value="">Consolidado (todas)</option>${companies.map(c=>`<option value="${c.id}" ${c.id===relCfg.co?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
+        <div class="field"><label>Mês</label><input type="month" id="relMes" value="${relCfg.mes}"></div>
+        <div class="field"><label>Elaborado por (seu BPO)</label><input id="relBpo" value="${esc(relCfg.bpo)}" placeholder="Ex.: Candidus BPO Financeiro"></div>
+        <div class="field"><label>Seções</label>${REL_SECOES.map(([k,n])=>`<label class="rel-chk"><input type="checkbox" data-relsec="${k}" ${relCfg.secoes[k]?'checked':''}> ${n}</label>`).join('')}</div>
+        <div class="field"><label>Observações do analista</label><textarea id="relObs" rows="7" placeholder="Ex.: Receita caiu 12% por sazonalidade; despesas com frota acima do orçado; recomendamos renegociar o aluguel…">${esc(relCfg.obs)}</textarea></div>
+        <button class="btn ghost" id="relAtualizar" style="width:100%">Atualizar prévia</button>
+      </div>
+      <div class="rel-prev"><div id="relStatus" class="loading">Montando relatório…</div><iframe id="relFrame" title="Prévia do relatório"></iframe></div>
+    </div>`;
+  const ler=()=>{ relCfg.co=$('relCo').value; relCfg.mes=$('relMes').value||relCfg.mes; relCfg.bpo=$('relBpo').value.trim(); relCfg.obs=$('relObs').value;
+    d0().querySelectorAll('[data-relsec]').forEach(c=>relCfg.secoes[c.dataset.relsec]=c.checked); try{ localStorage.setItem('candidus_bpo_nome',relCfg.bpo); }catch(e){} };
+  const d0=()=>document;
+  ['relCo','relMes'].forEach(id=>$(id).onchange=()=>{ ler(); gerarPrevia(); });
+  d0().querySelectorAll('[data-relsec]').forEach(c=>c.onchange=()=>{ ler(); gerarPrevia(true); });
+  $('relAtualizar').onclick=()=>{ ler(); gerarPrevia(true); };
+  $('relPrint').onclick=()=>{ ler(); gerarPrevia(true).then(()=>{ const f=$('relFrame'); if(f&&f.contentWindow){ f.contentWindow.focus(); f.contentWindow.print(); } }); };
+  await gerarPrevia();
+}
+let relDadosCache=null;
+async function gerarPrevia(soReMontar){
+  try{
+    $('relStatus').style.display=''; $('relStatus').textContent='Montando relatório…';
+    const chave=relCfg.co+'|'+relCfg.mes;
+    if(!soReMontar || !relDadosCache || relDadosCache.chave!==chave){ relDadosCache=await relDados(relCfg); relDadosCache.chave=chave; }
+    const html=montarRelatorioHtml(relCfg, relDadosCache);
+    const f=$('relFrame'); if(f) f.srcdoc=html;
+    $('relStatus').style.display='none';
+    return html;
+  }catch(err){ $('relStatus').style.display=''; $('relStatus').innerHTML=`Erro: ${esc(err.message||err)}`; }
+}
+// busca tudo que o relatório precisa (somas no banco)
+async function relDados(cfg){
+  const ano=+cfg.mes.slice(0,4), m=+cfg.mes.slice(5,7), co=cfg.co||null;
+  const [pa,pm]=addMes(ano,m,-1), [ia,im]=addMes(ano,m,-11);
+  await loadDreBase();
+  const hoje=todayStr(), [fa,fm2]=addMes(+hoje.slice(0,4),+hoje.slice(5,7),3);
+  const projAte=pjAddDias(`${fa}-${String(fm2).padStart(2,'0')}-01`,-1);
+  const [realiz,flux,accs,ccs,res,fech,proj]=await Promise.all([
+    dreRealizado(co, mesIni(Math.min(ia,ano),Math.min(ia,ano)===ano?1:im), mesIni(ano,m)),
+    db.rpc('fluxo_mensal',{ p_company:co }),
+    co?db.from('financial_accounts').select('saldo_inicial').eq('company_id',co):db.from('financial_accounts').select('saldo_inicial'),
+    db.rpc('custos_por_cc',{ p_company:co, p_ini:mesIni(ano,m), p_fim:mesIni(ano,m) }),
+    db.rpc('resumo_financeiro',{ p_company:co }),
+    co?db.from('periodos_fechados').select('fechado_em,profiles(nome,email)').eq('company_id',co).eq('competencia',mesIni(ano,m)):Promise.resolve({data:[]}),
+    db.rpc('projecao_base',{ p_company:co, p_ate:projAte }),
+  ]);
+  for(const r of [flux,accs,ccs,res,proj]) if(r.error) throw r.error;
+  return { ano, m, pa, pm, realiz, fluxo:flux.data||[], base:(accs.data||[]).reduce((s,x)=>s+Number(x.saldo_inicial||0),0),
+    ccs:(ccs.data||[]).map(d=>({...d,valor:Number(d.valor)})), res:res.data||[], fech:(fech.data||[])[0]||null, proj:proj.data||{itens:[]}, hoje };
+}
+// monta o HTML A4 (função pura: dados → html)
+function montarRelatorioHtml(cfg, D){
+  const {ano,m,pa,pm}=D, S=cfg.secoes;
+  const empresa=cfg.co?coName(cfg.co):'Consolidado — todas as empresas';
+  const per=`${MESNOME[m-1]}/${ano}`;
+  const pct=(v,s)=>v==null||!isFinite(v)?'—':((s&&v>0)?'+':'')+v.toFixed(1).replace('.',',')+'%';
+  const idx=c=>dreItems.findIndex(i=>i.codigo===c);
+  const cur=dreAgg(D.realiz,mesIni(ano,m),mesIni(ano,m)), prv=dreAgg(D.realiz,mesIni(pa,pm),mesIni(pa,pm)), acu=dreAgg(D.realiz,mesIni(ano,1),mesIni(ano,m));
+  const vC=dreLinhas(cur), vP=dreLinhas(prv), vA=dreLinhas(acu);
+  const at=(v,c)=>{ const i=idx(c); return i>=0?v[i]:0; };
+  const RL=at(vC,'receita_liquida'), LL=at(vC,'resultado_liquido'), RLp=at(vP,'receita_liquida'), LLp=at(vP,'resultado_liquido');
+  const ah=(a,b)=>b?(a-b)/Math.abs(b)*100:null;
+  // caixa
+  const F=D.fluxo; const real=ym=>F.find(x=>x.ym===ym)||{real_e:0,real_s:0};
+  const saldoAte=ym=>D.base+F.filter(x=>x.ym<=ym).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
+  const ym0=`${ano}-${String(m).padStart(2,'0')}`, ymP=`${pa}-${String(pm).padStart(2,'0')}`;
+  const ent=Number(real(ym0).real_e), sai=Number(real(ym0).real_s), saldoFim=saldoAte(ym0), saldoFimP=saldoAte(ymP);
+  const blocos=[];
+  // cabeçalho
+  const fechTxt=D.fech?`🔒 Período fechado em ${new Date(D.fech.fechado_em).toLocaleDateString('pt-BR')}${D.fech.profiles?' por '+esc(D.fech.profiles.nome||D.fech.profiles.email):''} — números definitivos.`
+    :(cfg.co?'⚠️ Período ainda em aberto — os números podem mudar até o fechamento.':'Visão consolidada de todas as empresas.');
+  blocos.push(`<header class="cab"><div><div class="sub">Relatório gerencial</div><h1>${esc(empresa)}</h1><div class="per">${per}</div></div>
+    <div class="cab-d">${cfg.bpo?`<div class="bpo">${esc(cfg.bpo)}</div>`:''}<div>Emitido em ${new Date().toLocaleDateString('pt-BR')}</div></div></header>
+    <div class="selo ${D.fech?'ok':'aberto'}">${fechTxt}</div>`);
+  if(S.resumo){
+    const card=(l,v,var_,cls)=>`<div class="kp"><div class="kl">${l}</div><div class="kv ${cls||''}">${v}</div>${var_!=null?`<div class="kvar ${var_<0?'neg':'pos'}">${pct(var_,true)} vs ${MESCURTO[pm-1]}</div>`:''}</div>`;
+    blocos.push(`<section><h2>Resumo executivo</h2><div class="kps">
+      ${card('Receita líquida',money(RL),ah(RL,RLp))}
+      ${card('Lucro líquido',money(LL),ah(LL,LLp),LL<0?'neg':'')}
+      ${card('Margem líquida',pct(RL?LL/RL*100:null),null,LL<0?'neg':'')}
+      ${card('Saldo de caixa no fim do mês',money(saldoFim),ah(saldoFim,saldoFimP),saldoFim<0?'neg':'')}
+      ${card('Entradas no mês (caixa)',money(ent),null)}
+      ${card('Saídas no mês (caixa)',money(sai),null)}
+    </div></section>`);
+  }
+  if(S.obs && cfg.obs && cfg.obs.trim()){
+    blocos.push(`<section class="nb"><h2>Comentários do analista</h2><div class="obs">${esc(cfg.obs.trim()).replace(/\n/g,'<br>')}</div></section>`);
+  }
+  if(S.dre){
+    const bAV=v=>dreBaseAV(v);
+    const linhas=dreItems.map((it,i)=>{ const sub=it.tipo==='subtotal'; const b=bAV(vC);
+      return `<tr class="${sub?'sub':''}"><td>${esc(it.titulo)}</td><td class="r ${vC[i]<0?'neg':''}">${money(vC[i])}</td><td class="r av">${b?pct(vC[i]/Math.abs(b)*100):'—'}</td>
+        <td class="r">${money(vP[i])}</td><td class="r av ${ah(vC[i],vP[i])<0?'neg':''}">${pct(ah(vC[i],vP[i]),true)}</td><td class="r">${money(vA[i])}</td></tr>`; }).join('');
+    blocos.push(`<section><h2>DRE gerencial</h2><table><thead><tr><th>Descrição</th><th class="r">${MESCURTO[m-1]}/${ano}</th><th class="r">AV%</th><th class="r">${MESCURTO[pm-1]}/${pa}</th><th class="r">AH%</th><th class="r">Acumulado ${ano}</th></tr></thead><tbody>${linhas}</tbody></table>
+      <div class="nota">Regime de competência. AV% sobre a receita líquida; AH% contra o mês anterior.</div></section>`);
+  }
+  if(S.mc){
+    const CV=indCV(D.realiz,mesIni(ano,m),mesIni(ano,m)), mc=RL-CV.variavel, mcp=RL?mc/RL:null, pe=(mcp&&mcp>0)?CV.fixo/mcp:null;
+    blocos.push(`<section class="nb"><h2>Margem de contribuição e ponto de equilíbrio</h2><table><tbody>
+      <tr class="sub"><td>Receita líquida</td><td class="r">${money(RL)}</td><td class="r av">100%</td></tr>
+      <tr><td>(−) Custos e despesas variáveis</td><td class="r">${money(CV.variavel)}</td><td class="r av">${RL?pct(CV.variavel/RL*100):'—'}</td></tr>
+      <tr class="sub"><td>(=) Margem de contribuição</td><td class="r ${mc<0?'neg':''}">${money(mc)}</td><td class="r av">${mcp!=null?pct(mcp*100):'—'}</td></tr>
+      <tr><td>(−) Custos e despesas fixos</td><td class="r">${money(CV.fixo)}</td><td class="r av">${RL?pct(CV.fixo/RL*100):'—'}</td></tr>
+      <tr class="sub"><td>(=) Resultado operacional</td><td class="r ${mc-CV.fixo<0?'neg':''}">${money(mc-CV.fixo)}</td><td class="r av">${RL?pct((mc-CV.fixo)/RL*100):'—'}</td></tr>
+      </tbody></table>
+      <div class="destaque">${pe!=null?`Ponto de equilíbrio: <b>${money(pe)}</b> de receita líquida por mês · Margem de segurança: <b>${pct((RL-pe)/(RL||1)*100)}</b> ${RL>=pe?'(acima do equilíbrio)':'(abaixo do equilíbrio)'}`:'Sem margem de contribuição positiva no mês — não há ponto de equilíbrio.'}${CV.semClass?'<br><span class="nota">Estimado: parte das categorias ainda não foi classificada como fixa/variável.</span>':''}</div></section>`);
+  }
+  if(S.fluxo){
+    const yms=[5,4,3,2,1,0].map(n=>{ const [a,mm]=addMes(ano,m,-n); return `${a}-${String(mm).padStart(2,'0')}`; });
+    const rows=yms.map(ym=>({ym, e:Number(real(ym).real_e), s:Number(real(ym).real_s), fim:saldoAte(ym)}));
+    const graf=svgChart({ labels:yms.map(ymLabel), series:[{nome:'Entradas',cor:'#16a34a',vals:rows.map(r=>r.e)},{nome:'Saídas',cor:'#dc2626',vals:rows.map(r=>r.s)}],
+      line:{nome:'Saldo no fim do mês',cor:'#0e9384',vals:rows.map(r=>r.fim),fmt:v=>moneyCurto(v)}, h:220 });
+    blocos.push(`<section class="nb"><h2>Fluxo de caixa realizado — últimos 6 meses</h2>${graf}
+      <table><thead><tr><th>Mês</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Resultado</th><th class="r">Saldo final</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${ymLabel(r.ym)}</td><td class="r">${money(r.e)}</td><td class="r">${money(r.s)}</td><td class="r ${r.e-r.s<0?'neg':''}">${money(r.e-r.s)}</td><td class="r ${r.fim<0?'neg':''}"><b>${money(r.fim)}</b></td></tr>`).join('')}
+      </tbody></table></section>`);
+  }
+  if(S.custos){
+    const desp=D.ccs.filter(d=>d.origem==='pagar'), tot=desp.reduce((s,d)=>s+d.valor,0);
+    const porCC={}; desp.forEach(d=>{ const k=d.centro_custo; porCC[k]=(porCC[k]||0)+d.valor; });
+    const lcc=Object.entries(porCC).sort((a,b)=>b[1]-a[1]);
+    const grupos=custosAgrupar(desp).slice(0,10);
+    blocos.push(`<section class="nb"><h2>Despesas do mês</h2>${tot?`<div class="duas">
+      <div><h3>Por centro de custo</h3><table><tbody>${lcc.map(([n,v])=>`<tr><td>${esc(n)}</td><td class="r">${money(v)}</td><td class="r av">${pct(v/tot*100)}</td></tr>`).join('')}
+        <tr class="sub"><td>Total</td><td class="r">${money(tot)}</td><td class="r av">100%</td></tr></tbody></table></div>
+      <div><h3>Principais grupos de categoria</h3><table><tbody>${grupos.map(g=>`<tr><td>${esc(g.nome)}</td><td class="r">${money(g.total)}</td><td class="r av">${pct(g.total/tot*100)}</td></tr>`).join('')}</tbody></table></div>
+    </div>`:'<div class="nota">Nenhuma despesa lançada no mês.</div>'}</section>`);
+  }
+  if(S.posicao){
+    const R=D.res.reduce((s,x)=>{ ['receber_aberto','receber_vencido','pagar_aberto','pagar_vencido','receber_30d','pagar_30d'].forEach(k=>s[k]+=Number(x[k]||0)); return s; },{receber_aberto:0,receber_vencido:0,pagar_aberto:0,pagar_vencido:0,receber_30d:0,pagar_30d:0});
+    blocos.push(`<section class="nb"><h2>Contas a receber e a pagar <span class="h2s">posição em ${new Date(D.hoje+'T12:00:00').toLocaleDateString('pt-BR')}</span></h2><table>
+      <thead><tr><th></th><th class="r">Em aberto</th><th class="r">Vencido</th><th class="r">Próximos 30 dias</th></tr></thead><tbody>
+      <tr><td>A receber</td><td class="r">${money(R.receber_aberto)}</td><td class="r ${R.receber_vencido?'neg':''}">${money(R.receber_vencido)}</td><td class="r">${money(R.receber_30d)}</td></tr>
+      <tr><td>A pagar</td><td class="r">${money(R.pagar_aberto)}</td><td class="r ${R.pagar_vencido?'neg':''}">${money(R.pagar_vencido)}</td><td class="r">${money(R.pagar_30d)}</td></tr>
+      <tr class="sub"><td>Saldo (receber − pagar)</td><td class="r ${R.receber_aberto-R.pagar_aberto<0?'neg':''}">${money(R.receber_aberto-R.pagar_aberto)}</td><td></td><td class="r ${R.receber_30d-R.pagar_30d<0?'neg':''}">${money(R.receber_30d-R.pagar_30d)}</td></tr>
+      </tbody></table>${R.receber_aberto?`<div class="nota">Inadimplência atual: ${pct(R.receber_vencido/R.receber_aberto*100)} do total a receber está vencido.</div>`:''}</section>`);
+  }
+  if(S.projecao){
+    const saldoHoje=D.res.reduce((s,x)=>s+Number(x.saldo||0),0), cen=pjCarregarCen().realista;
+    const P=projetar(D.proj.itens||[],saldoHoje,D.hoje,3,cen);
+    blocos.push(`<section class="nb"><h2>Projeção de caixa — próximos 3 meses <span class="h2s">cenário realista, a partir de hoje</span></h2><table>
+      <thead><tr><th>Mês</th><th class="r">Saldo inicial</th><th class="r">Entradas previstas</th><th class="r">Saídas previstas</th><th class="r">Saldo final</th></tr></thead><tbody>
+      ${P.linhas.map(l=>`<tr><td>${ymLabel(l.ym)}</td><td class="r">${money(l.ini)}</td><td class="r">${money(l.ent)}</td><td class="r">${money(l.sai)}</td><td class="r ${l.fim<0?'neg':''}"><b>${money(l.fim)}</b></td></tr>`).join('')}
+      </tbody></table><div class="nota">Premissas: inadimplência ${cen.inad}%, atraso médio ${cen.atraso} dias, ${cen.recVenc}% dos vencidos recebidos${cen.ajS?`, saídas ${cen.ajS>0?'+':''}${cen.ajS}%`:''}. Considera contas em aberto e recorrências programadas.${P.primeiroNeg?` <b class="neg">Atenção: saldo negativo previsto em ${ymLabel(P.primeiroNeg)}.</b>`:''}</div></section>`);
+  }
+  blocos.push(`<footer>${cfg.bpo?esc(cfg.bpo)+' · ':''}Relatório gerado pelo Candidus Gestão Financeira · ${esc(empresa)} · ${per}</footer>`);
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório gerencial — ${esc(empresa)} — ${per}</title><style>${REL_CSS}</style></head><body>${blocos.join('\n')}</body></html>`;
+}
+const REL_CSS=`
+@page{size:A4;margin:14mm 12mm 16mm}
+:root{--teal:#0e9384;--green:#16a34a;--red:#dc2626;--amber:#d97706;--muted:#64748b;--line:#e2e8f0;--ink:#0f1e2e}
+*{box-sizing:border-box}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a2530;font-size:10.5pt;margin:0;padding:18px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@media print{body{padding:0}}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--teal);padding-bottom:10px;margin-bottom:10px}
+.cab .sub{font-size:9pt;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:700}
+.cab h1{margin:2px 0;font-size:19pt;color:var(--ink)}.cab .per{font-size:12pt;color:var(--muted)}
+.cab-d{text-align:right;font-size:9pt;color:var(--muted)}.cab-d .bpo{font-size:11pt;font-weight:700;color:var(--ink)}
+.selo{font-size:9pt;padding:6px 10px;border-radius:6px;margin-bottom:14px}.selo.ok{background:#e6f5f2;color:#0b7a6e}.selo.aberto{background:#fff7e6;color:#9a5b00}
+section{margin:0 0 16px}section.nb{break-inside:avoid;page-break-inside:avoid}
+h2{font-size:12.5pt;color:var(--ink);margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}.h2s{font-size:9pt;font-weight:400;color:var(--muted)}
+h3{font-size:10pt;margin:0 0 6px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:9.5pt}th{text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding:5px 6px}
+td{padding:4.5px 6px;border-bottom:1px solid #f1f5f9}tr{break-inside:avoid}.r{text-align:right;white-space:nowrap}.av{color:var(--muted);font-size:8.5pt}
+tr.sub td{font-weight:700;background:#f7fafb}.neg{color:var(--red)}.pos{color:var(--green)}
+.kps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kp{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kl{font-size:8.5pt;color:var(--muted)}.kv{font-size:14pt;font-weight:700;margin-top:2px}.kvar{font-size:8.5pt;margin-top:2px}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.destaque{margin-top:8px;padding:8px 10px;background:#f7fafb;border-left:3px solid var(--teal);font-size:9.5pt}
+.nota{font-size:8.5pt;color:var(--muted);margin-top:6px}.obs{font-size:10pt;line-height:1.5;padding:10px 12px;border:1px solid var(--line);border-radius:8px;white-space:normal}
+footer{margin-top:18px;padding-top:6px;border-top:1px solid var(--line);font-size:8pt;color:var(--muted);text-align:center}
+.sc-svg{display:block;max-width:100%;height:auto}.sc-grid{stroke:#e2e8f0}.sc-zero{stroke:#94a3b8}.sc-ax{font-size:10px;fill:#64748b}
+.sc-leg{display:flex;gap:12px;font-size:8.5pt;color:var(--muted);margin:0 0 4px}.sc-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}.sc-line{height:3px}
+`;
 
 /* ===================== BAIXA EM LOTE ===================== */
 let blState={co:'',tipo:'pagar',venc:'todas',rows:[],sel:new Set(),accs:[]};
