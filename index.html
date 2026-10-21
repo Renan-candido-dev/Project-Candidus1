@@ -147,6 +147,17 @@ input[type=checkbox],input[type=radio]{width:16px!important;height:16px!importan
 .timer-chip{position:fixed;right:18px;bottom:18px;z-index:900;background:var(--ink);color:#fff;border-radius:999px;padding:9px 10px 9px 16px;font-size:13px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .timer-chip button{margin-left:6px;background:var(--red);color:#fff;border:0;border-radius:999px;padding:5px 12px;font-weight:600;cursor:pointer}
 .tc-dot{width:8px;height:8px;border-radius:50%;background:#f87171;animation:tcp 1.2s infinite}@keyframes tcp{50%{opacity:.25}}
+.bellbtn{position:relative;background:transparent;border:0;color:#fff;font-size:17px;cursor:pointer;padding:4px 8px;margin-right:2px}
+.bell-badge{position:absolute;top:-2px;right:-2px;min-width:17px;height:17px;border-radius:9px;background:var(--amber);color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.bell-badge.crit{background:var(--red)}
+.bell-panel{position:fixed;top:56px;right:18px;width:380px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto;background:var(--card);color:var(--text);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.22);z-index:950;border:1px solid var(--line)}
+.bp-h,.bp-f{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px}.bp-f{border-top:1px solid var(--line);border-bottom:0;justify-content:center}
+.al-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--line);border-left:3px solid transparent}
+.al-item[data-alview]{cursor:pointer}.al-item[data-alview]:hover{background:rgba(13,148,136,.06)}
+.al-crit{border-left-color:var(--red)}.al-aten{border-left-color:var(--amber)}.al-info{border-left-color:#3b82f6}
+.al-ico{font-size:13px;line-height:20px}.al-txt{flex:1;min-width:0}.al-tit{font-size:13.5px;font-weight:600}.al-det{font-size:12.5px;color:var(--muted);margin-top:2px}
+.al-act{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.al-tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px 12px}
 .ind-grupo{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
 .ind-i{font-size:11px;color:var(--muted);cursor:help}
 .sc-svg{display:block}.sc-grid{stroke:var(--line);stroke-width:1}.sc-zero{stroke:var(--muted);stroke-width:1}
@@ -308,7 +319,7 @@ textarea{resize:vertical}
       <select id="companySel"></select>
     </div>
     <div class="spacer"></div>
-    <div class="user"><button class="themebtn" id="themeToggle" title="Modo noite / claro">🌙</button>
+    <div class="user"><button class="bellbtn" id="bellBtn" title="Alertas">🔔<span class="bell-badge" id="bellBadge" style="display:none"></span></button><button class="themebtn" id="themeToggle" title="Modo noite / claro">🌙</button>
       <span class="email" id="userEmail"></span>
       <button class="out" id="logout">Sair</button></div>
   </div>
@@ -343,7 +354,7 @@ let favSet=new Set(), userId=null;
 const scopeQ = q => companyId ? q.eq('company_id',companyId) : q;
 
 const MENU = [
-  {g:'Principal', items:[{ico:'▚',label:'Dashboard',view:'dashboard'}]},
+  {g:'Principal', items:[{ico:'▚',label:'Dashboard',view:'dashboard'},{ico:'🔔',label:'Alertas',view:'alertas'}]},
   {g:'Financeiro', items:[
     {ico:'↘',label:'Contas a receber',view:'contas-receber'},
     {ico:'↗',label:'Contas a pagar',view:'contas-pagar'},
@@ -419,7 +430,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); const bp=document.getElementById('bellPanel'); if(bp) bp.remove(); if(v==='dashboard')Promise.resolve(renderDashboard()).then(injetarAlertasDashboard); else if(v==='alertas')renderAlertas(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -452,13 +463,14 @@ async function enterApp(session){
   try{ await db.rpc('gerar_recorrencias',{}); }catch(e){}  // gera contas recorrentes vencidas ao entrar
   setView('dashboard');
   timerChip();  // cronômetro de horas que ficou rodando
+  $('bellBtn').onclick=toggleBell; carregarAlertas();
 }
 async function loadCompanies(){
   const { data } = await db.from('companies').select('id,razao_social,nome_fantasia').order('razao_social');
   companies = data||[];
   const sel=$('companySel');
   sel.innerHTML='<option value="">Todas as empresas</option>'+companies.map(c=>`<option value="${c.id}">${esc(c.nome_fantasia||c.razao_social)}</option>`).join('');
-  sel.onchange=()=>{ companyId=sel.value||null; setView(currentView); };
+  sel.onchange=()=>{ companyId=sel.value||null; setView(currentView); carregarAlertas(); };
 }
 
 function dashSelectCompany(id){ companyId=id; const sel=$('companySel'); if(sel) sel.value=id; setView('dashboard'); }
@@ -4672,6 +4684,118 @@ function exportExtratoCsv(){
     ...X.linhas.map(m=>[fmtDate(m.data),m.descricao||'',m.sentido==='entrada'?m.v:'',m.sentido==='saida'?m.v:'',m.saldo,m.tipo==='transferencia'?'Transferência':(m.conciliado?'Conciliado':'Pendente')]),
     [fmtDate(exFim),'Saldo final',X.ent,X.sai,X.fim,'']];
   baixarCsv(`Extrato_${c.nome.replace(/\W+/g,'_')}_${exIni}_${exFim}.csv`, `Extrato — ${c.nome} — ${fmtDate(exIni)} a ${fmtDate(exFim)}`, ['Data','Descrição','Entrada','Saída','Saldo','Situação'], rows);
+}
+
+/* ===================== ALERTAS ===================== */
+const AL_SEV={critico:{ico:'🔴',nome:'Crítico',cls:'al-crit'},atencao:{ico:'🟡',nome:'Atenção',cls:'al-aten'},info:{ico:'🔵',nome:'Info',cls:'al-info'}};
+const AL_TIPOS={saldo:'Saldo negativo / abaixo do mínimo',caixa30:'Caixa negativo em 30 dias',pagar_vencido:'Contas a pagar vencidas',pagar_vencer:'Contas a pagar vencendo',
+  receber_vencido:'Contas a receber vencidas',conciliar:'Extrato sem conciliar',extrato:'Extrato desatualizado',conferencia:'Saldo não bate com o banco',
+  fechamento:'Mês anterior aberto',sem_categoria:'Lançamentos sem categoria',anomalia:'Gasto fora do padrão',duplicado:'Movimentos duplicados',
+  recorrencia:'Recorrências pendentes',tarefas:'Tarefas atrasadas'};
+let alertasCache=[], alertasTimer=null, alSevFiltro='';
+async function carregarAlertas(){
+  try{
+    const { data, error }=await db.rpc('alertas',{ p_company:companyId||null });
+    if(error) throw error;
+    alertasCache=data||[];
+  }catch(e){ alertasCache=[]; }
+  const n=alertasCache.filter(a=>a.sev!=='info').length, crit=alertasCache.some(a=>a.sev==='critico');
+  const b=$('bellBadge'); if(b){ b.textContent=n>99?'99+':(n||''); b.style.display=n?'':'none'; b.classList.toggle('crit',crit); }
+  if(!alertasTimer) alertasTimer=setInterval(carregarAlertas,5*60*1000);
+  return alertasCache;
+}
+function alItemHtml(a, comAcoes){
+  const s=AL_SEV[a.sev]||AL_SEV.info;
+  const val=a.valor!=null?`<b class="${Number(a.valor)<0?'dre-neg':''}">${money(Number(a.valor))}</b>`:'';
+  return `<div class="al-item ${s.cls}" ${comAcoes?'':`data-alview="${a.view||''}"`}>
+    <div class="al-ico">${s.ico}</div>
+    <div class="al-txt"><div class="al-tit">${esc(a.titulo)} ${val}</div><div class="al-det">${companyId?'':`<b>${esc(a.empresa)}</b> · `}${esc(a.detalhe||'')}</div></div>
+    ${comAcoes?`<div class="al-act"><button class="mini" data-alir="${a.view||''}">Ir para</button><button class="lnk" data-aldisp="${esc(a.company_id)}|${esc(a.chave)}">Dispensar 7 dias</button></div>`:''}</div>`;
+}
+async function toggleBell(){
+  let p=$('bellPanel');
+  if(p){ p.remove(); return; }
+  p=document.createElement('div'); p.id='bellPanel'; p.className='bell-panel';
+  p.innerHTML='<div class="loading" style="padding:16px">Verificando…</div>'; document.body.appendChild(p);
+  await carregarAlertas();
+  if(!$('bellPanel')) return;
+  const L=alertasCache;
+  p.innerHTML=`<div class="bp-h"><b>Alertas</b><span>${L.length?L.length+' no total':''}</span></div>
+    <div class="bp-list">${L.length?L.slice(0,8).map(a=>alItemHtml(a,false)).join(''):'<div class="empty" style="padding:20px">Tudo em ordem ✅</div>'}</div>
+    <div class="bp-f"><button class="lnk" id="bpTodos">Ver todos os alertas${L.length>8?` (+${L.length-8})`:''}</button></div>`;
+  p.querySelectorAll('[data-alview]').forEach(it=>it.onclick=()=>{ p.remove(); if(it.dataset.alview) setView(it.dataset.alview); });
+  $('bpTodos').onclick=()=>{ p.remove(); setView('alertas'); };
+}
+document.addEventListener('click',e=>{ const p=$('bellPanel'); if(p && !p.contains(e.target) && !e.target.closest('#bellBtn')) p.remove(); });
+// bloco "Atenção" no topo do dashboard
+async function injetarAlertasDashboard(){
+  if(currentView!=='dashboard') return;
+  await carregarAlertas();
+  if(currentView!=='dashboard') return;
+  const imp=alertasCache.filter(a=>a.sev!=='info');
+  const ph=$('main').querySelector('.page-h'); if(!ph || $('dashAlertas')) return;
+  const box=document.createElement('div'); box.id='dashAlertas';
+  box.innerHTML=imp.length?`<div class="panel" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0"><span class="dot r"></span>Atenção</h3><button class="lnk" id="daTodos">Ver todos (${alertasCache.length})</button></div>
+    <div style="margin-top:8px">${imp.slice(0,5).map(a=>alItemHtml(a,false)).join('')}</div></div>`
+    :`<div class="box" style="margin-bottom:16px">✅ Nenhum alerta importante agora.${alertasCache.length?` <button class="lnk" id="daTodos">${alertasCache.length} informativo(s)</button>`:''}</div>`;
+  const upd=ph.nextElementSibling&&ph.nextElementSibling.classList.contains('updated')?ph.nextElementSibling:ph;
+  upd.after(box);
+  box.querySelectorAll('[data-alview]').forEach(it=>it.onclick=()=>{ if(it.dataset.alview) setView(it.dataset.alview); });
+  if($('daTodos')) $('daTodos').onclick=()=>setView('alertas');
+}
+async function renderAlertas(){
+  $('main').innerHTML=`<div class="page-h"><h1>Alertas</h1><span class="scope">${companyId?esc(coName(companyId)):'· todas as empresas'}</span><div class="spacer"></div>
+    <button class="btn ghost" id="alAtualizar">Atualizar</button></div>
+    <div class="updated">Calculados na hora a partir dos dados do sistema. Dispensar esconde só pra você, por 7 dias.</div>
+    <div class="seg" style="max-width:520px;margin-bottom:14px">${[['','Todos'],['critico','🔴 Críticos'],['atencao','🟡 Atenção'],['info','🔵 Info']].map(([k,n])=>`<button type="button" data-alsev="${k}" class="${alSevFiltro===k?'on':''}">${n}</button>`).join('')}</div>
+    <div id="alArea"><div class="loading">Verificando…</div></div><div id="alCfg"></div>`;
+  $('alAtualizar').onclick=()=>loadAlertas();
+  document.querySelectorAll('[data-alsev]').forEach(b=>b.onclick=()=>{ alSevFiltro=b.dataset.alsev; document.querySelectorAll('[data-alsev]').forEach(x=>x.classList.toggle('on',x===b)); drawAlertas(); });
+  await loadAlertas(); renderAlertasCfg();
+}
+async function loadAlertas(){ $('alArea').innerHTML='<div class="loading">Verificando…</div>'; await carregarAlertas(); drawAlertas(); }
+function drawAlertas(){
+  const L=alertasCache.filter(a=>!alSevFiltro||a.sev===alSevFiltro);
+  const cont=s=>alertasCache.filter(a=>a.sev===s).length;
+  $('alArea').innerHTML=`<div class="cards" style="margin-bottom:14px">${['critico','atencao','info'].map(s=>`<div class="kpi"><div class="lbl">${AL_SEV[s].ico} ${AL_SEV[s].nome}</div><div class="val">${cont(s)}</div></div>`).join('')}</div>
+    <div class="panel">${L.length?L.map(a=>alItemHtml(a,true)).join(''):'<div class="empty">Nenhum alerta aqui ✅</div>'}</div>`;
+  $('alArea').querySelectorAll('[data-alir]').forEach(b=>b.onclick=()=>{ if(b.dataset.alir) setView(b.dataset.alir); });
+  $('alArea').querySelectorAll('[data-aldisp]').forEach(b=>b.onclick=async ()=>{ const [co,ch]=b.dataset.aldisp.split('|');
+    const { error }=await db.rpc('dispensar_alerta',{ p_company:co, p_chave:ch, p_dias:7 }); if(error){ toast('Erro: '+error.message,'err'); return; }
+    toast('Alerta dispensado por 7 dias.'); loadAlertas(); });
+}
+async function renderAlertasCfg(){
+  const { data:ger }=await db.rpc('is_gestor'); if(!ger || !$('alCfg')) return;
+  const co=companyId||(companies[0]&&companies[0].id); if(!co) return;
+  let cfgCo=co;
+  const draw=async ()=>{
+    const { data }=await db.from('alertas_config').select('*').eq('company_id',cfgCo).maybeSingle();
+    const c=data||{saldo_minimo:0,dias_vencer:3,dias_conciliar:7,dias_extrato:7,dia_fechamento:10,anomalia_pct:50,anomalia_min:500,desativados:[]};
+    $('alCfg').innerHTML=`<div class="panel" style="margin-top:16px"><h3><span class="dot a"></span>Configurar alertas</h3>
+      ${companyId?'':`<div class="field" style="max-width:320px"><label>Empresa</label><select id="acCo">${companies.map(x=>`<option value="${x.id}" ${x.id===cfgCo?'selected':''}>${esc(x.nome_fantasia||x.razao_social)}</option>`).join('')}</select></div>`}
+      <div class="cadgrid">
+        <div class="field"><label>Saldo mínimo (R$)</label><input id="acSaldo" type="number" step="0.01" value="${c.saldo_minimo}"></div>
+        <div class="field"><label>Avisar contas a vencer em até (dias)</label><input id="acVencer" type="number" min="0" max="60" value="${c.dias_vencer}"></div>
+        <div class="field"><label>Extrato sem conciliar há mais de (dias)</label><input id="acConc" type="number" min="1" max="90" value="${c.dias_conciliar}"></div>
+        <div class="field"><label>Conta sem importar extrato há mais de (dias)</label><input id="acExt" type="number" min="1" max="90" value="${c.dias_extrato}"></div>
+        <div class="field"><label>Cobrar fechamento do mês anterior a partir do dia</label><input id="acFech" type="number" min="1" max="28" value="${c.dia_fechamento}"></div>
+        <div class="field"><label>Anomalia: gasto acima da média em (%)</label><input id="acPct" type="number" min="10" max="1000" value="${c.anomalia_pct}"></div>
+        <div class="field"><label>Anomalia: diferença mínima (R$)</label><input id="acMin" type="number" step="0.01" min="0" value="${c.anomalia_min}"></div>
+      </div>
+      <div class="field"><label>Alertas ligados</label><div class="al-tipos">${Object.entries(AL_TIPOS).map(([k,n])=>`<label class="rel-chk"><input type="checkbox" data-actipo="${k}" ${(c.desativados||[]).includes(k)?'':'checked'}> ${n}</label>`).join('')}</div></div>
+      <button class="btn" id="acSalvar">Salvar configuração</button></div>`;
+    if($('acCo')) $('acCo').onchange=e=>{ cfgCo=e.target.value; draw(); };
+    $('acSalvar').onclick=async ()=>{
+      const n=id=>Number($(id).value);
+      const payload={ company_id:cfgCo, saldo_minimo:n('acSaldo')||0, dias_vencer:n('acVencer'), dias_conciliar:n('acConc'), dias_extrato:n('acExt'),
+        dia_fechamento:n('acFech'), anomalia_pct:n('acPct'), anomalia_min:n('acMin')||0,
+        desativados:[...document.querySelectorAll('[data-actipo]')].filter(x=>!x.checked).map(x=>x.dataset.actipo) };
+      const { error }=await db.from('alertas_config').upsert(payload);
+      if(error){ toast('Erro: '+(error.message.includes('check')?'algum valor está fora do limite permitido':error.message),'err'); return; }
+      toast('Configuração salva.'); loadAlertas();
+    };
+  };
+  draw();
 }
 
 /* ===================== BAIXA EM LOTE ===================== */
