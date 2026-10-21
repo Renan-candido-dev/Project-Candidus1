@@ -352,6 +352,7 @@ const MENU = [
     {ico:'▭',label:'Cartões',view:'cartoes'},
     {ico:'↧',label:'Importar extrato',view:'importar'},
     {ico:'⇄',label:'Conciliação',view:'conciliacao'},
+    {ico:'☰',label:'Extrato da conta',view:'extrato'},
     {ico:'✓',label:'Baixa em lote',view:'baixa-lote'},
     {ico:'↻',label:'Recorrentes',view:'recorrentes'},
   ]},
@@ -418,7 +419,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); if(v==='dashboard')renderDashboard(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -4552,6 +4553,125 @@ async function loadRentabilidade(){
     $('rbArea').querySelectorAll('[data-rbdel]').forEach(b=>b.onclick=async ()=>{ const ok=await confirmModal({titulo:'Excluir apontamento',texto:'Excluir este apontamento de horas?',ok:'Excluir',perigo:true}); if(!ok) return;
       const { error }=await db.from('bpo_apontamentos').delete().eq('id',b.dataset.rbdel); if(error){ toast('Erro: '+error.message,'err'); return; } toast('Apontamento excluído.'); loadRentabilidade(); });
   }catch(err){ $('rbArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_rentabilidade.sql?</div></div>`; }
+}
+
+/* ===================== EXTRATO DA CONTA ===================== */
+let exAcc='', exIni='', exFim='', exDados=null, exContas=[];
+async function renderExtrato(){
+  const h=todayStr(); if(!exIni){ exIni=h.slice(0,8)+'01'; exFim=h; }
+  $('main').innerHTML=`<div class="page-h"><h1>Extrato da conta</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
+    <button class="btn ghost" id="exCsv">Exportar Excel (CSV)</button></div>
+    <div class="updated">Movimentos da conta como no extrato do banco, com saldo dia a dia. Use a conferência pra bater o saldo do sistema com o do banco.</div>
+    <div class="filters">
+      <div class="fg"><label>Conta</label><select id="exAcc" style="min-width:260px"><option value="">Carregando…</option></select></div>
+      <div class="fg"><label>De</label><input id="exIni" type="date" value="${exIni}"></div>
+      <div class="fg"><label>Até</label><input id="exFim" type="date" value="${exFim}"></div>
+    </div><div id="exArea"><div class="loading">Carregando…</div></div>`;
+  const { data, error }=await scopeQ(db.from('financial_accounts').select('id,nome,banco,company_id,tipo').neq('tipo','cartao_credito')).order('nome');
+  if(error){ $('exArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(error.message)}</div></div>`; return; }
+  exContas=data||[];
+  if(!exContas.length){ $('exAcc').innerHTML='<option value="">—</option>'; $('exArea').innerHTML='<div class="panel"><div class="empty">Nenhuma conta bancária cadastrada (Cadastros → Contas financeiras).</div></div>'; return; }
+  if(!exContas.some(c=>c.id===exAcc)) exAcc=exContas[0].id;
+  $('exAcc').innerHTML=exContas.map(c=>`<option value="${c.id}" ${c.id===exAcc?'selected':''}>${companyId?'':esc(coName(c.company_id))+' · '}${esc(c.nome)}${c.banco?' ('+esc(c.banco)+')':''}</option>`).join('');
+  $('exAcc').onchange=e=>{ exAcc=e.target.value; loadExtrato(); };
+  $('exIni').onchange=e=>{ exIni=e.target.value||exIni; loadExtrato(); };
+  $('exFim').onchange=e=>{ exFim=e.target.value||exFim; loadExtrato(); };
+  $('exCsv').onclick=exportExtratoCsv;
+  await loadExtrato();
+}
+// saldo corrido: só entra no saldo quem tem sentido (entrada/saída na conta)
+function extratoLinhas(D){
+  let s=Number(D.saldo_anterior||0), ent=0, sai=0;
+  const linhas=(D.movimentos||[]).map(m=>{ const v=Number(m.valor||0);
+    if(m.sentido==='entrada'){ s+=v; ent+=v; } else if(m.sentido==='saida'){ s-=v; sai+=v; }
+    return {...m, v, saldo:s}; });
+  return {linhas, ent, sai, fim:s};
+}
+async function loadExtrato(){
+  if(exFim<exIni){ toast('A data final é antes da inicial.','err'); return; }
+  $('exArea').innerHTML='<div class="loading">Carregando…</div>';
+  try{
+    const [ex,imp,conf]=await Promise.all([
+      db.rpc('extrato_conta',{ p_account:exAcc, p_ini:exIni, p_fim:exFim }),
+      db.from('import_batches').select('created_at,nome_arquivo,origem,periodo_inicio,periodo_fim,qtd_total,qtd_importadas,qtd_duplicadas,profiles(nome,email)').eq('financial_account_id',exAcc).order('created_at',{ascending:false}).limit(15),
+      db.from('conferencias_saldo').select('data_ref,saldo_banco,saldo_sistema,diferenca,observacao,created_at,profiles(nome,email)').eq('financial_account_id',exAcc).order('created_at',{ascending:false}).limit(10),
+    ]);
+    if(ex.error) throw ex.error;
+    exDados=ex.data; drawExtrato(imp.data||[], conf.data||[]);
+  }catch(err){ exDados=null; $('exArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_extrato.sql?</div></div>`; }
+}
+function drawExtrato(imps, confs){
+  const D=exDados, X=extratoLinhas(D), c=D.conta;
+  const quem=p=>p&&p.profiles?esc(p.profiles.nome||p.profiles.email):'—';
+  const dt=s=>s?new Date(s).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
+  let avisos='';
+  if(D.truncado) avisos+=`<div class="box warnbox" style="margin-bottom:10px">⚠️ O período tem ${D.total_periodo} movimentos; mostrando os primeiros 5.000. Diminua o período pra ver tudo (os totais abaixo consideram só os exibidos).</div>`;
+  if(Number(D.antes_saldo_inicial)) avisos+=`<div class="box warnbox" style="margin-bottom:10px">⚠️ ${D.antes_saldo_inicial} movimento(s) com data anterior ao saldo inicial (${fmtDate(c.data_saldo_inicial)}) estão somando no saldo. Confira se o saldo inicial cadastrado já não os inclui.</div>`;
+  if(Number(D.sem_sentido)) avisos+=`<div class="box warnbox" style="margin-bottom:10px">⚠️ ${D.sem_sentido} transferência(s) antiga(s) sem registro de entrada/saída não entram no saldo desta conta (aparecem marcadas na lista).</div>`;
+  const status=m=>{
+    if(m.tipo==='transferencia') return `<span class="pill st-recebido_parcial">Transferência</span>${m.sentido?` <button class="lnk" data-exdesf="${m.id}" title="Volta a ser ${m.sentido} e reaparece na conciliação">desfazer</button>`:' <span class="dre-av">sem sentido</span>'}`;
+    if(m.conciliado) return `<span class="pill st-recebido">Conciliado</span>${m.regra?`<div class="dre-av">regra: ${esc(m.regra)}</div>`:''}`;
+    return m.origem==='importado'?'<span class="pill st-vencido">Pendente</span>':'<span class="pill st-a_receber">Lançado</span>';
+  };
+  const linhas=X.linhas.map(m=>`<tr${m.sentido?'':' style="opacity:.6"'}><td>${fmtDate(m.data)}</td><td>${esc(m.descricao||'—')}</td>
+    <td class="r" style="color:var(--green)">${m.sentido==='entrada'?money(m.v):''}</td><td class="r" style="color:var(--red)">${m.sentido==='saida'?money(m.v):''}</td>
+    <td class="r ${m.saldo<0?'dre-neg':''}">${money(m.saldo)}</td><td>${status(m)}</td></tr>`).join('');
+  const pend=X.linhas.filter(m=>!m.conciliado && m.tipo!=='transferencia' && m.origem==='importado').length;
+  $('exArea').innerHTML=`${avisos}<div class="cards">
+      <div class="kpi"><div class="lbl">Saldo anterior (${fmtDate(exIni)})</div><div class="val ${D.saldo_anterior<0?'neg':''}">${money(D.saldo_anterior)}</div></div>
+      <div class="kpi"><div class="lbl">Entradas</div><div class="val pos">${money(X.ent)}</div></div>
+      <div class="kpi"><div class="lbl">Saídas</div><div class="val neg">${money(X.sai)}</div></div>
+      <div class="kpi"><div class="lbl">Saldo final no sistema (${fmtDate(exFim)})</div><div class="val ${X.fim<0?'neg':''}">${money(X.fim)}</div><div class="meta">${X.linhas.length} movimento(s)${pend?` · ${pend} pendente(s) de conciliação`:''}</div></div>
+    </div>
+    <div class="panel" style="margin-top:16px"><h3><span class="dot a"></span>Conferência com o banco</h3>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0"><label>Saldo no extrato do banco em ${fmtDate(exFim)}</label><input id="exBanco" type="number" step="0.01" style="width:180px" placeholder="0,00"></div>
+        <button class="btn ghost" id="exConferir">Conferir</button>
+        <div id="exResult" style="flex:1;min-width:240px"></div>
+      </div>
+      ${confs.length?`<table style="margin-top:12px"><thead><tr><th>Conferido em</th><th>Data do saldo</th><th class="r">Banco</th><th class="r">Sistema</th><th class="r">Diferença</th><th>Por</th><th>Obs.</th></tr></thead><tbody>
+        ${confs.map(x=>`<tr><td>${dt(x.created_at)}</td><td>${fmtDate(x.data_ref)}</td><td class="r">${money(x.saldo_banco)}</td><td class="r">${money(x.saldo_sistema)}</td>
+          <td class="r ${Math.abs(x.diferenca)>0.005?'dre-neg':'dre-pos'}">${Math.abs(x.diferenca)>0.005?money(x.diferenca):'✅ bateu'}</td><td>${quem(x)}</td><td style="font-size:13px">${esc(x.observacao||'')}</td></tr>`).join('')}</tbody></table>`:''}
+    </div>
+    <div class="panel" style="margin-top:16px"><h3><span class="dot t"></span>${esc(c.nome)}${c.banco?' · '+esc(c.banco):''}${c.agencia?' · ag. '+esc(c.agencia):''}${c.numero?' · c/c '+esc(c.numero):''}</h3>
+      ${X.linhas.length?`<div style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Descrição</th><th class="r">Entrada</th><th class="r">Saída</th><th class="r">Saldo</th><th>Situação</th></tr></thead>
+      <tbody><tr class="dre-sub"><td>${fmtDate(exIni)}</td><td>Saldo anterior</td><td></td><td></td><td class="r">${money(D.saldo_anterior)}</td><td></td></tr>${linhas}
+      <tr class="dre-sub"><td>${fmtDate(exFim)}</td><td>Saldo final</td><td class="r">${money(X.ent)}</td><td class="r">${money(X.sai)}</td><td class="r">${money(X.fim)}</td><td></td></tr></tbody></table></div>`
+      :'<div class="empty">Nenhum movimento nesta conta no período.</div>'}
+    </div>
+    <div class="panel" style="margin-top:16px"><h3><span class="dot g"></span>Importações desta conta</h3>
+      ${imps.length?`<table><thead><tr><th>Quando</th><th>Arquivo</th><th>Período do arquivo</th><th class="r">No arquivo</th><th class="r">Importados</th><th class="r">Duplicados</th><th>Por</th></tr></thead><tbody>
+      ${imps.map(b=>`<tr><td>${dt(b.created_at)}</td><td>${esc(b.nome_arquivo||'—')} <span class="dre-av">${(b.origem||'').toUpperCase()}</span></td><td>${b.periodo_inicio?fmtDate(b.periodo_inicio)+' a '+fmtDate(b.periodo_fim):'—'}</td>
+        <td class="r">${b.qtd_total}</td><td class="r">${b.qtd_importadas}</td><td class="r ${b.qtd_duplicadas?'dre-neg':''}">${b.qtd_duplicadas}</td><td>${quem(b)}</td></tr>`).join('')}</tbody></table>`
+      :'<div class="empty">Nenhum extrato importado nesta conta ainda.</div>'}
+    </div>`;
+  $('exConferir').onclick=()=>{
+    const vb=$('exBanco').value; if(vb===''){ toast('Digite o saldo que aparece no extrato do banco.','err'); return; }
+    const banco=Number(vb), dif=Math.round((banco-X.fim)*100)/100;
+    $('exResult').innerHTML=Math.abs(dif)<0.005
+      ?`<span style="color:var(--green);font-weight:600">✅ Bateu! Saldo do sistema = saldo do banco.</span> <button class="lnk" id="exReg">Registrar conferência</button>`
+      :`<span style="color:var(--red);font-weight:600">⚠️ Diferença de ${money(dif)}</span> <span class="dre-av">(banco − sistema)</span>
+        <div class="hint" style="margin-top:4px">${dif>0?'O banco tem mais: pode faltar importar uma <b>entrada</b>, ou alguma saída foi lançada a mais/duplicada.':'O sistema tem mais: pode faltar importar uma <b>saída</b> (tarifa, débito automático), ou alguma entrada está duplicada.'} Confira também o saldo inicial da conta.</div>
+        <button class="lnk" id="exReg">Registrar conferência com diferença</button>`;
+    $('exReg').onclick=async ()=>{
+      const obs=Math.abs(dif)<0.005?null:(prompt('Observação sobre a diferença (opcional):','')||null);
+      const { error }=await db.from('conferencias_saldo').insert({ company_id:c.company_id, financial_account_id:c.id, data_ref:exFim, saldo_banco:banco, saldo_sistema:Math.round(X.fim*100)/100, observacao:obs });
+      if(error){ toast('Erro: '+error.message,'err'); return; } toast('Conferência registrada.'); loadExtrato();
+    };
+  };
+  $('exArea').querySelectorAll('[data-exdesf]').forEach(b=>b.onclick=async ()=>{
+    const ok=await confirmModal({titulo:'Desfazer transferência',texto:'O movimento volta a ser entrada/saída comum e reaparece na Conciliação. Confirmar?',ok:'Desfazer'}); if(!ok) return;
+    const { error }=await db.rpc('desfazer_transferencia',{ p_bank_transaction_id:b.dataset.exdesf });
+    if(error){ toast('Erro: '+error.message,'err'); return; } toast('Transferência desfeita.'); loadExtrato();
+  });
+}
+function exportExtratoCsv(){
+  if(!exDados){ toast('Nada pra exportar.','err'); return; }
+  const X=extratoLinhas(exDados), c=exDados.conta;
+  const rows=[[fmtDate(exIni),'Saldo anterior','','',Number(exDados.saldo_anterior),''],
+    ...X.linhas.map(m=>[fmtDate(m.data),m.descricao||'',m.sentido==='entrada'?m.v:'',m.sentido==='saida'?m.v:'',m.saldo,m.tipo==='transferencia'?'Transferência':(m.conciliado?'Conciliado':'Pendente')]),
+    [fmtDate(exFim),'Saldo final',X.ent,X.sai,X.fim,'']];
+  baixarCsv(`Extrato_${c.nome.replace(/\W+/g,'_')}_${exIni}_${exFim}.csv`, `Extrato — ${c.nome} — ${fmtDate(exIni)} a ${fmtDate(exFim)}`, ['Data','Descrição','Entrada','Saída','Saldo','Situação'], rows);
 }
 
 /* ===================== BAIXA EM LOTE ===================== */
