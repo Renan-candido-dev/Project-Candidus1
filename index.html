@@ -292,6 +292,13 @@ textarea{resize:vertical}
   .user .email{display:none}
   .main{padding:18px 14px}
 }
+.somente-leitura #btnNova,.somente-leitura #btnLoteR,.somente-leitura #btnNovaP,.somente-leitura #btnLoteP,
+.somente-leitura #btnNovoCad,.somente-leitura #btnNovaCat,.somente-leitura #btnFV,.somente-leitura #btnGerar,
+.somente-leitura #btnNovaPend,.somente-leitura #btnNovaTar,.somente-leitura #btnEnviar,.somente-leitura #btnSolic,
+.somente-leitura #btnMap,.somente-leitura #btnMetas,.somente-leitura #btnNovaDesp,.somente-leitura #btnNovaEmp,
+.somente-leitura [data-baixa],.somente-leitura [data-pagar],.somente-leitura [data-estorno],.somente-leitura [data-estornop],
+.somente-leitura [data-rateio],.somente-leitura [data-cancelar-titulo],.somente-leitura [data-reativar-titulo],
+.somente-leitura [data-edit],.somente-leitura [data-del]{display:none!important}
 </style>
 </head>
 <body>
@@ -350,6 +357,8 @@ function toast(msg,type='ok'){
 }
 
 let companies=[], companyId=null, currentView='dashboard';
+let meuPerfil='';  // perfil do usuário logado (o banco é quem garante as permissões)
+const PERFIL_LABEL={administrador:'Administrador',gestor:'Gestor',financeiro:'Financeiro',bpo:'BPO',contador:'Contador',visualizacao:'Visualização'};
 let favSet=new Set(), userId=null;
 const scopeQ = q => companyId ? q.eq('company_id',companyId) : q;
 
@@ -389,7 +398,7 @@ const MENU = [
   ]},
 ];
 function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
-const APP_VERSAO='2026.10.19-r3 · rentabilidade';  // muda a cada entrega: confira no rodapé do menu
+const APP_VERSAO='2026.10.24-s4 · segurança: perfis + cancelar conta';  // muda a cada entrega: confira no rodapé do menu
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
   if(favSet.size){
@@ -458,6 +467,11 @@ async function enterApp(session){
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
   $('userEmail').textContent=session.user.email;
   userId=session.user.id;
+  try{ const { data:pf }=await db.from('profiles').select('role').eq('id',userId).maybeSingle(); meuPerfil=(pf&&pf.role)||''; }catch(e){ meuPerfil=''; }
+  const somenteLeitura=!['administrador','gestor','financeiro','bpo'].includes(meuPerfil);
+  document.body.classList.toggle('somente-leitura', somenteLeitura);
+  $('userEmail').textContent=session.user.email+(meuPerfil?' · '+(PERFIL_LABEL[meuPerfil]||meuPerfil):'');
+  if(somenteLeitura) toast('Seu perfil é somente leitura: você pode consultar, mas não alterar dados.');
   await loadCompanies();
   await loadFavorites();
   try{ await db.rpc('gerar_recorrencias',{}); }catch(e){}  // gera contas recorrentes vencidas ao entrar
@@ -660,7 +674,7 @@ function drawReceber(){
           <td><span class="pill st-${p.situacao}">${STLABEL[p.situacao]||p.situacao}</span></td>
           <td class="r">${money(p.valor)}</td><td class="r">${money(p.valor_recebido)}</td><td class="r">${money(p.saldo)}</td>
           <td><div class="act">${canBaixa?`<button class="mini" data-baixa="${p.id}">Receber</button>`:''}${temBaixa?`<button class="lnk del" data-estorno="${p.id}">Estornar</button>`:''}${!canBaixa&&!temBaixa?'—':''}</div></td></tr>`;
-      }).join('')+rateioLinha('receber',t);
+      }).join('')+rateioLinha('receber',t)+acoesTituloLinha('receber',t);
     }
     return titleRow+instRows;
   }).join('');
@@ -674,6 +688,7 @@ function drawReceber(){
     const id=tr.dataset.id; openTitles.has(id)?openTitles.delete(id):openTitles.add(id); drawReceber();
   });
   ligarRateio($('crArea'),'receber',crTitles);
+  ligarAcoesTitulo($('crArea'),'receber',crTitles,loadReceber);
   $('crArea').querySelectorAll('[data-baixa]').forEach(b=>b.onclick=e=>{
     e.stopPropagation(); openBaixa(b.dataset.baixa);
   });
@@ -951,7 +966,7 @@ function drawPagar(){
           <td><span class="pill st-${p.situacao}">${STLABEL[p.situacao]||p.situacao}</span></td>
           <td class="r">${money(p.valor)}</td><td class="r">${money(p.valor_pago)}</td><td class="r">${money(p.saldo)}</td>
           <td><div class="act">${canBaixa?`<button class="mini" data-pagar="${p.id}">Pagar</button>`:''}${temBaixa?`<button class="lnk del" data-estornop="${p.id}">Estornar</button>`:''}${!canBaixa&&!temBaixa?'—':''}</div></td></tr>`;
-      }).join('')+rateioLinha('pagar',t);
+      }).join('')+rateioLinha('pagar',t)+acoesTituloLinha('pagar',t);
     }
     return titleRow+instRows;
   }).join('');
@@ -962,6 +977,7 @@ function drawPagar(){
     <tbody>${body}</tbody></table></div>`+pagerHTML(cpPage,cpTotal,'cp');
 
   ligarRateio($('cpArea'),'pagar',cpTitles);
+  ligarAcoesTitulo($('cpArea'),'pagar',cpTitles,loadPagar);
   $('cpArea').querySelectorAll('tr.title-row').forEach(tr=>tr.onclick=()=>{
     const id=tr.dataset.id; openTitlesP.has(id)?openTitlesP.delete(id):openTitlesP.add(id); drawPagar();
   });
@@ -3769,6 +3785,40 @@ function rateioLinha(tipo, t){
 }
 function ligarRateio(area, tipo, lista){
   area.querySelectorAll('[data-rateio]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=lista.find(x=>x.id===b.dataset.rateio); if(t) openRateio(tipo,t); });
+}
+
+/* Cancelar / reativar conta (título). O banco valida perfil, baixas e mês fechado. */
+function acoesTituloLinha(tipo, t){
+  const pagoKey=tipo==='receber'?'valor_recebido':'valor_pago';
+  const cancelaveis=t.parc.filter(p=>p.situacao!=='cancelado'&&Number(p[pagoKey]||0)===0).length;
+  const canceladas=t.parc.filter(p=>p.situacao==='cancelado').length;
+  let b='';
+  if(t.status!=='cancelado'&&cancelaveis>0) b+=`<button class="lnk del" data-cancelar-titulo="${t.id}">Cancelar conta</button>`;
+  if(canceladas>0) b+=`<button class="lnk" data-reativar-titulo="${t.id}">${t.status==='cancelado'?'Reativar conta':'Reativar parcelas canceladas'}</button>`;
+  if(!b) return '';
+  return `<tr class="inst-row"><td colspan="8" style="padding-left:38px;font-size:12.5px"><span style="color:var(--muted);margin-right:8px">Ações da conta:</span>${b}</td></tr>`;
+}
+function ligarAcoesTitulo(area, tipo, lista, recarregar){
+  area.querySelectorAll('[data-cancelar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=lista.find(x=>x.id===b.dataset.cancelarTitulo); if(t) openMotivoTitulo('cancelar',tipo,t,recarregar); });
+  area.querySelectorAll('[data-reativar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=lista.find(x=>x.id===b.dataset.reativarTitulo); if(t) openMotivoTitulo('reativar',tipo,t,recarregar); });
+}
+function openMotivoTitulo(acao, tipo, t, recarregar){
+  const cancelar=acao==='cancelar';
+  const txt=cancelar
+    ?'As parcelas sem baixa ficam como <b>Canceladas</b> e saem dos totais, do fluxo e da DRE. Parcelas já '+(tipo==='receber'?'recebidas':'pagas')+' continuam como estão. Fica registrado na auditoria quem cancelou e por quê. Parcela de mês fechado não pode ser cancelada.'
+    :'As parcelas canceladas voltam a ficar em aberto. Fica registrado na auditoria quem reativou e por quê.';
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>${cancelar?'Cancelar':'Reativar'} conta</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box"><b>${esc(t.descricao)}</b> · ${money(t.valor_total)}<br>${txt}</div>
+      <div class="field"><label>Motivo *</label><textarea id="tMot" rows="3" placeholder="${cancelar?'Ex.: cliente desistiu do serviço':'Ex.: cancelada por engano'}"></textarea></div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn ${cancelar?'danger':''}" id="mSave">${cancelar?'Cancelar conta':'Reativar'}</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('mSave').onclick=async ()=>{
+    const mot=$('tMot').value.trim(); if(mot.length<5){ toast('Informe o motivo (mínimo 5 caracteres).','err'); return; }
+    $('mSave').disabled=true;
+    const { data, error }=await db.rpc(cancelar?'cancelar_titulo':'reativar_titulo',{ p_tipo:tipo, p_titulo_id:t.id, p_motivo:mot });
+    if(error){ $('mSave').disabled=false; toast('Erro: '+error.message,'err'); return; }
+    closeModal(); toast(`${data||0} parcela(s) ${cancelar?'cancelada(s)':'reativada(s)'}.`); recarregar();
+  };
 }
 async function openRateio(tipo, t){
   const { data:ccs, error }=await db.from('cost_centers').select('id,nome').eq('company_id',t.company_id).order('nome');
