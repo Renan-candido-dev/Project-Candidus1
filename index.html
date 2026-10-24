@@ -298,7 +298,19 @@ textarea{resize:vertical}
 .somente-leitura #btnMap,.somente-leitura #btnMetas,.somente-leitura #btnNovaDesp,.somente-leitura #btnNovaEmp,
 .somente-leitura [data-baixa],.somente-leitura [data-pagar],.somente-leitura [data-estorno],.somente-leitura [data-estornop],
 .somente-leitura [data-rateio],.somente-leitura [data-cancelar-titulo],.somente-leitura [data-reativar-titulo],
-.somente-leitura [data-edit],.somente-leitura [data-del]{display:none!important}
+.somente-leitura [data-edit],.somente-leitura [data-del],
+.somente-leitura #recGerar,.somente-leitura #recNova,.somente-leitura [data-tog],
+.somente-leitura [data-chkdel],.somente-leitura [data-chkadd],.somente-leitura [data-anexar],.somente-leitura [data-reqok],
+.somente-leitura #dreSemCat,.somente-leitura [data-users],.somente-leitura [data-pay],.somente-leitura #impConfirm,.somente-leitura #impAll,
+.somente-leitura #cncRegras,.somente-leitura #cncBulk,.somente-leitura #cncSelGo,.somente-leitura #rgNova,
+.somente-leitura [data-regra],.somente-leitura [data-conc],.somente-leitura [data-pick],.somente-leitura [data-novo],.somente-leitura [data-transf],
+.somente-leitura [data-undo],.somente-leitura [data-redit],.somente-leitura [data-rtog],.somente-leitura [data-rdel],
+.somente-leitura [data-fcreabrir],.somente-leitura [data-fcfechar],.somente-leitura #rbTimer,.somente-leitura #rbApontar,
+.somente-leitura #rbCustoSalvar,.somente-leitura [data-rbct],.somente-leitura [data-rbdel],.somente-leitura [data-exdesf],
+.somente-leitura #exReg,.somente-leitura #acSalvar,.somente-leitura #blGo{display:none!important}
+.somente-leitura select.stsel,.somente-leitura input[data-chk],.somente-leitura input[data-meta]{pointer-events:none;opacity:.6}
+.user .perfil-tag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#1d3a52;color:#cdd8e3;white-space:nowrap}
+.user .perfil-tag.ro{background:#7c5a0b;color:#fde68a}
 </style>
 </head>
 <body>
@@ -398,7 +410,7 @@ const MENU = [
   ]},
 ];
 function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
-const APP_VERSAO='2026.10.24-s4 · segurança: perfis + cancelar conta';  // muda a cada entrega: confira no rodapé do menu
+const APP_VERSAO='2026.10.24-s4b · segurança: perfis + cancelar conta';  // muda a cada entrega: confira no rodapé do menu
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
   if(favSet.size){
@@ -470,7 +482,12 @@ async function enterApp(session){
   try{ const { data:pf }=await db.from('profiles').select('role').eq('id',userId).maybeSingle(); meuPerfil=(pf&&pf.role)||''; }catch(e){ meuPerfil=''; }
   const somenteLeitura=!['administrador','gestor','financeiro','bpo'].includes(meuPerfil);
   document.body.classList.toggle('somente-leitura', somenteLeitura);
-  $('userEmail').textContent=session.user.email+(meuPerfil?' · '+(PERFIL_LABEL[meuPerfil]||meuPerfil):'');
+  let tag=document.getElementById('perfilTag');
+  if(!tag){ tag=el('span','perfil-tag'); tag.id='perfilTag'; $('userEmail').after(tag); }
+  tag.textContent=(PERFIL_LABEL[meuPerfil]||'Sem perfil')+(somenteLeitura?' · somente leitura':'');
+  tag.classList.toggle('ro', somenteLeitura);
+  tag.title=somenteLeitura?'Seu perfil pode consultar, mas não alterar dados.':'Seu perfil de acesso';
+  $('userEmail').title=session.user.email;
   if(somenteLeitura) toast('Seu perfil é somente leitura: você pode consultar, mas não alterar dados.');
   await loadCompanies();
   await loadFavorites();
