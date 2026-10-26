@@ -5,3 +5,5 @@ out/*-raw.mp4
 out/render.log
 out/chunks/
 build/
+out/*.log
+out/comps.txt
