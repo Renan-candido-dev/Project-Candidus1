@@ -23,6 +23,9 @@ for ((s = 0; s < TOTAL; s += STEP)); do
 done
 npx remotion render "$COMP" "$TMP/audio.wav" --codec=wav --props="$PROPS" --log=error
 ffmpeg -y -v error -f concat -safe 0 -i "$TMP/list.txt" -c copy "$TMP/video.mp4"
-ffmpeg -y -v error -i "$TMP/video.mp4" -i "$TMP/audio.wav" -map 0:v -map 1:a -c:v copy \
+# Converte para yuv420p em faixa de TV (o padrão que Instagram/TikTok esperam).
+ffmpeg -y -v error -i "$TMP/video.mp4" -i "$TMP/audio.wav" -map 0:v -map 1:a \
+  -vf "scale=in_range=full:out_range=tv,format=yuv420p" -c:v libx264 -preset slow -crf 17 \
+  -profile:v high -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
   -af "loudnorm=I=-14:TP=-1.5:LRA=11" -ar 48000 -c:a aac -b:a 256k -shortest -movflags +faststart "$OUT"
 echo "ok: $OUT"
