@@ -68,6 +68,12 @@ npm run render:sem-legendas  # versão sem legendas
 Se o Remotion não conseguir baixar o Chrome, aponte para um Chromium local:
 `REMOTION_BROWSER=/caminho/do/chrome npm run render`
 
+**Dica de estabilidade:** instale no sistema as fontes de `public/fonts/` (dois cliques no
+arquivo, ou copie para `~/.local/share/fonts` no Linux). Com elas instaladas, o render não
+precisa esperar o carregamento de fontes em cada aba. Se um render longo travar com
+`delayRender() ... timeout`, use `npm run render:blocos`: ele renderiza em blocos de 125 frames,
+com nova tentativa por bloco, e junta vídeo e áudio no final.
+
 ## 5. Narração: como trocar a voz
 
 A voz atual é sintética e roda offline: Piper TTS, modelo `pt_BR-faber-medium`. Para uma versão de campanha, recomendo um locutor profissional ou um TTS premium (ElevenLabs, Azure etc.). Para trocar:

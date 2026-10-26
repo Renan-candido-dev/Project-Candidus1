@@ -5,7 +5,19 @@ import {continueRender, delayRender, staticFile} from 'remotion';
 export const SANS = 'Plus Jakarta Sans';
 export const SERIF = 'DM Serif Display';
 
+/** A fonte já está instalada no sistema? (compara a largura do texto com a fonte reserva) */
+const installed = (family: string, style = 'normal') => {
+  const ctx = document.createElement('canvas').getContext('2d');
+  if (!ctx) return false;
+  const sample = 'Candidus R$ 0123 gestão';
+  ctx.font = `${style} 40px monospace`;
+  const base = ctx.measureText(sample).width;
+  ctx.font = `${style} 40px "${family}", monospace`;
+  return ctx.measureText(sample).width !== base;
+};
+
 if (typeof document !== 'undefined' && !document.getElementById('candidus-fonts')) {
+  const allInstalled = installed(SANS) && installed(SERIF) && installed(SERIF, 'italic');
   const face = (family: string, file: string, weight: string, style = 'normal') =>
     `@font-face{font-family:'${family}';src:local('${family}${style === 'italic' ? ' Italic' : ''}'),url('${staticFile(
       `fonts/${file}`,
@@ -19,15 +31,15 @@ if (typeof document !== 'undefined' && !document.getElementById('candidus-fonts'
   ].join('\n');
   document.head.appendChild(el);
 
-  // Espera as fontes, mas nunca trava o render: no pior caso libera após 10 s.
-  const handle = delayRender('Carregando fontes', {timeoutInMilliseconds: 60000});
-  const done = () => continueRender(handle);
-  Promise.race([
+  // Com as fontes instaladas no sistema não há o que esperar; senão, aguarda o carregamento.
+  // (Instalar as fontes de public/fonts deixa o render mais estável em renders longos.)
+  if (!allInstalled) {
+    const handle = delayRender('Carregando fontes');
+    const done = () => continueRender(handle);
     Promise.all(
       [`400 40px "${SANS}"`, `800 40px "${SANS}"`, `40px "${SERIF}"`, `italic 40px "${SERIF}"`].map((f) => document.fonts.load(f)),
-    ),
-    new Promise((r) => setTimeout(r, 10000)),
-  ]).then(done, done);
+    ).then(done, done);
+  }
 }
 
 // Paleta da marca: verde-escuro, branco/marfim e dourado.
