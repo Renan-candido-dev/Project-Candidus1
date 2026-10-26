@@ -1,0 +1,226 @@
+{
+  "id": "v07",
+  "seconds": 28.933333333333334,
+  "music": {
+    "bpm": 120,
+    "root": 50,
+    "seed": 7
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.533333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.533333333333333,
+      "end": 14.9,
+      "mood": "tension",
+      "enter": "whipUp"
+    },
+    {
+      "start": 14.9,
+      "end": 21.333333333333332,
+      "mood": "bright",
+      "enter": "whipLeft"
+    },
+    {
+      "start": 21.333333333333332,
+      "end": 28.933333333333334,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 21.333333333333332,
+      "kind": "impact"
+    },
+    {
+      "t": 24.2,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 868,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 136,
+        "cues": [
+          {
+            "at": 8,
+            "end": 124,
+            "text": "Quarenta e dois mil reais na conta. Parece que sobrou dinheiro, certo?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 136,
+        "dur": 311,
+        "cues": [
+          {
+            "at": 9,
+            "end": 83,
+            "text": "Agora coloque na conta o que já está comprometido."
+          },
+          {
+            "at": 92,
+            "end": 211,
+            "text": "Folha, fornecedores, impostos, aluguel e a parcela do empréstimo."
+          },
+          {
+            "at": 220,
+            "end": 299,
+            "text": "Do saldo, sobram cerca de mil e cem reais."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "tension"
+      },
+      {
+        "from": 447,
+        "dur": 193,
+        "cues": [
+          {
+            "at": 9,
+            "end": 181,
+            "text": "Lucro é o que sobra das receitas depois dos custos e despesas do período. O saldo é só a foto de um dia."
+          }
+        ],
+        "enter": "whipLeft",
+        "mood": "bright"
+      },
+      {
+        "from": 640,
+        "dur": 228,
+        "cues": [
+          {
+            "at": 9,
+            "end": 83,
+            "text": "Antes de gastar, olhe além do saldo bancário."
+          },
+          {
+            "at": 92,
+            "end": 120,
+            "text": "Salve para lembrar."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v07/voice/l01.wav",
+        "at": 8,
+        "end": 124
+      },
+      {
+        "file": "v07/voice/l02.wav",
+        "at": 145,
+        "end": 219
+      },
+      {
+        "file": "v07/voice/l03.wav",
+        "at": 228,
+        "end": 347
+      },
+      {
+        "file": "v07/voice/l04.wav",
+        "at": 356,
+        "end": 435
+      },
+      {
+        "file": "v07/voice/l05.wav",
+        "at": 456,
+        "end": 628
+      },
+      {
+        "file": "v07/voice/l06.wav",
+        "at": 649,
+        "end": 723
+      },
+      {
+        "file": "v07/voice/l07.wav",
+        "at": 732,
+        "end": 760
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 67,
+        "text": "Quarenta e dois mil reais na conta."
+      },
+      {
+        "from": 67,
+        "to": 124,
+        "text": "Parece que sobrou dinheiro, certo?"
+      },
+      {
+        "from": 145,
+        "to": 192,
+        "text": "Agora coloque na conta o que já"
+      },
+      {
+        "from": 192,
+        "to": 219,
+        "text": "está comprometido."
+      },
+      {
+        "from": 228,
+        "to": 284,
+        "text": "Folha, fornecedores, impostos,"
+      },
+      {
+        "from": 284,
+        "to": 347,
+        "text": "aluguel e a parcela do empréstimo."
+      },
+      {
+        "from": 356,
+        "to": 373,
+        "text": "Do saldo,"
+      },
+      {
+        "from": 373,
+        "to": 435,
+        "text": "sobram cerca de mil e cem reais."
+      },
+      {
+        "from": 456,
+        "to": 510,
+        "text": "Lucro é o que sobra das receitas"
+      },
+      {
+        "from": 510,
+        "to": 577,
+        "text": "depois dos custos e despesas do período."
+      },
+      {
+        "from": 577,
+        "to": 628,
+        "text": "O saldo é só a foto de um dia."
+      },
+      {
+        "from": 649,
+        "to": 676,
+        "text": "Antes de gastar,"
+      },
+      {
+        "from": 676,
+        "to": 723,
+        "text": "olhe além do saldo bancário."
+      },
+      {
+        "from": 732,
+        "to": 760,
+        "text": "Salve para lembrar."
+      }
+    ]
+  }
+}

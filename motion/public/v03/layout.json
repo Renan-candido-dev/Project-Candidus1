@@ -1,0 +1,294 @@
+{
+  "id": "v03",
+  "seconds": 33.93333333333333,
+  "music": {
+    "bpm": 118,
+    "root": 57,
+    "seed": 3
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.933333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3.933333333333333,
+      "end": 10.233333333333333,
+      "mood": "tension",
+      "enter": "whipUp"
+    },
+    {
+      "start": 10.233333333333333,
+      "end": 15.733333333333333,
+      "mood": "tension",
+      "enter": "whipLeft"
+    },
+    {
+      "start": 15.733333333333333,
+      "end": 20.3,
+      "mood": "bright",
+      "enter": "zoom"
+    },
+    {
+      "start": 20.3,
+      "end": 25.933333333333334,
+      "mood": "bright",
+      "enter": "blur"
+    },
+    {
+      "start": 25.933333333333334,
+      "end": 33.93333333333333,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 25.933333333333334,
+      "kind": "impact"
+    },
+    {
+      "t": 28.733333333333334,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1018,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 118,
+        "cues": [
+          {
+            "at": 8,
+            "end": 106,
+            "text": "Três sinais de que o financeiro da sua empresa está desorganizado."
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 118,
+        "dur": 189,
+        "cues": [
+          {
+            "at": 9,
+            "end": 84,
+            "text": "Primeiro: contas que vencem sem ninguém perceber."
+          },
+          {
+            "at": 93,
+            "end": 177,
+            "text": "A multa e os juros só aparecem depois, no extrato."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "tension"
+      },
+      {
+        "from": 307,
+        "dur": 165,
+        "cues": [
+          {
+            "at": 9,
+            "end": 87,
+            "text": "Segundo: o mesmo boleto pago duas vezes."
+          },
+          {
+            "at": 96,
+            "end": 153,
+            "text": "Sem conferência, ninguém percebe."
+          }
+        ],
+        "enter": "whipLeft",
+        "mood": "tension"
+      },
+      {
+        "from": 472,
+        "dur": 137,
+        "cues": [
+          {
+            "at": 9,
+            "end": 125,
+            "text": "Terceiro: você não sabe quanto vai ter em caixa daqui a trinta dias."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "bright"
+      },
+      {
+        "from": 609,
+        "dur": 169,
+        "cues": [
+          {
+            "at": 9,
+            "end": 157,
+            "text": "O primeiro passo: registrar cada conta com data, valor e categoria, num só lugar."
+          }
+        ],
+        "enter": "blur",
+        "mood": "bright"
+      },
+      {
+        "from": 778,
+        "dur": 240,
+        "cues": [
+          {
+            "at": 9,
+            "end": 81,
+            "text": "Quantos desses sinais existem na sua empresa?"
+          },
+          {
+            "at": 90,
+            "end": 132,
+            "text": "Conta aqui nos comentários."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v03/voice/l01.wav",
+        "at": 8,
+        "end": 106
+      },
+      {
+        "file": "v03/voice/l02.wav",
+        "at": 127,
+        "end": 202
+      },
+      {
+        "file": "v03/voice/l03.wav",
+        "at": 211,
+        "end": 295
+      },
+      {
+        "file": "v03/voice/l04.wav",
+        "at": 316,
+        "end": 394
+      },
+      {
+        "file": "v03/voice/l05.wav",
+        "at": 403,
+        "end": 460
+      },
+      {
+        "file": "v03/voice/l06.wav",
+        "at": 481,
+        "end": 597
+      },
+      {
+        "file": "v03/voice/l07.wav",
+        "at": 618,
+        "end": 766
+      },
+      {
+        "file": "v03/voice/l08.wav",
+        "at": 787,
+        "end": 859
+      },
+      {
+        "file": "v03/voice/l09.wav",
+        "at": 868,
+        "end": 910
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 59,
+        "text": "Três sinais de que o financeiro da"
+      },
+      {
+        "from": 59,
+        "to": 106,
+        "text": "sua empresa está desorganizado."
+      },
+      {
+        "from": 127,
+        "to": 141,
+        "text": "Primeiro:"
+      },
+      {
+        "from": 141,
+        "to": 202,
+        "text": "contas que vencem sem ninguém perceber."
+      },
+      {
+        "from": 211,
+        "to": 276,
+        "text": "A multa e os juros só aparecem depois,"
+      },
+      {
+        "from": 276,
+        "to": 295,
+        "text": "no extrato."
+      },
+      {
+        "from": 316,
+        "to": 332,
+        "text": "Segundo:"
+      },
+      {
+        "from": 332,
+        "to": 394,
+        "text": "o mesmo boleto pago duas vezes."
+      },
+      {
+        "from": 403,
+        "to": 460,
+        "text": "Sem conferência, ninguém percebe."
+      },
+      {
+        "from": 481,
+        "to": 497,
+        "text": "Terceiro:"
+      },
+      {
+        "from": 497,
+        "to": 551,
+        "text": "você não sabe quanto vai ter em"
+      },
+      {
+        "from": 551,
+        "to": 597,
+        "text": "caixa daqui a trinta dias."
+      },
+      {
+        "from": 618,
+        "to": 650,
+        "text": "O primeiro passo:"
+      },
+      {
+        "from": 650,
+        "to": 706,
+        "text": "registrar cada conta com data,"
+      },
+      {
+        "from": 706,
+        "to": 766,
+        "text": "valor e categoria, num só lugar."
+      },
+      {
+        "from": 787,
+        "to": 839,
+        "text": "Quantos desses sinais existem na"
+      },
+      {
+        "from": 839,
+        "to": 859,
+        "text": "sua empresa?"
+      },
+      {
+        "from": 868,
+        "to": 910,
+        "text": "Conta aqui nos comentários."
+      }
+    ]
+  }
+}

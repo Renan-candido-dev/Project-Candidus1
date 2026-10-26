@@ -1,0 +1,251 @@
+{
+  "id": "v09",
+  "seconds": 33.4,
+  "music": {
+    "bpm": 122,
+    "root": 53,
+    "seed": 9
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.3333333333333335,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3.3333333333333335,
+      "end": 18.866666666666667,
+      "mood": "tension",
+      "enter": "whipUp"
+    },
+    {
+      "start": 18.866666666666667,
+      "end": 23.433333333333334,
+      "mood": "bright",
+      "enter": "zoom"
+    },
+    {
+      "start": 23.433333333333334,
+      "end": 33.4,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 23.433333333333334,
+      "kind": "impact"
+    },
+    {
+      "t": 27.7,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1002,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 100,
+        "cues": [
+          {
+            "at": 8,
+            "end": 88,
+            "text": "Fluxo de caixa, explicado em trinta segundos."
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 100,
+        "dur": 466,
+        "cues": [
+          {
+            "at": 9,
+            "end": 92,
+            "text": "Começa com o saldo inicial: o que havia no caixa."
+          },
+          {
+            "at": 100,
+            "end": 184,
+            "text": "Somam-se as entradas, como vendas e recebimentos."
+          },
+          {
+            "at": 193,
+            "end": 321,
+            "text": "Subtraem-se as saídas: fornecedores, folha, despesas e impostos."
+          },
+          {
+            "at": 330,
+            "end": 454,
+            "text": "O resultado é o saldo final, que vira o saldo inicial do próximo período."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "tension"
+      },
+      {
+        "from": 566,
+        "dur": 137,
+        "cues": [
+          {
+            "at": 9,
+            "end": 125,
+            "text": "Acompanhando semana a semana, você vê antes quando o caixa vai apertar."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "bright"
+      },
+      {
+        "from": 703,
+        "dur": 299,
+        "cues": [
+          {
+            "at": 9,
+            "end": 125,
+            "text": "Saldo inicial, mais entradas, menos saídas: saldo final."
+          },
+          {
+            "at": 134,
+            "end": 191,
+            "text": "Salve para consultar quando precisar."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v09/voice/l01.wav",
+        "at": 8,
+        "end": 88
+      },
+      {
+        "file": "v09/voice/l02.wav",
+        "at": 109,
+        "end": 192
+      },
+      {
+        "file": "v09/voice/l03.wav",
+        "at": 200,
+        "end": 284
+      },
+      {
+        "file": "v09/voice/l04.wav",
+        "at": 293,
+        "end": 421
+      },
+      {
+        "file": "v09/voice/l05.wav",
+        "at": 430,
+        "end": 554
+      },
+      {
+        "file": "v09/voice/l06.wav",
+        "at": 575,
+        "end": 691
+      },
+      {
+        "file": "v09/voice/l07.wav",
+        "at": 712,
+        "end": 828
+      },
+      {
+        "file": "v09/voice/l08.wav",
+        "at": 837,
+        "end": 894
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 35,
+        "text": "Fluxo de caixa,"
+      },
+      {
+        "from": 35,
+        "to": 88,
+        "text": "explicado em trinta segundos."
+      },
+      {
+        "from": 109,
+        "to": 156,
+        "text": "Começa com o saldo inicial:"
+      },
+      {
+        "from": 156,
+        "to": 192,
+        "text": "o que havia no caixa."
+      },
+      {
+        "from": 200,
+        "to": 237,
+        "text": "Somam-se as entradas,"
+      },
+      {
+        "from": 237,
+        "to": 284,
+        "text": "como vendas e recebimentos."
+      },
+      {
+        "from": 293,
+        "to": 338,
+        "text": "Subtraem-se as saídas:"
+      },
+      {
+        "from": 338,
+        "to": 380,
+        "text": "fornecedores, folha,"
+      },
+      {
+        "from": 380,
+        "to": 421,
+        "text": "despesas e impostos."
+      },
+      {
+        "from": 430,
+        "to": 479,
+        "text": "O resultado é o saldo final,"
+      },
+      {
+        "from": 479,
+        "to": 526,
+        "text": "que vira o saldo inicial do"
+      },
+      {
+        "from": 526,
+        "to": 554,
+        "text": "próximo período."
+      },
+      {
+        "from": 575,
+        "to": 623,
+        "text": "Acompanhando semana a semana,"
+      },
+      {
+        "from": 623,
+        "to": 691,
+        "text": "você vê antes quando o caixa vai apertar."
+      },
+      {
+        "from": 712,
+        "to": 773,
+        "text": "Saldo inicial, mais entradas,"
+      },
+      {
+        "from": 773,
+        "to": 828,
+        "text": "menos saídas: saldo final."
+      },
+      {
+        "from": 837,
+        "to": 894,
+        "text": "Salve para consultar quando precisar."
+      }
+    ]
+  }
+}

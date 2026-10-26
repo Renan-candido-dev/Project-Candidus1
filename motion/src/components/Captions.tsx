@@ -1,16 +1,17 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {EASE_OUT, tw} from '../anim';
-import {CAPTIONS} from '../timeline';
 import {SANS} from '../theme';
+
+export type CaptionCue = {from: number; to: number; text: string};
 
 /**
  * Legendas da narração, em blocos curtos, com a palavra falada destacada em dourado.
  * Posicionadas acima da área de interface do Reels/TikTok.
  */
-export const Captions: React.FC = () => {
+export const Captions: React.FC<{cues: CaptionCue[]; top?: number}> = ({cues, top = 1418}) => {
   const f = useCurrentFrame();
-  const cue = CAPTIONS.find((c) => f >= c.from - 2 && f < c.to + 4);
+  const cue = cues.find((c) => f >= c.from - 2 && f < c.to + 4);
   if (!cue) return null;
   const words = cue.text.split(' ');
   const total = words.reduce((n, w) => n + w.length + 1, 0);
@@ -24,7 +25,7 @@ export const Captions: React.FC = () => {
         position: 'absolute',
         left: 0,
         right: 0,
-        top: 1418,
+        top,
         display: 'flex',
         justifyContent: 'center',
         opacity: inP * (1 - outP),

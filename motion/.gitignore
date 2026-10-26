@@ -4,3 +4,4 @@ out/frames/
 out/*-raw.mp4
 out/render.log
 out/chunks/
+build/

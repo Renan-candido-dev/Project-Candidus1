@@ -1,0 +1,51 @@
+[
+  {
+    "file": "v11/voice/l01.wav",
+    "seconds": 2.473,
+    "speech": 2.345,
+    "text": "Para onde está indo cada centavo da sua empresa?",
+    "hash": "60ad458b2edf"
+  },
+  {
+    "file": "v11/voice/l02.wav",
+    "seconds": 1.742,
+    "speech": 1.614,
+    "text": "Tudo começa nos lançamentos.",
+    "hash": "89bc86960457"
+  },
+  {
+    "file": "v11/voice/l03.wav",
+    "seconds": 5.248,
+    "speech": 5.093,
+    "text": "Cada um recebe uma categoria: pessoal, fornecedores, tributos, despesas operacionais.",
+    "hash": "4e1342eea5da"
+  },
+  {
+    "file": "v11/voice/l04.wav",
+    "seconds": 2.403,
+    "speech": 2.3,
+    "text": "Somando por categoria, o mês ganha forma.",
+    "hash": "f7325c0bdaa4"
+  },
+  {
+    "file": "v11/voice/l05.wav",
+    "seconds": 3.947,
+    "speech": 3.857,
+    "text": "Aqui, pessoal e fornecedores concentram dois terços das saídas.",
+    "hash": "bfa19153f2d6"
+  },
+  {
+    "file": "v11/voice/l06.wav",
+    "seconds": 3.216,
+    "speech": 3.143,
+    "text": "Organização financeira começa com informação confiável.",
+    "hash": "97cf673a88e0"
+  },
+  {
+    "file": "v11/voice/l07.wav",
+    "seconds": 2.299,
+    "speech": 2.175,
+    "text": "Salve para organizar as suas categorias.",
+    "hash": "03980da8f6ff"
+  }
+]

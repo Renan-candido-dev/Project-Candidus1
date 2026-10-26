@@ -1,0 +1,196 @@
+{
+  "id": "v17",
+  "seconds": 29.466666666666665,
+  "music": {
+    "bpm": 116,
+    "root": 57,
+    "seed": 17
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 2.933333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 2.933333333333333,
+      "end": 11.966666666666667,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 11.966666666666667,
+      "end": 21.2,
+      "mood": "bright",
+      "enter": "whipLeft"
+    },
+    {
+      "start": 21.2,
+      "end": 29.466666666666665,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 21.2,
+      "kind": "impact"
+    },
+    {
+      "t": 23.933333333333334,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 884,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 88,
+        "cues": [
+          {
+            "at": 8,
+            "end": 76,
+            "text": "Afinal, o que é BPO financeiro?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 88,
+        "dur": 271,
+        "cues": [
+          {
+            "at": 9,
+            "end": 119,
+            "text": "É a terceirização das rotinas financeiras para uma equipe especializada."
+          },
+          {
+            "at": 128,
+            "end": 259,
+            "text": "Contas a pagar e a receber, conciliação bancária e relatórios gerenciais."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 359,
+        "dur": 277,
+        "cues": [
+          {
+            "at": 9,
+            "end": 241,
+            "text": "O empresário continua no comando: aprova os pagamentos e toma as decisões. O BPO cuida da rotina e organiza a informação."
+          }
+        ],
+        "enter": "whipLeft",
+        "mood": "bright"
+      },
+      {
+        "from": 636,
+        "dur": 248,
+        "cues": [
+          {
+            "at": 9,
+            "end": 79,
+            "text": "Rotina organizada e informação na mão."
+          },
+          {
+            "at": 88,
+            "end": 140,
+            "text": "Conheça a proposta da Candidus."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v17/voice/l01.wav",
+        "at": 8,
+        "end": 76
+      },
+      {
+        "file": "v17/voice/l02.wav",
+        "at": 97,
+        "end": 207
+      },
+      {
+        "file": "v17/voice/l03.wav",
+        "at": 216,
+        "end": 347
+      },
+      {
+        "file": "v17/voice/l04.wav",
+        "at": 368,
+        "end": 600
+      },
+      {
+        "file": "v17/voice/l05.wav",
+        "at": 645,
+        "end": 715
+      },
+      {
+        "file": "v17/voice/l06.wav",
+        "at": 724,
+        "end": 776
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 76,
+        "text": "Afinal, o que é BPO financeiro?"
+      },
+      {
+        "from": 97,
+        "to": 142,
+        "text": "É a terceirização das rotinas"
+      },
+      {
+        "from": 142,
+        "to": 207,
+        "text": "financeiras para uma equipe especializada."
+      },
+      {
+        "from": 216,
+        "to": 265,
+        "text": "Contas a pagar e a receber,"
+      },
+      {
+        "from": 265,
+        "to": 347,
+        "text": "conciliação bancária e relatórios gerenciais."
+      },
+      {
+        "from": 368,
+        "to": 432,
+        "text": "O empresário continua no comando:"
+      },
+      {
+        "from": 432,
+        "to": 510,
+        "text": "aprova os pagamentos e toma as decisões."
+      },
+      {
+        "from": 510,
+        "to": 600,
+        "text": "O BPO cuida da rotina e organiza a informação."
+      },
+      {
+        "from": 645,
+        "to": 715,
+        "text": "Rotina organizada e informação na mão."
+      },
+      {
+        "from": 724,
+        "to": 776,
+        "text": "Conheça a proposta da Candidus."
+      }
+    ]
+  }
+}

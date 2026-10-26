@@ -1,0 +1,215 @@
+{
+  "id": "v24",
+  "seconds": 25.766666666666666,
+  "music": {
+    "bpm": 120,
+    "root": 57,
+    "seed": 24
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 5.633333333333334,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 5.633333333333334,
+      "end": 12.3,
+      "mood": "tension",
+      "enter": "flood"
+    },
+    {
+      "start": 12.3,
+      "end": 15.366666666666667,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 15.366666666666667,
+      "end": 25.766666666666666,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 5.633333333333334,
+      "kind": "impact"
+    },
+    {
+      "t": 15.366666666666667,
+      "kind": "impact"
+    },
+    {
+      "t": 19.433333333333334,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 773,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 169,
+        "cues": [
+          {
+            "at": 8,
+            "end": 157,
+            "text": "Boletos, notificações, planilhas soltas, e a sensação de não saber onde está o dinheiro."
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 169,
+        "dur": 200,
+        "cues": [
+          {
+            "at": 9,
+            "end": 105,
+            "text": "Com rotina e método, cada lançamento encontra o seu lugar."
+          },
+          {
+            "at": 114,
+            "end": 188,
+            "text": "Categorizado, conferido e conciliado."
+          }
+        ],
+        "enter": "flood",
+        "mood": "tension"
+      },
+      {
+        "from": 369,
+        "dur": 92,
+        "cues": [
+          {
+            "at": 9,
+            "end": 68,
+            "text": "E os números passam a mostrar o caminho."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 461,
+        "dur": 312,
+        "cues": [
+          {
+            "at": 9,
+            "end": 119,
+            "text": "Você cuida do seu negócio. A Candidus ajuda a cuidar dos números."
+          },
+          {
+            "at": 128,
+            "end": 204,
+            "text": "Entre em contato com a Candidus Gestão Financeira."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v24/voice/l01.wav",
+        "at": 8,
+        "end": 157
+      },
+      {
+        "file": "v24/voice/l02.wav",
+        "at": 178,
+        "end": 274
+      },
+      {
+        "file": "v24/voice/l03.wav",
+        "at": 283,
+        "end": 357
+      },
+      {
+        "file": "v24/voice/l04.wav",
+        "at": 378,
+        "end": 437
+      },
+      {
+        "file": "v24/voice/l05.wav",
+        "at": 470,
+        "end": 580
+      },
+      {
+        "file": "v24/voice/l06.wav",
+        "at": 589,
+        "end": 665
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 47,
+        "text": "Boletos, notificações,"
+      },
+      {
+        "from": 47,
+        "to": 76,
+        "text": "planilhas soltas,"
+      },
+      {
+        "from": 76,
+        "to": 129,
+        "text": "e a sensação de não saber onde"
+      },
+      {
+        "from": 129,
+        "to": 157,
+        "text": "está o dinheiro."
+      },
+      {
+        "from": 178,
+        "to": 212,
+        "text": "Com rotina e método,"
+      },
+      {
+        "from": 212,
+        "to": 274,
+        "text": "cada lançamento encontra o seu lugar."
+      },
+      {
+        "from": 283,
+        "to": 310,
+        "text": "Categorizado,"
+      },
+      {
+        "from": 310,
+        "to": 357,
+        "text": "conferido e conciliado."
+      },
+      {
+        "from": 378,
+        "to": 437,
+        "text": "E os números passam a mostrar o caminho."
+      },
+      {
+        "from": 470,
+        "to": 515,
+        "text": "Você cuida do seu negócio."
+      },
+      {
+        "from": 515,
+        "to": 580,
+        "text": "A Candidus ajuda a cuidar dos números."
+      },
+      {
+        "from": 589,
+        "to": 637,
+        "text": "Entre em contato com a Candidus"
+      },
+      {
+        "from": 637,
+        "to": 665,
+        "text": "Gestão Financeira."
+      }
+    ]
+  }
+}

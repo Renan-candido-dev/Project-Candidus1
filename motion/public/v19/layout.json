@@ -1,0 +1,260 @@
+{
+  "id": "v19",
+  "seconds": 30.066666666666666,
+  "music": {
+    "bpm": 120,
+    "root": 55,
+    "seed": 19
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.233333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.233333333333333,
+      "end": 18.2,
+      "mood": "tension",
+      "enter": "flood"
+    },
+    {
+      "start": 18.2,
+      "end": 22.3,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 22.3,
+      "end": 30.066666666666666,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 4.233333333333333,
+      "kind": "impact"
+    },
+    {
+      "t": 22.3,
+      "kind": "impact"
+    },
+    {
+      "t": 25.166666666666668,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 902,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 127,
+        "cues": [
+          {
+            "at": 8,
+            "end": 115,
+            "text": "O que a Candidus faz, todos os meses, no financeiro de uma empresa?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 127,
+        "dur": 419,
+        "cues": [
+          {
+            "at": 9,
+            "end": 72,
+            "text": "Registra e acompanha os recebimentos."
+          },
+          {
+            "at": 82,
+            "end": 172,
+            "text": "Organiza e agenda os pagamentos, para a sua aprovação."
+          },
+          {
+            "at": 182,
+            "end": 226,
+            "text": "Concilia banco e cartões."
+          },
+          {
+            "at": 236,
+            "end": 284,
+            "text": "Acompanha o fluxo de caixa."
+          },
+          {
+            "at": 295,
+            "end": 395,
+            "text": "E fecha o mês com relatório e uma conversa sobre os números."
+          }
+        ],
+        "enter": "flood",
+        "mood": "tension"
+      },
+      {
+        "from": 546,
+        "dur": 123,
+        "cues": [
+          {
+            "at": 9,
+            "end": 111,
+            "text": "No fim, você tem uma visão clara do mês e do que vem pela frente."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 669,
+        "dur": 233,
+        "cues": [
+          {
+            "at": 9,
+            "end": 83,
+            "text": "Vamos conversar sobre o financeiro da sua empresa?"
+          },
+          {
+            "at": 92,
+            "end": 125,
+            "text": "Fale com a Candidus."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v19/voice/l01.wav",
+        "at": 8,
+        "end": 115
+      },
+      {
+        "file": "v19/voice/l02.wav",
+        "at": 136,
+        "end": 199
+      },
+      {
+        "file": "v19/voice/l03.wav",
+        "at": 209,
+        "end": 299
+      },
+      {
+        "file": "v19/voice/l04.wav",
+        "at": 309,
+        "end": 353
+      },
+      {
+        "file": "v19/voice/l05.wav",
+        "at": 363,
+        "end": 411
+      },
+      {
+        "file": "v19/voice/l06.wav",
+        "at": 422,
+        "end": 522
+      },
+      {
+        "file": "v19/voice/l07.wav",
+        "at": 555,
+        "end": 657
+      },
+      {
+        "file": "v19/voice/l08.wav",
+        "at": 678,
+        "end": 752
+      },
+      {
+        "file": "v19/voice/l09.wav",
+        "at": 761,
+        "end": 794
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 43,
+        "text": "O que a Candidus faz,"
+      },
+      {
+        "from": 43,
+        "to": 67,
+        "text": "todos os meses,"
+      },
+      {
+        "from": 67,
+        "to": 115,
+        "text": "no financeiro de uma empresa?"
+      },
+      {
+        "from": 136,
+        "to": 199,
+        "text": "Registra e acompanha os recebimentos."
+      },
+      {
+        "from": 209,
+        "to": 263,
+        "text": "Organiza e agenda os pagamentos,"
+      },
+      {
+        "from": 263,
+        "to": 299,
+        "text": "para a sua aprovação."
+      },
+      {
+        "from": 309,
+        "to": 353,
+        "text": "Concilia banco e cartões."
+      },
+      {
+        "from": 363,
+        "to": 411,
+        "text": "Acompanha o fluxo de caixa."
+      },
+      {
+        "from": 422,
+        "to": 478,
+        "text": "E fecha o mês com relatório e uma"
+      },
+      {
+        "from": 478,
+        "to": 522,
+        "text": "conversa sobre os números."
+      },
+      {
+        "from": 555,
+        "to": 566,
+        "text": "No fim,"
+      },
+      {
+        "from": 566,
+        "to": 620,
+        "text": "você tem uma visão clara do mês e"
+      },
+      {
+        "from": 620,
+        "to": 657,
+        "text": "do que vem pela frente."
+      },
+      {
+        "from": 678,
+        "to": 729,
+        "text": "Vamos conversar sobre o financeiro"
+      },
+      {
+        "from": 729,
+        "to": 752,
+        "text": "da sua empresa?"
+      },
+      {
+        "from": 761,
+        "to": 794,
+        "text": "Fale com a Candidus."
+      }
+    ]
+  }
+}

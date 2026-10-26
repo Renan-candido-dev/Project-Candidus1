@@ -1,0 +1,51 @@
+[
+  {
+    "file": "v07/voice/l01.wav",
+    "seconds": 4.009,
+    "speech": 3.876,
+    "text": "Quarenta e dois mil reais na conta. Parece que sobrou dinheiro, certo?",
+    "hash": "73ea0d0f8777"
+  },
+  {
+    "file": "v07/voice/l02.wav",
+    "seconds": 2.589,
+    "speech": 2.471,
+    "text": "Agora coloque na conta o que já está comprometido.",
+    "hash": "738cee6fe668"
+  },
+  {
+    "file": "v07/voice/l03.wav",
+    "seconds": 4.052,
+    "speech": 3.964,
+    "text": "Folha, fornecedores, impostos, aluguel e a parcela do empréstimo.",
+    "hash": "b52300f9dc9c"
+  },
+  {
+    "file": "v07/voice/l04.wav",
+    "seconds": 2.763,
+    "speech": 2.618,
+    "text": "Do saldo, sobram cerca de mil e cem reais.",
+    "hash": "37ac98d52869"
+  },
+  {
+    "file": "v07/voice/l05.wav",
+    "seconds": 5.855,
+    "speech": 5.733,
+    "text": "Lucro é o que sobra das receitas depois dos custos e despesas do período. O saldo é só a foto de um dia.",
+    "hash": "2498e2f23444"
+  },
+  {
+    "file": "v07/voice/l06.wav",
+    "seconds": 2.554,
+    "speech": 2.463,
+    "text": "Antes de gastar, olhe além do saldo bancário.",
+    "hash": "cb9be09cdcca"
+  },
+  {
+    "file": "v07/voice/l07.wav",
+    "seconds": 1.08,
+    "speech": 0.944,
+    "text": "Salve para lembrar.",
+    "hash": "f46c7cc1d5ff"
+  }
+]
