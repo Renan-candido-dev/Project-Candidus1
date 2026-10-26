@@ -1,0 +1,5 @@
+node_modules/
+out/*.png
+out/frames/
+out/*-raw.mp4
+out/render.log

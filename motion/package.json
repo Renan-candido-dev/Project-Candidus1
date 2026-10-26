@@ -1,0 +1,24 @@
+{
+  "name": "candidus-reels",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Candidus Gestão Financeira — vídeos em motion design (Remotion)",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render CandidusReel01 out/candidus-reel-01-raw.mp4 && bash scripts/finalize.sh",
+    "render:sem-legendas": "remotion render CandidusReel01 out/candidus-reel-01-sem-legendas-raw.mp4 --props='{\"captions\":false}' && bash scripts/finalize.sh out/candidus-reel-01-sem-legendas-raw.mp4 out/candidus-reel-01-sem-legendas.mp4",
+    "still": "remotion still CandidusReel01 out/capa.png --frame=950",
+    "audio": "python3 scripts/gen_audio.py"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.290",
+    "@remotion/fonts": "4.0.290",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}
