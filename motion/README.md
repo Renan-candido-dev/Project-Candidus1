@@ -1,94 +1,86 @@
-# Candidus Gestão Financeira: vídeos em motion design
+# Candidus · motion design (Remotion)
 
-Projeto Remotion (React) para criar os Reels da Candidus. Formato: vertical 1080 × 1920, 30 fps.
+Projeto-fonte dos vídeos da Candidus Gestão Financeira: vertical 1080 × 1920, 30 fps, H.264 + AAC.
+A estratégia, o calendário e as fichas de cada vídeo ficam em [`../conteudo`](../conteudo/README.md).
 
-**Vídeo 01: "Para onde vai o dinheiro?"** (32,5 s)
-Arquivo final: `out/candidus-reel-01.mp4`
+## Como o projeto funciona
 
----
+Cada vídeo da série é uma **spec** (`src/videos/vNN.ts`): uma lista de *beats*, cada um com a fala e a cena.
 
-## 1. Análise das referências
+```ts
+{
+  say: ['Primeiro: contas que vencem sem ninguém perceber.', 'A multa só aparece depois.'],
+  enter: 'whipUp',                      // transição de entrada
+  scene: {type: 'ledger', headline: ['*1.* Contas _esquecidas_'], rows: [...], flags: [...]},
+}
+```
 
-| Característica | O que aparece nas referências | Como foi aplicado na Candidus |
-|---|---|---|
-| Paleta | Fundo off-white e uma única cor de marca forte (vermelho ou amarelo), que às vezes toma a tela inteira | Fundo marfim, verde-escuro dominante e dourado só nos destaques. Telas inteiras em verde ("inundação") nas viradas da história |
-| Tipografia | Sans geométrica bold; contraste entre peso leve e pesado na mesma frase; palavras entram uma a uma | Plus Jakarta Sans (500 a 800) com contraste de pesos. Palavras-chave em serifada itálica dourada (DM Serif Display), no estilo do logo |
-| Ritmo | Corte a cada 1–2 s, sempre sincronizado à fala | 12 planos em 32 s; cada entrada de texto está amarrada ao frame da narração |
-| Transições | Desfoque de movimento, chicotes, zoom através, círculo que se expande a partir de um ponto | Chicote vertical e horizontal com blur, zoom através, círculo expandindo (verde → marfim → verde), luz que se apaga e acende |
-| Motivos gráficos | Ponto → círculos concêntricos finos; pílulas de UI; cursor clicando; ícones | Ponto e anéis dourados, pílulas de categoria, cursor clicando em "Conciliar" e no CTA, ícones vetoriais |
-| Produto em cena | Cartão 3D e celular com o app | Interfaces financeiras reais e animadas: notificações, painel, fluxo de caixa, contas a pagar/receber, indicadores |
-| Som | Trilha pulsante, whooshes e cliques | Trilha original, mais 13 efeitos sonoros sincronizados (whoosh, clique, pop, ping, impacto, chime) |
-
-## 2. Roteiro de animação
-
-| Tempo | Cena | O que acontece |
-|---|---|---|
-| 0–5,5 s | **Gancho** | Silhueta de empresário diante do notebook. Dez notificações (vendas, Pix, boletos, aluguel, impostos) chegam cada vez mais rápido e a câmera treme. Um círculo verde engole a tela; o saldo de R$ 48.720 despenca e o número se desfaz em moedas. Texto: *"Sua empresa vende. Mas o dinheiro **desaparece?**"* ("desaparece?" se dissolve letra a letra) |
-| 5,5–11 s | **Problema** | Faixas de entradas e saídas cruzam a tela, o saldo do mês fica negativo e o gráfico cai. Surgem alertas: "Vencida", "Juros", "Vence hoje". Então as luzes se apagam e uma "lanterna" revela: *"Sem controle financeiro, você trabalha **no escuro.**"* A lanterna termina como um ponto de luz |
-| 11–16 s | **Solução** | O ponto vira luz e o marfim toma a tela. Os lançamentos chegam espalhados e se encaixam num painel, ganham categorias, e o cursor clica em "Conciliar": tudo fica ✓ "Tudo em dia". Texto: *"A **Candidus** organiza seu financeiro."* |
-| 16–23,5 s | **Benefícios** | Três planos: fluxo de caixa (*Mais controle.*), contas a receber e a pagar com anéis de progresso (*Mais clareza.*), meta e indicadores (*Decisões melhores.*). No fim, um resumo com os três checks dourados |
-| 23,5–32,5 s | **Encerramento** | *"Você cuida do negócio. Nós cuidamos **dos números.**"* sobre dígitos rolando. Depois o logo se monta (barras crescem, a seta é desenhada, "Candidus" sobe letra a letra) e entra o CTA *"Vamos organizar seu financeiro?"*, com clique |
-
-Todos os números são fictícios, e as telas de dados levam o selo **"\* Dados ilustrativos"**.
-
-## 3. Estrutura
+- **Tempo automático:** a narração é gravada frase a frase. A duração de cada cena e o momento de cada animação (`cue`) saem da duração real da fala. Trocou o texto ou a voz? Os tempos se ajustam sozinhos.
+- **Marcação de texto:** `*negrito*` vira destaque em peso 800; `_palavra_` vira serifada itálica dourada.
+- **Kit de cenas** (`src/kit`): `title`, `notif`, `stream`, `ledger`, `chart`, `waterfall`, `steps` (lista ou ciclo), `balance`, `calendar`, `report`, `split`, `reconcile`, `sheet` (planilha ao vivo), `breakeven`, `closing`.
+- **Transições:** `whipUp`, `whipLeft`, `zoom`, `blur`, `flood`, `cut`, com efeito sonoro automático.
+- **Legendas** quebradas em blocos curtos, com a palavra falada destacada; trilha com *ducking* sob a voz.
+- **Trilha original por vídeo** (`scripts/gen_series_music.py`), composta a partir da timeline: climas de tensão, neutro, claro e final, com impactos nas viradas e acorde final na assinatura. Andamento e tom variam por vídeo.
 
 ```
 motion/
 ├── src/
-│   ├── Video.tsx          # monta cenas, narração, trilha (com ducking) e legendas
-│   ├── timeline.ts        # ← sincronia: início das cenas, das falas e das legendas
-│   ├── theme.ts           # cores, fontes
-│   ├── anim.ts            # easings, molas, utilitários (formatação R$)
-│   ├── components/        # Words (tipografia cinética), Cursor, Logo, Captions, UI, Backgrounds
-│   └── scenes/            # S1Hook, S2Problem, S3Solution, S4Benefits, S5Closing
-├── public/
-│   ├── voice/             # narração, uma frase por arquivo (+ lines.json)
-│   ├── sfx/               # efeitos sonoros
-│   ├── music.wav          # trilha
-│   └── fonts/             # fontes embarcadas (OFL)
+│   ├── Root.tsx               # registra todas as composições
+│   ├── series/                # tipos, cálculo de timeline e renderizador da série
+│   ├── kit/                   # cenas reutilizáveis + ícones
+│   ├── components/            # tipografia cinética, cursor, logo, legendas, fundos
+│   ├── videos/                # specs vNN.ts, insertos e o V01 (feito à mão)
+│   ├── founder/data.ts        # roteiros e direção dos vídeos do fundador
+│   └── theme.ts, anim.ts      # identidade e utilitários de animação
+├── public/                    # fontes, efeitos, e por vídeo: voz, trilha, layout
 └── scripts/
-    ├── gen_voice.py       # gera a narração (Piper TTS, pt-BR, offline)
-    ├── gen_audio.py       # sintetiza trilha e efeitos (numpy/scipy)
-    └── finalize.sh        # normaliza o áudio em -14 LUFS e otimiza o MP4
+    ├── build-video.sh         # voz → timeline → trilha (e opcionalmente render)
+    ├── render-chunks.sh       # render robusto em blocos + finalização (yuv420p, −14 LUFS)
+    ├── render-queue.sh        # vários vídeos em sequência
+    ├── review.sh / contact.sh # folhas de revisão com quadros do vídeo
+    ├── conteudo.ts            # gera fichas, roteiros, .srt e calendário em ../conteudo
+    ├── gen_series_voice.py    # narração (Piper TTS)
+    ├── gen_series_music.py    # trilha por vídeo
+    └── gen_audio.py           # instrumentos e efeitos sonoros
 ```
 
-## 4. Como renderizar
+## Comandos
 
-Requisitos: Node 18+ e ffmpeg.
+Requisitos: Node 18+, ffmpeg, Python 3 com `numpy scipy piper-tts`.
 
 ```bash
-cd motion
 npm install
-npm run studio               # pré-visualização interativa no navegador
-npm run render               # → out/candidus-reel-01.mp4
-npm run render:sem-legendas  # versão sem legendas
+npm run studio                                   # pré-visualização interativa
+
+export PIPER_MODEL=/caminho/vits-piper-pt_BR-faber-medium
+bash scripts/build-video.sh v03                  # gera voz, timeline e trilha
+bash scripts/build-video.sh v03 --render         # ... e renderiza
+
+bash scripts/render-chunks.sh V03-tres-sinais out/v03.mp4                       # só renderizar
+bash scripts/render-chunks.sh V03-tres-sinais out/v03-sem-legenda.mp4 '{"captions":false}'
+npx tsx scripts/conteudo.ts                      # atualiza a documentação em ../conteudo
 ```
 
-Se o Remotion não conseguir baixar o Chrome, aponte para um Chromium local:
-`REMOTION_BROWSER=/caminho/do/chrome npm run render`
+Modelo de voz `pt_BR-faber-medium`: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models (arquivo `vits-piper-pt_BR-faber-medium.tar.bz2`).
 
-**Dica de estabilidade:** instale no sistema as fontes de `public/fonts/` (dois cliques no
-arquivo, ou copie para `~/.local/share/fonts` no Linux). Com elas instaladas, o render não
-precisa esperar o carregamento de fontes em cada aba. Se um render longo travar com
-`delayRender() ... timeout`, use `npm run render:blocos`: ele renderiza em blocos de 125 frames,
-com nova tentativa por bloco, e junta vídeo e áudio no final.
+**Estabilidade:** instale no sistema as fontes de `public/fonts/` (no Linux, copie para `~/.local/share/fonts`). Assim o render não depende de carregar fontes em cada aba. O `render-chunks.sh` empacota o código uma vez, renderiza em blocos de 125 quadros com nova tentativa e junta tudo no final.
 
-## 5. Narração: como trocar a voz
+Se o Remotion não conseguir baixar o Chrome: `REMOTION_BROWSER=/caminho/do/chrome bash scripts/render-chunks.sh ...`
 
-A voz atual é sintética e roda offline: Piper TTS, modelo `pt_BR-faber-medium`. Para uma versão de campanha, recomendo um locutor profissional ou um TTS premium (ElevenLabs, Azure etc.). Para trocar:
+## Criar um vídeo novo
 
-1. Grave cada frase em um arquivo separado, `public/voice/line1.wav` … `line7.wav`, na ordem de `lines.json`.
-2. Ajuste em `src/timeline.ts` o `at` (frame de início) e o `frames` (duração falada) de cada frase, além das legendas em `CAPTIONS`. Os textos das cenas usam frames locais próximos desses valores.
-3. Rode `npm run render`.
+1. Copie uma spec parecida (`src/videos/v07.ts`), mude `id`, `num`, `slug`, falas e cenas.
+2. Registre em `src/videos/index.ts`.
+3. `bash scripts/build-video.sh vNN`, confira no Studio e renderize.
 
-Para regerar a voz sintética:
-`python3 scripts/gen_voice.py <pasta-do-modelo-piper>` (modelos em
-https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models).
-Na narração, "Candidus" é escrito "Cândidus" só para guiar a pronúncia; na tela aparece sem acento.
+## Trocar a voz por locução profissional
 
-## 6. Créditos e licenças
+1. Grave cada frase em um arquivo: `public/vNN/voice/l01.wav`, `l02.wav`… (na ordem das falas da spec).
+2. Atualize `public/vNN/voice.json` com a duração de cada fala (campo `speech`, em segundos). O `gen_series_voice.py` mostra como medir.
+3. Rode `npx tsx scripts/series.ts layout vNN && python3 scripts/gen_series_music.py vNN` e renderize.
+
+## Créditos e licenças
 
 - Fontes: Plus Jakarta Sans e DM Serif Display (Google Fonts, SIL Open Font License).
-- Trilha e efeitos: sintetizados neste projeto (`scripts/gen_audio.py`), sem samples de terceiros.
-- Voz: Piper TTS, modelo pt_BR-faber-medium. Confira a licença no `MODEL_CARD` do modelo antes de uso comercial.
+- Trilhas e efeitos: sintetizados neste projeto, sem samples de terceiros.
+- Voz: Piper TTS, modelo `pt_BR-faber-medium`. Confira a licença no `MODEL_CARD` do modelo antes de uso comercial.

@@ -1,0 +1,67 @@
+1
+00:00:00,300 --> 00:00:03,500
+Você sabe o que vai pagar este mês.
+
+2
+00:00:04,150 --> 00:00:06,550
+Mas sabe o que vai receber?
+
+3
+00:00:07,200 --> 00:00:08,000
+E quando?
+
+4
+00:00:08,400 --> 00:00:10,800
+O caixa depende dos dois lados.
+
+5
+00:00:10,850 --> 00:00:12,050
+E das datas.
+
+6
+00:00:12,300 --> 00:00:13,100
+Exemplo fictício:
+
+7
+00:00:13,150 --> 00:00:15,550
+quarenta mil para pagar e quarenta
+
+8
+00:00:15,600 --> 00:00:17,600
+e cinco mil para receber.
+
+9
+00:00:17,650 --> 00:00:18,450
+Parece tranquilo.
+
+10
+00:00:19,300 --> 00:00:22,500
+Mas quinze mil só entram no dia trinta,
+
+11
+00:00:22,550 --> 00:00:24,550
+e as contas vencem antes.
+
+12
+00:00:24,950 --> 00:00:26,950
+O mês fecha positivo e,
+
+13
+00:00:27,000 --> 00:00:29,000
+mesmo assim, aperta no meio.
+
+14
+00:00:29,250 --> 00:00:30,050
+Recebimentos previstos,
+
+15
+00:00:30,100 --> 00:00:31,300
+atrasos e datas:
+
+16
+00:00:31,350 --> 00:00:33,350
+é isso que permite planejar.
+
+17
+00:00:33,400 --> 00:00:35,400
+Você acompanha os dois lados?

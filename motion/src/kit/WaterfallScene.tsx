@@ -53,8 +53,7 @@ export const WaterfallScene: React.FC<Props> = ({dur, cues, bg = 'ivory', headli
             left: 60,
             width: 960,
             top: headline ? 560 : 360,
-            height: 800,
-            padding: '36px 40px',
+            padding: '36px 40px 28px',
             transform: `translateY(${(1 - enter) * 90}px) scale(${0.94 + 0.06 * enter})`,
             opacity: enter,
           }}
@@ -128,9 +127,9 @@ export const WaterfallScene: React.FC<Props> = ({dur, cues, bg = 'ivory', headli
             })}
           </svg>
           {note && (
-            <div style={{fontSize: 22, fontWeight: 600, color: C.muted, marginTop: 6, opacity: tw(f, s0 + 30, s0 + 44, 0, 1, EASE_OUT)}}>{note}</div>
+            <div style={{fontSize: 24, fontWeight: 700, color: C.ink, marginTop: 4, opacity: tw(f, s0 + 30, s0 + 44, 0, 1, EASE_OUT)}}>{note}</div>
           )}
-          <Illustrative style={{position: 'absolute', left: 40, bottom: 26, fontSize: 17}} />
+          <Illustrative style={{marginTop: 14, fontSize: 17}} />
         </Card>
       </Fill>
     </Fill>

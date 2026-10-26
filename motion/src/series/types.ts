@@ -38,7 +38,9 @@ export type VideoSpec = {
   num: number;
   slug: string;
   title: string;
-  format: 'motion' | 'demo';
+  format: 'motion' | 'demo' | 'insert';
+  /** clipe sem narração nem trilha (inserto para os vídeos gravados pelo fundador) */
+  silent?: boolean;
   week: number;
   month: 1 | 2 | 3;
   /** Andamento e tonalidade da trilha (variação entre vídeos). */

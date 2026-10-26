@@ -5,11 +5,11 @@
   "description": "Candidus Gestão Financeira — vídeos em motion design (Remotion)",
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render CandidusReel01 out/candidus-reel-01-raw.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p && bash scripts/finalize.sh",
-    "render:sem-legendas": "remotion render CandidusReel01 out/candidus-reel-01-sem-legendas-raw.mp4 --codec=h264 --crf=16 --pixel-format=yuv420p --props='{\"captions\":false}' && bash scripts/finalize.sh out/candidus-reel-01-sem-legendas-raw.mp4 out/candidus-reel-01-sem-legendas.mp4",
-    "still": "remotion still CandidusReel01 out/capa.png --frame=950",
-    "audio": "python3 scripts/gen_audio.py",
-    "render:blocos": "bash scripts/render-chunks.sh"
+    "build": "bash scripts/build-video.sh",
+    "render": "bash scripts/render-chunks.sh",
+    "review": "bash scripts/review.sh",
+    "docs": "tsx scripts/conteudo.ts",
+    "audio": "python3 scripts/gen_audio.py"
   },
   "dependencies": {
     "@remotion/cli": "4.0.290",

@@ -78,8 +78,9 @@ export const SeriesVideo: React.FC<SeriesProps> = ({spec, layout, captions}) => 
       })}
 
       <Grain opacity={0.06} />
-      {captions && <Captions cues={layout.captions} />}
+      {captions && !spec.silent && <Captions cues={layout.captions} />}
 
+      {!spec.silent && (
       <Audio
         src={staticFile(`${spec.id}/music.wav`)}
         volume={(f) => {
@@ -96,6 +97,7 @@ export const SeriesVideo: React.FC<SeriesProps> = ({spec, layout, captions}) => 
           return fade * (0.55 - 0.25 * duck);
         }}
       />
+      )}
       {lines.map((l) => (
         <Sequence key={l.file} from={l.at} durationInFrames={l.end - l.at + 30} layout="none">
           <Audio src={staticFile(l.file)} />

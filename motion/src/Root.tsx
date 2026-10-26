@@ -4,6 +4,7 @@ import {SeriesProps, SeriesVideo} from './series/SeriesVideo';
 import {VoiceLine, computeLayout} from './series/layout';
 import {FPS, H, W} from './theme';
 import {SERIES} from './videos';
+import {INSERTS} from './videos/inserts';
 import {CandidusReel01} from './videos/v01/Video';
 import {TOTAL_FRAMES} from './videos/v01/timeline';
 
@@ -28,10 +29,10 @@ export const RemotionRoot: React.FC = () => (
       height={H}
       defaultProps={{captions: true}}
     />
-    {SERIES.map((spec) => (
+    {[...SERIES, ...INSERTS].map((spec) => (
       <Composition
         key={spec.id}
-        id={`V${String(spec.num).padStart(2, '0')}-${spec.slug}`}
+        id={`${spec.format === 'insert' ? 'INS-V' : 'V'}${String(spec.num).padStart(2, '0')}-${spec.slug}`}
         component={SeriesVideo}
         durationInFrames={300}
         fps={FPS}
