@@ -325,7 +325,6 @@ textarea{resize:vertical}
       <div class="field"><label>Senha</label>
         <input type="password" id="password" placeholder="••••••••" required></div>
       <button class="btn full" type="submit" id="loginBtn">Entrar</button>
-      <div style="text-align:center;margin-top:10px"><a href="#" id="esqueciSenha" style="font-size:13px">Esqueci minha senha</a></div>
     </form>
   </div>
 </div>
@@ -353,49 +352,18 @@ textarea{resize:vertical}
 <script>
 const configured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
 let db = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-// Paginação automática: toda listagem SEM limite/range explícito é buscada em páginas de 1.000 até o fim
-// (a API do Supabase corta respostas em 1.000 linhas sem avisar). Ordena por id para páginas estáveis.
-function paginarListagem(b){
-  const origThen=b.then.bind(b);
-  b.then=function(onF,onR){
-    const sp=b.url&&b.url.searchParams, ac=String((b.headers&&(b.headers['Accept']||b.headers['accept']))||'');
-    if(!sp||b.method!=='GET'||sp.has('limit')||sp.has('offset')||ac.includes('vnd.pgrst.object')) return origThen(onF,onR);
-    const pegar=()=>new Promise(res=>origThen(res,e=>res({data:null,error:e})));
-    return (async()=>{
-      let r=await pegar(); if(r.error||!Array.isArray(r.data)||r.data.length<1000) return r;
-      let ordenou=false; if(!sp.has('order')){ b.order('id',{ascending:true}); ordenou=true; }
-      let out=[], off=0, ult;
-      for(let pag=0;pag<1000;pag++){
-        b.range(off,off+999); ult=await pegar();
-        if(ult.error){ if(ordenou&&off===0){ sp.delete('order'); ordenou=false; continue; } return ult; }
-        out=out.concat(ult.data||[]); if(!ult.data||ult.data.length<1000) break; off+=1000;
-      }
-      return {...ult, data:out};
-    })().then(onF,onR);
-  };
-  return b;
-}
-if(db){ const _from=db.from.bind(db); db.from=t=>{ const qb=_from(t); const _sel=qb.select.bind(qb); qb.select=(...a)=>paginarListagem(_sel(...a)); return qb; }; }
 
 const BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const money = v => BRL.format(Number(v||0));
 const $ = id => document.getElementById(id);
 const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
-// <datas-negocio> data de negócio = data em Brasília, qualquer que seja o fuso do computador (antes: data UTC, que vira o dia às 21h)
-const FUSO_NEGOCIO = 'America/Sao_Paulo';
-const dataNegocio = (instante=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:FUSO_NEGOCIO,year:'numeric',month:'2-digit',day:'2-digit'}).format(instante);
-const todayStr = () => dataNegocio();
-const isoDataLocal = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const somaDiasISO = (iso,n) => { const t=new Date(iso+'T00:00:00Z'); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
-// </datas-negocio>
+const todayStr = () => new Date().toISOString().slice(0,10);
 const fmtDate = d => d ? d.split('-').reverse().join('/') : '—';
 const daysLate = d => Math.floor((new Date(todayStr()) - new Date(d)) / 86400000);
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const STLABEL = {a_vencer:'A vencer',vencido:'Vencido',recebido:'Recebido',recebido_parcial:'Receb. parcial',cancelado:'Cancelado',aberto:'Em aberto',quitado:'Quitado'};
 
 function toast(msg,type='ok'){
-  // bloqueios do banco: RLS (v2) e gatilho trg_pode_escrever (s4b: "Seu perfil (x) não permite alterar dados desta empresa")
-  if(typeof msg==='string' && /row-level security|permission denied|bloq_visualizacao|não permite alterar dados/i.test(msg)) msg='Seu perfil não tem permissão para esta ação'+(/bloq_visualizacao|\(visualizacao\)/.test(msg)?' (perfil de visualização: somente consulta).':'.');
   const t=el('div','toast '+type,esc(msg)); $('toast').appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
@@ -424,7 +392,6 @@ const MENU = [
     {ico:'◎',label:'Clientes',view:'clientes'},{ico:'◍',label:'Fornecedores',view:'fornecedores'},
     {ico:'⌗',label:'Categorias',view:'categorias'},{ico:'⊞',label:'Centros de custo',view:'centros-custo'},
     {ico:'▤',label:'Contas financeiras',view:'contas-financeiras'},{ico:'▦',label:'Empresas',view:'empresas'},
-    {ico:'⇩',label:'Exportar dados',view:'exportar'},{ico:'🛡',label:'Auditoria',view:'auditoria'},
   ]},
   {g:'BPO', items:[
     {ico:'◈',label:'Pendências',view:'pendencias'},
@@ -443,7 +410,7 @@ const MENU = [
   ]},
 ];
 function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
-const APP_VERSAO='2026.10.27-v2s4b.1 · recorrências sem pular mês';  // muda a cada entrega: confira no rodapé do menu
+const APP_VERSAO='2026.10.25-s5 · segurança: dinheiro só pelas funções';  // muda a cada entrega: confira no rodapé do menu
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
   if(favSet.size){
@@ -484,7 +451,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); const bp=document.getElementById('bellPanel'); if(bp) bp.remove(); if(v==='dashboard')Promise.resolve(renderDashboard()).then(injetarAlertasDashboard); else if(v==='alertas')renderAlertas(); else if(v==='exportar')renderExportar(); else if(v==='auditoria')renderAuditoria(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); const bp=document.getElementById('bellPanel'); if(bp) bp.remove(); if(v==='dashboard')Promise.resolve(renderDashboard()).then(injetarAlertasDashboard); else if(v==='alertas')renderAlertas(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -506,8 +473,6 @@ $('loginForm').addEventListener('submit', async e=>{
   enterApp(data.session);
 });
 $('logout').addEventListener('click', async ()=>{ await db.auth.signOut(); location.reload(); });
-$('esqueciSenha').addEventListener('click', e=>{ e.preventDefault(); esqueciSenha(); });
-if(db) db.auth.onAuthStateChange((ev)=>{ if(ev==='PASSWORD_RECOVERY') setTimeout(abrirNovaSenha,300); });
 $('burger').addEventListener('click', ()=> $('app').classList.toggle('collapsed'));
 
 async function enterApp(session){
@@ -550,7 +515,6 @@ async function renderDashboardConsolidado(){
       db.from('tasks').select('prazo,status,company_id'),
       db.from('bank_transactions').select('id',{count:'exact',head:true}).eq('conciliado',false).eq('origem','importado').in('tipo',['entrada','saida']),
     ]);
-    if(!$('dashArea')) return;   // o usuário trocou de tela durante a carga
     for(const r of [res,tsk]) if(r.error) throw r.error;
     const per={}; // company_id -> agregados (somados no banco: sem limite de 1.000 linhas)
     (res.data||[]).forEach(x=>{ per[x.company_id]={saldoI:Number(x.saldo),ent:0,sai:0,aReceber:Number(x.receber_aberto),aPagar:Number(x.pagar_aberto),vencR:Number(x.receber_vencido),vencP:Number(x.pagar_vencido)}; });
@@ -586,7 +550,7 @@ async function renderDashboardConsolidado(){
       <tbody>${rows}</tbody></table></div>
       <div class="hint" style="margin-top:10px">Os saldos são de cada empresa separadamente — não há soma de caixa entre clientes diferentes.</div>`;
     $('dashArea').querySelectorAll('[data-co]').forEach(tr=>tr.onclick=()=>dashSelectCompany(tr.dataset.co));
-  }catch(err){ if($('dashArea')) $('dashArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ $('dashArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 async function renderDashboard(){
   if(!companyId) return renderDashboardConsolidado();
@@ -652,14 +616,13 @@ function pagerHTML(page,total,prefix){
 
 async function renderContasReceber(){
   $('main').innerHTML=`<div class="page-h"><h1>Contas a receber</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
-      <button class="btn ghost" id="btnExpR">Exportar CSV</button><button class="btn ghost" id="btnLoteR">Lançar em lote</button>
+      <button class="btn ghost" id="btnLoteR">Lançar em lote</button>
       <button class="btn" id="btnNova">+ Nova conta a receber</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="crFilters"></div>
     <div id="crArea"><div class="loading">Carregando…</div></div>`;
   $('btnNova').onclick=openNovaReceber;
   $('btnLoteR').onclick=()=>openLote('receber');
-  $('btnExpR').onclick=()=>exportarDataset('vw_contas_receber','Contas a receber (parcelas)');
   crPage=0;
   const { data:cli }=await scopeQ(db.from('customers').select('id,razao_social,nome_fantasia')).order('razao_social');
   crClientes=cli||[];
@@ -699,9 +662,8 @@ async function loadReceber(){
         recebido:parc.reduce((s,p)=>s+Number(p.valor_recebido||0),0),
         saldo:parc.reduce((s,p)=>s+Number(p.saldo||0),0),
         temVencido:parc.some(p=>p.situacao==='vencido')}; });
-    if(!$('crArea')) return;   // o usuário trocou de tela durante a carga
     drawReceber();
-  }catch(err){ if($('crArea')) $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 
 function drawReceber(){
@@ -787,6 +749,19 @@ async function contaDuplicada(tabela, co, contraId, contraCol, desc, val, primei
   return data.some(r=>(r[instTbl]||[]).some(i=>Math.abs((new Date(primeiroVenc)-new Date(i.vencimento))/86400000)<=5));
 }
 
+/* Cria conta pela função; se o SERVIDOR acusar duplicidade (clique duplo, outra aba), pergunta e repete com permissão.
+   permitir=true quando o usuário já confirmou a duplicidade antes. */
+async function rpcCriarConta(nome, params, permitir){
+  let r=await db.rpc(nome,{...params, p_permitir_duplicada:!!permitir});
+  if(r.error && /DUPLICADA/.test(r.error.message||'') && !permitir){
+    const msg=String(r.error.message).replace(/^.*DUPLICADA:\s*/,''); 
+    const ok=await confirmOver({titulo:'Conta parecida já existe',texto:msg.charAt(0).toUpperCase()+msg.slice(1)+' Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
+    if(!ok) return {cancelado:true};
+    r=await db.rpc(nome,{...params, p_permitir_duplicada:true});
+  }
+  return r;
+}
+
 /* Modal de confirmação com a identidade do Candidus (substitui o confirm() do navegador) */
 function confirmModal({titulo, texto, ok='Confirmar', perigo=false}){
   return new Promise(resolve=>{
@@ -850,9 +825,10 @@ async function openNovaReceber(){
     if(!desc){ toast('Informe a descrição.','err'); return; }
     if(!(val>0)){ toast('Informe um valor válido.','err'); return; }
     if(!$('nVenc').value){ toast('Informe o 1º vencimento.','err'); return; }
+    let dupOk=false;
     if(await contaDuplicada('receivables',$('nCo').value,$('nCli').value||null,'customer_id',desc,val,$('nVenc').value)){
       const ok=await confirmOver({titulo:'Conta parecida já existe',texto:'Já existe uma conta a receber com a mesma descrição, valor e cliente, com vencimento próximo. Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
-      if(!ok) return;
+      if(!ok) return; dupOk=true;
     }
     $('mSave').disabled=true; $('mSave').textContent='Salvando…';
     const params={
@@ -864,8 +840,10 @@ async function openNovaReceber(){
       p_financial_account_id:$('nAcc').value||null, p_documento:$('nDoc').value||null,
       p_forma_recebimento:$('nForma').value||null, p_data_emissao:$('nEmis').value||null,
     };
-    const { error }=await db.rpc('criar_conta_receber',params);
+    const rc=await rpcCriarConta('criar_conta_receber',params,dupOk);
     $('mSave').disabled=false; $('mSave').textContent='Salvar';
+    if(rc.cancelado) return;
+    const { error }=rc;
     if(error){ toast('Erro ao salvar: '+error.message,'err'); return; }
     closeModal(); toast('Conta a receber criada!'); loadReceber();
   };
@@ -941,14 +919,13 @@ const openTitlesP=new Set();
 
 async function renderContasPagar(){
   $('main').innerHTML=`<div class="page-h"><h1>Contas a pagar</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
-      <button class="btn ghost" id="btnExpP">Exportar CSV</button><button class="btn ghost" id="btnLoteP">Lançar em lote</button>
+      <button class="btn ghost" id="btnLoteP">Lançar em lote</button>
       <button class="btn" id="btnNovaP">+ Nova conta a pagar</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="cpFilters"></div>
     <div id="cpArea"><div class="loading">Carregando…</div></div>`;
   $('btnNovaP').onclick=openNovaPagar;
   $('btnLoteP').onclick=()=>openLote('pagar');
-  $('btnExpP').onclick=()=>exportarDataset('vw_contas_pagar','Contas a pagar (parcelas)');
   cpPage=0;
   const { data:forn }=await scopeQ(db.from('suppliers').select('id,razao_social,nome_fantasia')).order('razao_social');
   cpForns=forn||[];
@@ -988,9 +965,8 @@ async function loadPagar(){
         pago:parc.reduce((s,x)=>s+Number(x.valor_pago||0),0),
         saldo:parc.reduce((s,x)=>s+Number(x.saldo||0),0),
         temVencido:parc.some(x=>x.situacao==='vencido')}; });
-    if(!$('cpArea')) return;   // o usuário trocou de tela durante a carga
     drawPagar();
-  }catch(err){ if($('cpArea')) $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 function bindCpPager(){
   const p=$('cpArea').querySelector('[data-pg="cp-prev"]'); const n=$('cpArea').querySelector('[data-pg="cp-next"]');
@@ -1099,9 +1075,10 @@ async function openNovaPagar(){
     if(!desc){ toast('Informe a descrição.','err'); return; }
     if(!(val>0)){ toast('Informe um valor válido.','err'); return; }
     if(!$('pnVenc').value){ toast('Informe o 1º vencimento.','err'); return; }
+    let dupOk=false;
     if(await contaDuplicada('payables',$('pnCo').value,$('pnFor').value||null,'supplier_id',desc,val,$('pnVenc').value)){
       const ok=await confirmOver({titulo:'Conta parecida já existe',texto:'Já existe uma conta a pagar com a mesma descrição, valor e fornecedor, com vencimento próximo. Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
-      if(!ok) return;
+      if(!ok) return; dupOk=true;
     }
     $('mSave').disabled=true; $('mSave').textContent='Salvando…';
     const params={
@@ -1113,8 +1090,10 @@ async function openNovaPagar(){
       p_financial_account_id:$('pnAcc').value||null, p_documento:$('pnDoc').value||null,
       p_forma_pagamento:$('pnForma').value||null, p_data_emissao:$('pnEmis').value||null,
     };
-    const { error }=await db.rpc('criar_conta_pagar',params);
+    const rc=await rpcCriarConta('criar_conta_pagar',params,dupOk);
     $('mSave').disabled=false; $('mSave').textContent='Salvar';
+    if(rc.cancelado) return;
+    const { error }=rc;
     if(error){ toast('Erro ao salvar: '+error.message,'err'); return; }
     closeModal(); toast('Conta a pagar criada!'); loadPagar();
   };
@@ -1446,12 +1425,11 @@ async function loadFluxo(){
     ]);
     for(const r of [acc,fm]) if(r.error) throw r.error;
     const base=(acc.data||[]).reduce((s,x)=>s+Number(x.saldo_inicial||0),0);
-    const realE={},realS={},prevE={},prevS={},transf={};
+    const realE={},realS={},prevE={},prevS={};
     (fm.data||[]).forEach(x=>{ const k=x.ym;
       if(+x.real_e) realE[k]=Number(x.real_e); if(+x.real_s) realS[k]=Number(x.real_s);
-      if(+x.transf_e||+x.transf_s) transf[k]=Number(x.transf_e||0)-Number(x.transf_s||0);
       if(+x.prev_e) prevE[k]=Number(x.prev_e); if(+x.prev_s) prevS[k]=Number(x.prev_s); });
-    fluxoData={base,realE,realS,prevE,prevS,transf}; fluxoDet={};
+    fluxoData={base,realE,realS,prevE,prevS}; fluxoDet={};
     drawFluxo();
   }catch(err){
     $('fluxoArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`;
@@ -1510,8 +1488,7 @@ function drawFluxo(){
   let running=base, totE=0, totS=0;
   const linhas=months.map(ym=>{
     const e=E[ym]||0, s=S[ym]||0; totE+=e; totS+=s;
-    const tl=fluxoMode==='previsto'?0:((fluxoData.transf||{})[ym]||0);  // transferências mexem no saldo, não em entradas/saídas
-    const ini=running, fim=running+e-s+tl; running=fim;
+    const ini=running, fim=running+e-s; running=fim;
     return {ym,e,s,ini,fim};
   });
   const maxBar=Math.max(1,...linhas.map(l=>Math.max(l.e,l.s)));
@@ -1685,21 +1662,11 @@ const REC={nenhuma:'Não repete',diaria:'Diária',semanal:'Semanal',quinzenal:'Q
 let tarCache={tasks:[],chk:{},profiles:[],templates:[]};
 let tarFilters={status:'',prioridade:'',resp:''};
 const openTasks=new Set();
-// próxima data de uma recorrência. Mensal/trimestral/anual não pulam mês: no mês sem o dia, usa o último dia válido
-// (31/01 → 28/02; 29/02 → 28/02 do ano seguinte). diaRef = dia de referência da série (ver diaReferencia), para
-// não "escorregar" (31/01 → 28/02 → 31/03, e não 28/03).
-function addRec(d,rec,diaRef){ const b=new Date((d||todayStr())+'T00:00:00');
-  const meses={mensal:1,trimestral:3,anual:12}[rec];
-  if(meses){ const y=b.getFullYear(), m=b.getMonth()+meses, ult=new Date(y,m+1,0).getDate();
-    b.setTime(new Date(y,m,Math.min(diaRef||b.getDate(),ult)).getTime()); }
-  else if(rec==='diaria')b.setDate(b.getDate()+1); else if(rec==='semanal')b.setDate(b.getDate()+7);
-  else if(rec==='quinzenal')b.setDate(b.getDate()+15);
-  return isoDataLocal(b); }
-// dia de referência: o da data atual; se ela é o último dia do mês e a série começou num dia maior
-// (foi encurtada num mês menor), volta ao dia original
-function diaReferencia(atual,original){ if(!atual) return null; const d=+atual.slice(8,10);
-  if(!original) return d; const o=+original.slice(8,10), ult=new Date(+atual.slice(0,4),+atual.slice(5,7),0).getDate();
-  return (d===ult && o>d)?o:d; }
+function addRec(d,rec){ const b=new Date((d||todayStr())+'T00:00:00');
+  if(rec==='diaria')b.setDate(b.getDate()+1); else if(rec==='semanal')b.setDate(b.getDate()+7);
+  else if(rec==='quinzenal')b.setDate(b.getDate()+15); else if(rec==='mensal')b.setMonth(b.getMonth()+1);
+  else if(rec==='trimestral')b.setMonth(b.getMonth()+3); else if(rec==='anual')b.setMonth(b.getMonth()+12);
+  return b.toISOString().slice(0,10); }
 
 async function renderTarefas(){
   $('main').innerHTML=`<div class="page-h"><h1>Tarefas</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
@@ -1808,17 +1775,11 @@ async function changeTaskStatus(id,status){
   if(status==='concluida') openApontamento({ co:t.company_id, descricao:t.titulo, task_id:t.id, titulo:'Tarefa concluída ✅', dica:'Quanto tempo levou? Isso alimenta a rentabilidade do cliente. Se não quiser apontar, clique em Pular.' });
 }
 async function gerarProximaTarefa(t){
-  const raizId=t.recurrence_parent_id||t.id;
-  let raiz=t; if(t.recurrence_parent_id){ const r=await db.from('tasks').select('data_inicial,prazo').eq('id',t.recurrence_parent_id).maybeSingle(); if(r.data) raiz=r.data; }
   const novo={ company_id:t.company_id, titulo:t.titulo, descricao:t.descricao, categoria:t.categoria,
     assigned_user_id:t.assigned_user_id, prioridade:t.prioridade, recorrencia:t.recorrencia,
-    recurrence_parent_id:raizId, status:'a_fazer',
-    data_inicial: t.data_inicial?addRec(t.data_inicial,t.recorrencia,diaReferencia(t.data_inicial,raiz.data_inicial)):null,
-    prazo: t.prazo?addRec(t.prazo,t.recorrencia,diaReferencia(t.prazo,raiz.prazo)):null };
-  // concluir, reabrir e concluir de novo não cria a mesma ocorrência duas vezes
-  const dataChave=novo.prazo?'prazo':(novo.data_inicial?'data_inicial':null);
-  if(dataChave){ const ja=await db.from('tasks').select('id').or(`id.eq.${raizId},recurrence_parent_id.eq.${raizId}`).eq(dataChave,novo[dataChave]).limit(1);
-    if(ja.data&&ja.data.length) return; }
+    recurrence_parent_id:t.recurrence_parent_id||t.id, status:'a_fazer',
+    data_inicial: t.data_inicial?addRec(t.data_inicial,t.recorrencia):null,
+    prazo: t.prazo?addRec(t.prazo,t.recorrencia):null };
   const { data,error }=await db.from('tasks').insert(novo).select('id').single();
   if(error||!data) return;
   const items=tarCache.chk[t.id]||[];
@@ -2083,7 +2044,7 @@ let dreItems=[], dreCatNat={}, dreMesSel=todayStr().slice(0,7), dreModo='mes', d
 // (resultado financeiro: o que vem de conta a pagar entra negativo; "baixa" já vem com sinal)
 function dreValor(d){ const v=Number(d.valor||0); return (d.natureza==='resultado_financeiro' && d.origem==='pagar')?-v:v; }
 async function dreRealizado(co, ini, fim){
-  const { data, error }=await db.rpc('dre_realizado_json',{ p_company:co||null, p_ini:ini, p_fim:fim });
+  const { data, error }=await db.rpc('dre_realizado',{ p_company:co||null, p_ini:ini, p_fim:fim });
   if(error) throw error; return data||[];
 }
 const mesIni=(a,m)=>`${a}-${String(m).padStart(2,'0')}-01`;           // m = 1..12
@@ -2375,9 +2336,7 @@ async function loadOrc(){
     const co=orcState.co, ano=orcState.ano;
     // garante orçamento do ano
     let { data:b }=await db.from('budgets').select('id').eq('company_id',co).eq('ano',ano).maybeSingle();
-    if(!b){ const ins=await db.from('budgets').insert({company_id:co,ano,nome:'Orçamento '+ano}).select('id').single();
-      if(ins.error){ if(/row-level security|bloq_visualizacao|não permite alterar dados/i.test(ins.error.message)){ $('ocArea').innerHTML='<div class="panel"><div class="empty">Ainda não há orçamento para este ano. (Seu perfil é somente consulta.)</div></div>'; return; } throw ins.error; }
-      b=ins.data; }
+    if(!b){ const ins=await db.from('budgets').insert({company_id:co,ano,nome:'Orçamento '+ano}).select('id').single(); if(ins.error) throw ins.error; b=ins.data; }
     orcState.budgetId=b.id;
     // categorias mapeadas na DRE
     const [maps,cats,items]=await Promise.all([
@@ -2582,7 +2541,6 @@ async function loadIndicadores(){
       db.rpc('contar_titulos_receber',{p_company:co, p_ini:pIni, p_fim:pFim}),
       indCo?db.from('indicator_targets').select('*').eq('company_id',indCo).eq('ano',ano).is('mes',null):Promise.resolve({data:[]}),
     ]);
-    if(!$('inArea')) return;   // o usuário trocou de tela durante a carga
     for(const r of [res,fm,tit]) if(r.error) throw r.error;
 
     const D=indNat(realiz,pIni,pFim);
@@ -2641,12 +2599,11 @@ async function loadIndicadores(){
       {nome:'Receita líquida', cor:'var(--teal,#0d9488)', vals:porMes.map(x=>x.rl)},
       {nome:'Lucro líquido', cor:'var(--green)', corNeg:'var(--red)', vals:porMes.map(x=>x.ll)} ],
       line:{nome:'Margem líquida', cor:'var(--amber)', vals:porMes.map(x=>x.rl?x.ll/x.rl*100:null), fmt:v=>v.toFixed(0)+'%'} });
-    const netx=x=>Number(x.real_e)-Number(x.real_s)+Number(x.transf_e||0)-Number(x.transf_s||0);
-    const totalReal=F.reduce((s,x)=>s+netx(x),0);
+    const totalReal=F.reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
     let acum=R.saldo-totalReal; // saldo antes do primeiro movimento
-    F.filter(x=>x.ym<`${ano}-01`).forEach(x=>{ acum+=netx(x); });
+    F.filter(x=>x.ym<`${ano}-01`).forEach(x=>{ acum+=Number(x.real_e)-Number(x.real_s); });
     const fAno=meses.map(m=>F.find(x=>x.ym===`${ano}-${String(m).padStart(2,'0')}`)||{real_e:0,real_s:0});
-    const saldoMes=fAno.map(x=>{ acum+=netx(x); return acum; });
+    const saldoMes=fAno.map(x=>{ acum+=Number(x.real_e)-Number(x.real_s); return acum; });
     const ateHoje=meses.map(m=>ano<anoAtual||(ano===anoAtual&&m<=mesAtual));
     const ch2=svgChart({ labels:MES3, series:[
       {nome:'Entradas', cor:'var(--green)', vals:fAno.map(x=>Number(x.real_e))},
@@ -2671,7 +2628,7 @@ async function loadIndicadores(){
         <div class="panel"><h3><span class="dot t"></span>Receita líquida × lucro · ${ano}</h3>${ch1}</div>
         <div class="panel"><h3><span class="dot t"></span>Entradas × saídas (realizado) · ${ano}</h3>${ch2}</div>
       </div>`;
-  }catch(err){ if($('inArea')) $('inArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
+  }catch(err){ $('inArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
 }
 // "R$ 12,3 mil" / "R$ 1,2 mi"
 function moneyCurto(v){ const a=Math.abs(v), s=v<0?'−':'';
@@ -2840,7 +2797,7 @@ function faturaVenc(dataCompra, diaFech, diaVenc){
   if(day>diaFech) m+=1;                 // passou do fechamento -> próxima fatura
   if(!(diaVenc>diaFech)) m+=1;          // vencimento cai no mês seguinte ao fechamento
   const due=new Date(y,m,1); const last=new Date(due.getFullYear(),due.getMonth()+1,0).getDate();
-  due.setDate(Math.min(diaVenc,last)); return isoDataLocal(due);
+  due.setDate(Math.min(diaVenc,last)); return due.toISOString().slice(0,10);
 }
 async function renderCartoes(){
   $('main').innerHTML=`<div class="page-h"><h1>Cartões</h1><span class="scope">${companyId?'':'· todas as empresas'}</span></div>
@@ -2938,11 +2895,13 @@ async function openNovaDespCartao(){
     const venc=faturaVenc(dt,card.dia_fechamento,card.dia_vencimento);
     const comp=dt.slice(0,7)+'-01';
     $('mSave').disabled=true; $('mSave').textContent='Lançando…';
-    const { error }=await db.rpc('criar_conta_pagar',{ p_company_id:card.company_id, p_supplier_id:null, p_descricao:desc,
+    const rc=await rpcCriarConta('criar_conta_pagar',{ p_company_id:card.company_id, p_supplier_id:null, p_descricao:desc,
       p_valor_total:val, p_primeiro_vencimento:venc, p_qtd_parcelas:parseInt($('dcParc').value||'1'), p_intervalo_meses:1,
       p_categoria_id:$('dcCat').value||null, p_cost_center_id:$('dcCC').value||null, p_financial_account_id:card.id,
-      p_forma_pagamento:'cartao', p_data_emissao:dt, p_competencia:comp });
+      p_forma_pagamento:'cartao', p_data_emissao:dt, p_competencia:comp }, false);
     $('mSave').disabled=false; $('mSave').textContent='Lançar';
+    if(rc.cancelado) return;
+    const { error }=rc;
     if(error){ toast('Erro: '+error.message,'err'); return; }
     closeModal(); toast('Despesa lançada no cartão!'); loadFaturas();
   };
@@ -2982,7 +2941,7 @@ async function openPagarFatura(fat, card){
 }
 
 /* ===================== IMPORTAR EXTRATO (OFX/CSV) ===================== */
-let impRows=[], impCard={}, impLinhas=[];
+let impRows=[], impCard={};
 const normDesc=s=>(s||'').toLowerCase().replace(/\s+/g,' ').trim();
 function parseDateFlex(s){
   s=(s||'').trim();
@@ -3055,11 +3014,20 @@ async function lerExtrato(){
   if(!rows.length && impCard.origem==='csv'){ rows=parseOFX(text); if(rows.length) impCard.origem='ofx'; }
   if(!rows.length){ $('impArea').innerHTML='<div class="panel"><div class="empty">Não consegui ler movimentos nesse arquivo. Se for CSV, confira se tem colunas de Data, Descrição e Valor. OFX costuma funcionar direto.</div></div>'; return; }
 
-  // prévia no servidor: duplicidade conferida no banco (chave por FITID ou conteúdo+ocorrência), sem limite de linhas
-  impLinhas=rows.map(r=>({data:r.data, valor:r.valor, tipo:r.tipo, descricao:r.descricao, documento:r.documento||null, fit_id:r.fit_id||null}));
-  const { data:prev, error:pe }=await db.rpc('previa_importacao',{ p_account:acc, p_linhas:impLinhas });
-  if(pe){ $('impArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível conferir o arquivo: ${esc(pe.message)}</div></div>`; return; }
-  impRows=rows.map((r,i)=>{ const p=(prev||[])[i]||{}; r.status=p.status||'nova'; r.chave=p.chave; r.importar=(r.status==='nova'); return r; });
+  // dedup: contra bank_transactions existentes (data+valor) e imports anteriores (hash/fit)
+  const datas=rows.map(r=>r.data).sort();
+  const { data:bt }=await db.from('bank_transactions').select('data,valor,tipo').eq('financial_account_id',acc).gte('data',datas[0]).lte('data',datas[datas.length-1]);
+  const btSet=new Set((bt||[]).map(x=>`${x.data}|${Number(x.valor).toFixed(2)}|${x.tipo}`));
+  const { data:imp }=await db.from('imported_transactions').select('hash,fit_id,status').eq('financial_account_id',acc).in('status',['importada']);
+  const impHash=new Set((imp||[]).map(x=>x.hash)); const impFit=new Set((imp||[]).filter(x=>x.fit_id).map(x=>x.fit_id));
+
+  impRows=rows.map(r=>{
+    r.hash=`${acc}|${r.data}|${r.valor.toFixed(2)}|${normDesc(r.descricao)}`;
+    let status='nova';
+    if((r.fit_id && impFit.has(r.fit_id)) || impHash.has(r.hash)) status='duplicada';
+    else if(btSet.has(`${r.data}|${r.valor.toFixed(2)}|${r.tipo}`)) status='possivel_duplicada';
+    r.status=status; r.importar=(status==='nova'); return r;
+  });
   drawImport();
 }
 function drawImport(){
@@ -3080,24 +3048,30 @@ function drawImport(){
   $('impConfirm').onclick=confirmarImport;
 }
 async function confirmarImport(){
-  const idx=impRows.map((r,i)=>r.importar?i:-1).filter(i=>i>=0);
-  if(!idx.length){ toast('Nenhum movimento marcado.','err'); return; }
+  const sel=impRows.filter(r=>r.importar);
+  if(!sel.length){ toast('Nenhum movimento marcado.','err'); return; }
   const btn=$('impConfirm'); btn.disabled=true; btn.textContent='Importando…';
   try{
-    // uma única transação no banco: lote + movimentos + controle; erro em qualquer linha desfaz tudo
-    const { data:r, error }=await db.rpc('importar_extrato',{ p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:impCard.nome, p_linhas:impLinhas, p_importar:idx });
-    if(error) throw error;
+    // tudo numa chamada só: o servidor confere duplicidade de novo e grava tudo ou nada
+    const itens=impRows.map(r=>({ data:r.data, descricao:r.descricao, documento:r.documento||null, valor:r.valor, tipo:r.tipo,
+                                  fit_id:r.fit_id||null, hash:r.hash, importar:!!r.importar }));
+    const { data:res, error:ie }=await db.rpc('importar_extrato',{ p_company:impCard.co, p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:impCard.nome, p_itens:itens });
+    if(ie) throw ie;
+    const ids=(res&&res.movimentos)||[], qtd=(res&&res.importadas)||0, dupSrv=Math.max(0,((res&&res.duplicadas)||0)-impRows.filter(r=>r.status==='duplicada').length);
+    // regras automáticas (tarifas, transferências etc.) só nos movimentos que acabaram de entrar
     let porRegra=0, errRegra=0;
-    if((r.ids||[]).length){ const ap=await db.rpc('aplicar_regras_conciliacao',{ p_company:impCard.co, p_bank_transaction_ids:r.ids, p_somente_auto:true });
-      if(!ap.error && ap.data){ porRegra=ap.data.aplicados||0; errRegra=ap.data.erros||0; } }
+    if(ids.length){
+      const ap=await db.rpc('aplicar_regras_conciliacao',{ p_company:impCard.co, p_bank_transaction_ids:ids, p_somente_auto:true });
+      if(!ap.error && ap.data){ porRegra=ap.data.aplicados||0; errRegra=ap.data.erros||0; }
+    }
     btn.disabled=false; btn.textContent='Importar selecionados';
-    toast(r.importadas+' movimento(s) importado(s)!'+(porRegra?` ${porRegra} resolvido(s) por regra.`:''));
-    $('impArea').innerHTML=`<div class="panel"><div class="empty">✅ ${r.importadas} movimento(s) lançado(s) na conta.`+
-      (r.duplicadas?`<br>${r.duplicadas} já existiam e foram ignorados (duplicidade conferida no banco).`:'')+
+    toast(qtd+' movimento(s) importado(s)!'+(porRegra?` ${porRegra} resolvido(s) por regra.`:''));
+    $('impArea').innerHTML=`<div class="panel"><div class="empty">✅ ${qtd} movimentos lançados na conta.`+
+      (dupSrv?`<br>🔁 ${dupSrv} já tinham sido importados antes e foram ignorados.`:'')+
       (porRegra?`<br>⚡ ${porRegra} já resolvido(s) automaticamente pelas regras.`:'')+
       (errRegra?`<br>⚠️ ${errRegra} regra(s) deram erro — confira na Conciliação.`:'')+
       `<br>Os demais estão esperando na <b>Conciliação</b>.</div></div>`;
-  }catch(err){ btn.disabled=false; btn.textContent='Importar selecionados'; toast('Nada foi importado. '+(err.message||err),'err'); }
+  }catch(err){ btn.disabled=false; btn.textContent='Importar selecionados'; toast('Erro: '+(err.message||err),'err'); }
 }
 
 /* ===================== CONCILIAÇÃO ===================== */
@@ -3152,7 +3126,7 @@ async function loadConciliacao(){
       const { data:bts, error }=await scopeQ(db.from('bank_transactions').select('id,data,descricao,valor,tipo,company_id').eq('conciliado',false).in('tipo',['entrada','saida'])).order('data');
       if(error) throw error;
       concState.bts=(bts||[]).map(b=>({...b,valor:Number(b.valor)}));
-      const sim=await db.rpc('simular_regras_conciliacao_json',{ p_company:companyId||null });
+      const sim=await db.rpc('simular_regras_conciliacao',{ p_company:companyId||null });
       concState.regras=new Map((sim.error?[]:(sim.data||[])).map(x=>[x.bank_transaction_id,x]));
       const bR=$('cncRegras'); if(bR){ bR.style.display=concState.regras.size?'':'none'; bR.textContent=`Aplicar regras (${concState.regras.size})`; }
       drawConciliar();
@@ -3223,7 +3197,7 @@ function drawConciliar(){
     const bt=concState.bts[+b.dataset.transf];
     const ok=await confirmModal({titulo:'Marcar como transferência',texto:'Este movimento vira uma transferência interna — não conta como receita nem despesa e sai da lista de conciliação. Confirmar?',ok:'Marcar'});
     if(!ok) return;
-    const { error }=await db.from('bank_transactions').update({tipo:'transferencia'}).eq('id',bt.id);
+    const { error }=await db.rpc('marcar_transferencia',{ p_bank_transaction_id:bt.id });
     if(error){ toast('Erro: '+error.message,'err'); return; } toast('Marcado como transferência.'); loadConciliacao();
   });
   updSelBar();
@@ -3413,10 +3387,10 @@ async function openCriarLancConc(bt){
     try{
       let rid, instTbl, instFk;
       if(tipo==='receber'){
-        const r=await db.rpc('criar_conta_receber',{p_company_id:co,p_customer_id:$('clContra').value||null,p_descricao:desc,p_valor_total:bt.valor,p_primeiro_vencimento:bt.data,p_qtd_parcelas:1,p_intervalo_meses:1,p_categoria_id:$('clCat').value||null,p_cost_center_id:$('clCC').value||null,p_financial_account_id:null,p_documento:null,p_forma_recebimento:null,p_data_emissao:bt.data});
+        const r=await db.rpc('criar_conta_receber',{p_company_id:co,p_customer_id:$('clContra').value||null,p_descricao:desc,p_valor_total:bt.valor,p_primeiro_vencimento:bt.data,p_qtd_parcelas:1,p_intervalo_meses:1,p_categoria_id:$('clCat').value||null,p_cost_center_id:$('clCC').value||null,p_financial_account_id:null,p_documento:null,p_forma_recebimento:null,p_data_emissao:bt.data,p_permitir_duplicada:true});
         if(r.error) throw r.error; rid=r.data; instTbl='receivable_installments'; instFk='receivable_id';
       } else {
-        const r=await db.rpc('criar_conta_pagar',{p_company_id:co,p_supplier_id:$('clContra').value||null,p_descricao:desc,p_valor_total:bt.valor,p_primeiro_vencimento:bt.data,p_qtd_parcelas:1,p_intervalo_meses:1,p_categoria_id:$('clCat').value||null,p_cost_center_id:$('clCC').value||null,p_financial_account_id:null,p_documento:null,p_forma_pagamento:null,p_data_emissao:bt.data,p_competencia:null});
+        const r=await db.rpc('criar_conta_pagar',{p_company_id:co,p_supplier_id:$('clContra').value||null,p_descricao:desc,p_valor_total:bt.valor,p_primeiro_vencimento:bt.data,p_qtd_parcelas:1,p_intervalo_meses:1,p_categoria_id:$('clCat').value||null,p_cost_center_id:$('clCC').value||null,p_financial_account_id:null,p_documento:null,p_forma_pagamento:null,p_data_emissao:bt.data,p_competencia:null,p_permitir_duplicada:true});
         if(r.error) throw r.error; rid=r.data; instTbl='payable_installments'; instFk='payable_id';
       }
       const inst=await db.from(instTbl).select('id').eq(instFk,rid).limit(1).single();
@@ -3788,7 +3762,8 @@ async function openLote(tipo){
       if(!ok) return;
     }
     const acc=$('ltAcc').value||null, forma=$('ltForma').value||null, emis=$('ltEmis').value||null;
-    const itens=idx.map(i=>{ const r=L.rows[i]; return { company_id:L.co, contraparte_id:r.contra||null, descricao:r.desc.trim(), valor:Number(r.valor.toFixed(2)),
+    const dupConfirmada=!!(dupLote.length||dupBanco.length);  // se chegou aqui com duplicadas, o usuário confirmou
+    const itens=idx.map(i=>{ const r=L.rows[i]; return { permitir_duplicada:dupConfirmada, company_id:L.co, contraparte_id:r.contra||null, descricao:r.desc.trim(), valor:Number(r.valor.toFixed(2)),
       vencimento:r.venc, qtd_parcelas:r.parc, intervalo_meses:1, categoria_id:r.cat||null, cost_center_id:r.cc||null,
       financial_account_id:acc, documento:r.doc.trim()||null, forma, data_emissao:emis }; });
     $('mSave').disabled=true; $('mSave').textContent='Lançando…';
@@ -3952,7 +3927,7 @@ async function renderCustos(){
 async function loadCustos(){
   $('cuArea').innerHTML='<div class="loading">Calculando…</div>';
   try{
-    const { data, error }=await db.rpc('custos_por_cc_json',{ p_company:companyId||null, p_ini:mesIni(cuAno,cuMes||1), p_fim:mesIni(cuAno,cuMes||12) });
+    const { data, error }=await db.rpc('custos_por_cc',{ p_company:companyId||null, p_ini:mesIni(cuAno,cuMes||1), p_fim:mesIni(cuAno,cuMes||12) });
     if(error) throw error;
     cuData=(data||[]).map(d=>({...d, valor:Number(d.valor)}));
     // opções do filtro de centro de custo
@@ -4166,13 +4141,12 @@ async function loadProjecao(){
     const hoje=todayStr(); const [y,m]=[+hoje.slice(0,4),+hoje.slice(5,7)]; const [fy,fm]=addMes(y,m,pjMeses);
     const ate=pjAddDias(`${fy}-${String(fm).padStart(2,'0')}-01`,-1);
     const [base,res]=await Promise.all([ db.rpc('projecao_base',{ p_company:companyId||null, p_ate:ate }), db.rpc('resumo_financeiro',{ p_company:companyId||null }) ]);
-    if(!$('pjArea')) return;   // o usuário trocou de tela durante a carga
     if(base.error) throw base.error; if(res.error) throw res.error;
     pjBase=base.data||{itens:[]};
     const R=(res.data||[]).reduce((s,x)=>{ s.saldo+=Number(x.saldo||0); s.ab+=Number(x.receber_aberto||0); s.ve+=Number(x.receber_vencido||0); return s; },{saldo:0,ab:0,ve:0});
     pjSaldo=R.saldo; pjInadAtual=R.ab?R.ve/R.ab*100:null;
     drawProjecao();
-  }catch(err){ if($('pjArea')) $('pjArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_projecao.sql?</div></div>`; }
+  }catch(err){ $('pjArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_projecao.sql?</div></div>`; }
 }
 function drawProjecao(){
   const hoje=todayStr(), itens=pjBase.itens||[];
@@ -4371,12 +4345,11 @@ async function gerarPrevia(soReMontar){
     $('relStatus').style.display=''; $('relStatus').textContent='Montando relatório…';
     const chave=relCfg.co+'|'+relCfg.mes;
     if(!soReMontar || !relDadosCache || relDadosCache.chave!==chave){ relDadosCache=await relDados(relCfg); relDadosCache.chave=chave; }
-    if(!$('relStatus')) return;   // o usuário trocou de tela durante a carga
     const html=montarRelatorioHtml(relCfg, relDadosCache);
     const f=$('relFrame'); if(f) f.srcdoc=html;
     $('relStatus').style.display='none';
     return html;
-  }catch(err){ if(!$('relStatus')) return; $('relStatus').style.display=''; $('relStatus').innerHTML=`Erro: ${esc(err.message||err)}`; }
+  }catch(err){ $('relStatus').style.display=''; $('relStatus').innerHTML=`Erro: ${esc(err.message||err)}`; }
 }
 // busca tudo que o relatório precisa (somas no banco)
 async function relDados(cfg){
@@ -4389,7 +4362,7 @@ async function relDados(cfg){
     dreRealizado(co, mesIni(Math.min(ia,ano),Math.min(ia,ano)===ano?1:im), mesIni(ano,m)),
     db.rpc('fluxo_mensal',{ p_company:co }),
     co?db.from('financial_accounts').select('saldo_inicial').eq('company_id',co):db.from('financial_accounts').select('saldo_inicial'),
-    db.rpc('custos_por_cc_json',{ p_company:co, p_ini:mesIni(ano,m), p_fim:mesIni(ano,m) }),
+    db.rpc('custos_por_cc',{ p_company:co, p_ini:mesIni(ano,m), p_fim:mesIni(ano,m) }),
     db.rpc('resumo_financeiro',{ p_company:co }),
     co?db.from('periodos_fechados').select('fechado_em,profiles(nome,email)').eq('company_id',co).eq('competencia',mesIni(ano,m)):Promise.resolve({data:[]}),
     db.rpc('projecao_base',{ p_company:co, p_ate:projAte }),
@@ -4412,7 +4385,7 @@ function montarRelatorioHtml(cfg, D){
   const ah=(a,b)=>b?(a-b)/Math.abs(b)*100:null;
   // caixa
   const F=D.fluxo; const real=ym=>F.find(x=>x.ym===ym)||{real_e:0,real_s:0};
-  const saldoAte=ym=>D.base+F.filter(x=>x.ym<=ym).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s)+Number(x.transf_e||0)-Number(x.transf_s||0),0);
+  const saldoAte=ym=>D.base+F.filter(x=>x.ym<=ym).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
   const ym0=`${ano}-${String(m).padStart(2,'0')}`, ymP=`${pa}-${String(pm).padStart(2,'0')}`;
   const ent=Number(real(ym0).real_e), sai=Number(real(ym0).real_s), saldoFim=saldoAte(ym0), saldoFimP=saldoAte(ymP);
   const blocos=[];
@@ -4863,7 +4836,7 @@ async function renderAlertas(){
   document.querySelectorAll('[data-alsev]').forEach(b=>b.onclick=()=>{ alSevFiltro=b.dataset.alsev; document.querySelectorAll('[data-alsev]').forEach(x=>x.classList.toggle('on',x===b)); drawAlertas(); });
   await loadAlertas(); renderAlertasCfg();
 }
-async function loadAlertas(){ $('alArea').innerHTML='<div class="loading">Verificando…</div>'; await carregarAlertas(); if(!$('alArea')) return; drawAlertas(); }
+async function loadAlertas(){ $('alArea').innerHTML='<div class="loading">Verificando…</div>'; await carregarAlertas(); drawAlertas(); }
 function drawAlertas(){
   const L=alertasCache.filter(a=>!alSevFiltro||a.sev===alSevFiltro);
   const cont=s=>alertasCache.filter(a=>a.sev===s).length;
@@ -4908,103 +4881,6 @@ async function renderAlertasCfg(){
   draw();
 }
 
-/* ===================== EXPORTAÇÃO DE DADOS ===================== */
-const EXP_DATASETS=[
-  ['vw_contas_receber','Contas a receber (parcelas)'],['vw_contas_pagar','Contas a pagar (parcelas)'],
-  ['bank_transactions','Movimentos bancários'],['conciliacao_itens','Conciliações (itens)'],['customers','Clientes'],['suppliers','Fornecedores'],
-  ['categories','Categorias'],['cost_centers','Centros de custo'],['financial_accounts','Contas financeiras'],['recurring_entries','Recorrentes'],
-  ['conciliation_rules','Regras de conciliação'],['import_batches','Lotes de importação'],['rateio_centro_custo','Rateios'],['periodos_fechados','Meses fechados'],
-];
-// CSV genérico de linhas (todas as colunas); listas vêm completas (paginação automática do cliente)
-function linhasParaCsv(arquivo, titulo, rows){
-  if(!rows.length){ toast('Nada para exportar.','err'); return; }
-  const cols=Object.keys(rows[0]).filter(k=>typeof rows[0][k]!=='object'||rows[0][k]===null);
-  const cel=v=>v==null?'':(typeof v==='number'?String(v).replace('.',','):(/^-?\d+(\.\d+)?$/.test(String(v))&&String(v).includes('.')?String(v).replace('.',','):String(v)));
-  baixarCsv(arquivo, titulo, ['empresa',...cols], rows.map(r=>[r.company_id?coName(r.company_id):'',...cols.map(c=>cel(r[c]))]));
-}
-async function exportarDataset(tabela, nome){
-  try{
-    const { data, error }=await scopeQ(db.from(tabela).select('*'));
-    if(error) throw error;
-    const sufixo=companyId?coName(companyId).replace(/\W+/g,'_'):'todas';
-    linhasParaCsv(`${tabela}_${sufixo}_${todayStr()}.csv`, `${nome} — ${companyId?coName(companyId):'todas as empresas'} — exportado em ${new Date().toLocaleString('pt-BR')}`, data||[]);
-    toast(`${(data||[]).length} linha(s) exportada(s).`);
-  }catch(err){ toast('Erro: '+(err.message||err),'err'); }
-}
-async function renderExportar(){
-  $('main').innerHTML=`<div class="page-h"><h1>Exportar dados</h1><span class="scope">${companyId?esc(coName(companyId)):'· todas as empresas'}</span></div>
-    <div class="updated">Baixa os dados completos em CSV (abre no Excel). Escolha a empresa no seletor do topo; “Todas as empresas” exporta tudo que você acessa.</div>
-    <div class="panel">${EXP_DATASETS.map(([t,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)"><span>${n}</span><button class="btn ghost" data-exp="${t}">Baixar CSV</button></div>`).join('')}</div>`;
-  document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>exportarDataset(b.dataset.exp, EXP_DATASETS.find(x=>x[0]===b.dataset.exp)[1]));
-}
-/* ===================== AUDITORIA (consulta) ===================== */
-let auPag=0, auFiltro={ini:'',fim:'',tabela:'',acao:''};
-async function renderAuditoria(){
-  if(!auFiltro.ini){ const h=todayStr(); auFiltro.ini=h.slice(0,8)+'01'; auFiltro.fim=h; }
-  $('main').innerHTML=`<div class="page-h"><h1>Auditoria</h1><span class="scope">${companyId?esc(coName(companyId)):'· todas as empresas'}</span><div class="spacer"></div><button class="btn ghost" id="auCsv">Exportar CSV</button></div>
-    <div class="updated">Histórico de ações e alterações (quem, quando, o quê). Registrado pelo servidor; não pode ser alterado nem apagado. Visível para administrador (e gestor, nas empresas dele).</div>
-    <div class="filters">
-      <div class="fg"><label>De</label><input id="auIni" type="date" value="${auFiltro.ini}"></div>
-      <div class="fg"><label>Até</label><input id="auFim" type="date" value="${auFiltro.fim}"></div>
-      <div class="fg"><label>Tabela</label><input id="auTab" value="${esc(auFiltro.tabela)}" placeholder="ex.: payables"></div>
-      <div class="fg"><label>Ação contém</label><input id="auAcao" value="${esc(auFiltro.acao)}" placeholder="ex.: baixa, update"></div>
-    </div><div id="auArea"><div class="loading">Carregando…</div></div>`;
-  const ler=()=>{ auFiltro={ini:$('auIni').value,fim:$('auFim').value,tabela:$('auTab').value.trim(),acao:$('auAcao').value.trim()}; auPag=0; loadAuditoria(); };
-  ['auIni','auFim'].forEach(id=>$(id).onchange=ler); ['auTab','auAcao'].forEach(id=>$(id).onchange=ler);
-  $('auCsv').onclick=async ()=>{ const { data, error }=await auQuery(false); if(error){ toast('Erro: '+error.message,'err'); return; }
-    baixarCsv(`auditoria_${auFiltro.ini}_${auFiltro.fim}.csv`,`Auditoria ${auFiltro.ini} a ${auFiltro.fim}`,['Data/hora','Empresa','Usuário','Ação','Tabela','Registro','Antes','Depois'],
-      (data||[]).map(a=>[new Date(a.quando).toLocaleString('pt-BR'),a.company_id?coName(a.company_id):'',a.quem||'',a.acao,a.tabela,a.registro_id||'',JSON.stringify(a.antes||''),JSON.stringify(a.depoisnovo||'')])); };
-  await loadAuditoria();
-}
-function auQuery(paginado){
-  // vw_auditoria (s4b): já traz quem (e-mail ou origem) e respeita o RLS de audit_logs
-  let q=scopeQ(db.from('vw_auditoria').select('id,quando,company_id,user_id,acao,tabela,registro_id,antes,depois,quem,origem',paginado?{count:'exact'}:undefined))
-    .gte('quando',auFiltro.ini+'T00:00:00-03:00').lte('quando',auFiltro.fim+'T23:59:59-03:00').order('quando',{ascending:false});
-  if(auFiltro.tabela) q=q.eq('tabela',auFiltro.tabela);
-  if(auFiltro.acao) q=q.ilike('acao','%'+auFiltro.acao+'%');
-  if(paginado) q=q.range(auPag*50, auPag*50+49);
-  return q;
-}
-async function loadAuditoria(){
-  $('auArea').innerHTML='<div class="loading">Carregando…</div>';
-  const { data, error, count }=await auQuery(true);
-  if(error){ $('auArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(error.message)}</div></div>`; return; }
-  const L=data||[], tot=count||0, pags=Math.max(1,Math.ceil(tot/50));
-  const resumo=v=>{ if(!v) return ''; const s=JSON.stringify(v); return esc(s.length>160?s.slice(0,160)+'…':s); };
-  $('auArea').innerHTML=`<div class="panel">${L.length?`<div style="overflow-x:auto"><table><thead><tr><th>Data/hora</th>${companyId?'':'<th>Empresa</th>'}<th>Usuário</th><th>Ação</th><th>Tabela</th><th>Antes → depois</th></tr></thead><tbody>
-    ${L.map(a=>`<tr><td style="white-space:nowrap">${new Date(a.quando).toLocaleString('pt-BR')}</td>${companyId?'':`<td>${a.company_id?esc(coName(a.company_id)):'—'}</td>`}
-      <td>${a.user_id||a.quem&&a.quem.includes('@')?esc(a.quem):'<span class="dre-av">'+esc(a.quem||'sistema')+'</span>'}</td><td>${esc(a.acao)}</td><td>${esc(a.tabela||'')}</td>
-      <td style="font-size:12px;max-width:520px">${a.antes?`<div class="dre-av">antes: ${resumo(a.antes)}</div>`:''}${a.depois?`<div>depois: ${resumo(a.depois)}</div>`:''}</td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="empty">Nenhum registro no período (ou seu perfil não tem acesso à auditoria).</div>'}
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px"><span>${tot} registro(s)</span>
-      <span><button class="btn ghost" id="auPrev" ${auPag===0?'disabled':''}>‹ Anterior</button> página ${auPag+1} de ${pags} <button class="btn ghost" id="auNext" ${auPag+1>=pags?'disabled':''}>Próxima ›</button></span></div></div>`;
-  if($('auPrev')) $('auPrev').onclick=()=>{ auPag=Math.max(0,auPag-1); loadAuditoria(); };
-  if($('auNext')) $('auNext').onclick=()=>{ auPag++; loadAuditoria(); };
-}
-/* ===================== RECUPERAÇÃO DE SENHA (fluxo do Supabase) ===================== */
-async function esqueciSenha(){
-  const email=($('email').value||'').trim();
-  if(!email){ showLoginMsg('Digite seu e-mail no campo acima e clique de novo em “Esqueci minha senha”.'); return; }
-  const { error }=await db.auth.resetPasswordForEmail(email,{ redirectTo: location.origin+location.pathname });
-  // resposta igual para e-mail existente ou não (não revela quem tem conta)
-  showLoginMsg(error&&!/rate|limit/i.test(error.message)?'Não foi possível enviar agora. Tente de novo em alguns minutos.':'Se este e-mail tiver acesso, você vai receber um link para criar uma nova senha.');
-}
-function abrirNovaSenha(){
-  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Criar nova senha</h2></div>
-    <div class="modal-b"><div class="field"><label>Nova senha (mínimo 8 caracteres)</label><input id="ns1" type="password" autocomplete="new-password"></div>
-      <div class="field"><label>Repita a nova senha</label><input id="ns2" type="password" autocomplete="new-password"></div></div>
-    <div class="modal-f"><button class="btn" id="nsSalvar">Salvar nova senha</button></div></div></div>`;
-  $('nsSalvar').onclick=async ()=>{
-    const a=$('ns1').value, b=$('ns2').value;
-    if(a.length<8){ toast('A senha precisa ter pelo menos 8 caracteres.','err'); return; }
-    if(a!==b){ toast('As senhas não conferem.','err'); return; }
-    $('nsSalvar').disabled=true;
-    const { error }=await db.auth.updateUser({ password:a });
-    if(error){ $('nsSalvar').disabled=false; toast('Erro: '+error.message,'err'); return; }
-    closeModal(); toast('Senha alterada.'); history.replaceState(null,'',location.pathname);
-  };
-}
-
 /* ===================== BAIXA EM LOTE ===================== */
 let blState={co:'',tipo:'pagar',venc:'todas',rows:[],sel:new Set(),accs:[]};
 async function renderBaixaLote(){
@@ -5033,8 +4909,8 @@ async function loadBaixaLote(){
     if(tipo==='receber') q=db.from('receivable_installments').select('id,vencimento,valor,valor_recebido,saldo,status, receivables(descricao,customers(razao_social,nome_fantasia))').eq('company_id',co).in('status',['a_receber','recebido_parcial']);
     else q=db.from('payable_installments').select('id,vencimento,valor,valor_pago,saldo,status, payables(descricao,suppliers(razao_social,nome_fantasia))').eq('company_id',co).in('status',['a_pagar','pago_parcial']);
     if(blState.venc==='hoje') q=q.lte('vencimento',todayStr());
-    else if(blState.venc==='7') q=q.lte('vencimento',somaDiasISO(todayStr(),7));
-    else if(blState.venc==='30') q=q.lte('vencimento',somaDiasISO(todayStr(),30));
+    else if(blState.venc==='7') q=q.lte('vencimento',new Date(Date.now()+7*86400000).toISOString().slice(0,10));
+    else if(blState.venc==='30') q=q.lte('vencimento',new Date(Date.now()+30*86400000).toISOString().slice(0,10));
     q=q.order('vencimento').limit(300);
     const { data,error }=await q; if(error) throw error;
     blState.rows=(data||[]).filter(r=>Number(r.saldo)>0).map(r=>{
