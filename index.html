@@ -410,7 +410,7 @@ const MENU = [
   ]},
 ];
 function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
-const APP_VERSAO='2026.10.25-s5 · segurança: dinheiro só pelas funções';  // muda a cada entrega: confira no rodapé do menu
+const APP_VERSAO='2026.10.27-s5b · segurança: importação única';  // muda a cada entrega: confira no rodapé do menu
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
   if(favSet.size){
@@ -3012,22 +3012,15 @@ async function lerExtrato(){
   const text=await f.text();
   let rows = impCard.origem==='ofx'?parseOFX(text):parseCSV(text);
   if(!rows.length && impCard.origem==='csv'){ rows=parseOFX(text); if(rows.length) impCard.origem='ofx'; }
+  rows=rows.filter(r=>r.valor>0);   // movimento de valor zero não é lançamento
   if(!rows.length){ $('impArea').innerHTML='<div class="panel"><div class="empty">Não consegui ler movimentos nesse arquivo. Se for CSV, confira se tem colunas de Data, Descrição e Valor. OFX costuma funcionar direto.</div></div>'; return; }
 
-  // dedup: contra bank_transactions existentes (data+valor) e imports anteriores (hash/fit)
-  const datas=rows.map(r=>r.data).sort();
-  const { data:bt }=await db.from('bank_transactions').select('data,valor,tipo').eq('financial_account_id',acc).gte('data',datas[0]).lte('data',datas[datas.length-1]);
-  const btSet=new Set((bt||[]).map(x=>`${x.data}|${Number(x.valor).toFixed(2)}|${x.tipo}`));
-  const { data:imp }=await db.from('imported_transactions').select('hash,fit_id,status').eq('financial_account_id',acc).in('status',['importada']);
-  const impHash=new Set((imp||[]).map(x=>x.hash)); const impFit=new Set((imp||[]).filter(x=>x.fit_id).map(x=>x.fit_id));
-
-  impRows=rows.map(r=>{
-    r.hash=`${acc}|${r.data}|${r.valor.toFixed(2)}|${normDesc(r.descricao)}`;
-    let status='nova';
-    if((r.fit_id && impFit.has(r.fit_id)) || impHash.has(r.hash)) status='duplicada';
-    else if(btSet.has(`${r.data}|${r.valor.toFixed(2)}|${r.tipo}`)) status='possivel_duplicada';
-    r.status=status; r.importar=(status==='nova'); return r;
-  });
+  // situação de cada linha conferida pelo SERVIDOR, com a mesma regra que a importação usa
+  impCard.linhas=rows.map(r=>({ data:r.data, descricao:r.descricao, documento:r.documento||null, valor:r.valor, tipo:r.tipo, fit_id:r.fit_id||null }));
+  const { data:prev, error:pe }=await db.rpc('previa_importacao',{ p_account:acc, p_linhas:impCard.linhas });
+  if(pe){ $('impArea').innerHTML=`<div class="panel"><div class="empty">Não consegui conferir o arquivo: ${esc(pe.message||String(pe))}</div></div>`; return; }
+  const situacao=new Map((prev||[]).map(x=>[x.i,x.status]));
+  impRows=rows.map((r,i)=>{ r.i=i; r.status=situacao.get(i)||'nova'; r.importar=(r.status==='nova'); return r; });
   drawImport();
 }
 function drawImport(){
@@ -3053,11 +3046,10 @@ async function confirmarImport(){
   const btn=$('impConfirm'); btn.disabled=true; btn.textContent='Importando…';
   try{
     // tudo numa chamada só: o servidor confere duplicidade de novo e grava tudo ou nada
-    const itens=impRows.map(r=>({ data:r.data, descricao:r.descricao, documento:r.documento||null, valor:r.valor, tipo:r.tipo,
-                                  fit_id:r.fit_id||null, hash:r.hash, importar:!!r.importar }));
-    const { data:res, error:ie }=await db.rpc('importar_extrato',{ p_company:impCard.co, p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:impCard.nome, p_itens:itens });
+    const { data:res, error:ie }=await db.rpc('importar_extrato',{ p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:String(impCard.nome).slice(0,200),
+                                                                   p_linhas:impCard.linhas, p_importar:sel.map(r=>r.i) });
     if(ie) throw ie;
-    const ids=(res&&res.movimentos)||[], qtd=(res&&res.importadas)||0, dupSrv=Math.max(0,((res&&res.duplicadas)||0)-impRows.filter(r=>r.status==='duplicada').length);
+    const ids=(res&&res.ids)||[], qtd=(res&&res.importadas)||0, dupSrv=Math.max(0,((res&&res.duplicadas)||0)-impRows.filter(r=>r.status==='duplicada').length);
     // regras automáticas (tarifas, transferências etc.) só nos movimentos que acabaram de entrar
     let porRegra=0, errRegra=0;
     if(ids.length){
