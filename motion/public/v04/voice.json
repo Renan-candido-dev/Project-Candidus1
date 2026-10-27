@@ -1,0 +1,65 @@
+[
+  {
+    "file": "v04/voice/l01.wav",
+    "seconds": 4.423,
+    "speech": 4.273,
+    "text": "Na prática: o que acontece quando a conta da empresa paga as despesas da casa?",
+    "hash": "f0257aa14980"
+  },
+  {
+    "file": "v04/voice/l02.wav",
+    "seconds": 3.03,
+    "speech": 2.891,
+    "text": "Este é o extrato fictício de uma empresa em junho.",
+    "hash": "96baf2e62fcf"
+  },
+  {
+    "file": "v04/voice/l03.wav",
+    "seconds": 2.45,
+    "speech": 2.368,
+    "text": "Somando tudo, o mês fechou negativo.",
+    "hash": "4db7b00e36f0"
+  },
+  {
+    "file": "v04/voice/l04.wav",
+    "seconds": 2.519,
+    "speech": 2.432,
+    "text": "Agora, cada lançamento ganha uma categoria.",
+    "hash": "2c1365bd3fdb"
+  },
+  {
+    "file": "v04/voice/l05.wav",
+    "seconds": 2.229,
+    "speech": 2.047,
+    "text": "Aparecem quatro gastos pessoais.",
+    "hash": "64f6c0efb7c9"
+  },
+  {
+    "file": "v04/voice/l06.wav",
+    "seconds": 2.856,
+    "speech": 2.732,
+    "text": "Sem eles, a operação da empresa ficou positiva.",
+    "hash": "0a6c6942ba56"
+  },
+  {
+    "file": "v04/voice/l07.wav",
+    "seconds": 4.342,
+    "speech": 4.175,
+    "text": "Misturando, você não sabe se o negócio dá lucro ou se o dinheiro foi para casa.",
+    "hash": "f699ae255cb5"
+  },
+  {
+    "file": "v04/voice/l08.wav",
+    "seconds": 2.454,
+    "speech": 2.296,
+    "text": "Pessoal é pessoal. Empresa é empresa.",
+    "hash": "c590f3316139"
+  },
+  {
+    "file": "v04/voice/l09.wav",
+    "seconds": 1.997,
+    "speech": 1.914,
+    "text": "Sua empresa tem essa separação clara?",
+    "hash": "7b81ce82defb"
+  }
+]

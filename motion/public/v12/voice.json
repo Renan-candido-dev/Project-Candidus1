@@ -1,0 +1,58 @@
+[
+  {
+    "file": "v12/voice/l01.wav",
+    "seconds": 3.297,
+    "speech": 3.142,
+    "text": "Na prática: e se as vendas caírem nos próximos meses?",
+    "hash": "7aeb8df36fbf"
+  },
+  {
+    "file": "v12/voice/l02.wav",
+    "seconds": 5.712,
+    "speech": 5.632,
+    "text": "Esta é uma projeção fictícia de seis meses, com a receita esperada e os compromissos fixos.",
+    "hash": "0ec1e9007710"
+  },
+  {
+    "file": "v12/voice/l03.wav",
+    "seconds": 3.564,
+    "speech": 3.464,
+    "text": "Agora, um cenário com vendas vinte e cinco por cento menores.",
+    "hash": "f28e4a0d79fb"
+  },
+  {
+    "file": "v12/voice/l04.wav",
+    "seconds": 4.18,
+    "speech": 4.145,
+    "text": "Com saldo inicial de vinte mil, o caixa chegaria ao limite em outubro e novembro.",
+    "hash": "2c93465f6de8"
+  },
+  {
+    "file": "v12/voice/l05.wav",
+    "seconds": 3.808,
+    "speech": 3.707,
+    "text": "No gráfico, a distância entre as duas linhas mostra o tamanho do risco.",
+    "hash": "b38ce6d0def5"
+  },
+  {
+    "file": "v12/voice/l06.wav",
+    "seconds": 4.807,
+    "speech": 4.654,
+    "text": "Com essa visão, dá para formar reserva, mapear o que é ajustável e planejar as compras.",
+    "hash": "64e66631216d"
+  },
+  {
+    "file": "v12/voice/l07.wav",
+    "seconds": 2.148,
+    "speech": 1.984,
+    "text": "Planeje também os meses difíceis.",
+    "hash": "4aca14f24734"
+  },
+  {
+    "file": "v12/voice/l08.wav",
+    "seconds": 2.38,
+    "speech": 2.253,
+    "text": "Salve e faça o teste com os seus números.",
+    "hash": "1800c940005e"
+  }
+]

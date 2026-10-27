@@ -1,0 +1,58 @@
+[
+  {
+    "file": "v09/voice/l01.wav",
+    "seconds": 2.798,
+    "speech": 2.682,
+    "text": "Fluxo de caixa, explicado em trinta segundos.",
+    "hash": "a57d994a348d"
+  },
+  {
+    "file": "v09/voice/l02.wav",
+    "seconds": 2.914,
+    "speech": 2.75,
+    "text": "Começa com o saldo inicial: o que havia no caixa.",
+    "hash": "d5afc1d9cb8e"
+  },
+  {
+    "file": "v09/voice/l03.wav",
+    "seconds": 2.891,
+    "speech": 2.787,
+    "text": "Somam-se as entradas, como vendas e recebimentos.",
+    "hash": "cfd311d43b64"
+  },
+  {
+    "file": "v09/voice/l04.wav",
+    "seconds": 4.389,
+    "speech": 4.261,
+    "text": "Subtraem-se as saídas: fornecedores, folha, despesas e impostos.",
+    "hash": "3cc67225873a"
+  },
+  {
+    "file": "v09/voice/l05.wav",
+    "seconds": 4.214,
+    "speech": 4.138,
+    "text": "O resultado é o saldo final, que vira o saldo inicial do próximo período.",
+    "hash": "e8905f179f40"
+  },
+  {
+    "file": "v09/voice/l06.wav",
+    "seconds": 4.005,
+    "speech": 3.862,
+    "text": "Acompanhando semana a semana, você vê antes quando o caixa vai apertar.",
+    "hash": "c6b4afaaa3f9"
+  },
+  {
+    "file": "v09/voice/l07.wav",
+    "seconds": 3.982,
+    "speech": 3.86,
+    "text": "Saldo inicial, mais entradas, menos saídas: saldo final.",
+    "hash": "c558fe0dd41e"
+  },
+  {
+    "file": "v09/voice/l08.wav",
+    "seconds": 2.055,
+    "speech": 1.894,
+    "text": "Salve para consultar quando precisar.",
+    "hash": "4ad10c077122"
+  }
+]

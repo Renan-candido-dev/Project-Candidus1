@@ -1,0 +1,246 @@
+{
+  "id": "v08",
+  "seconds": 34.2,
+  "music": {
+    "bpm": 106,
+    "root": 53,
+    "seed": 8
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.7,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.7,
+      "end": 17.166666666666668,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 17.166666666666668,
+      "end": 26.633333333333333,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 26.633333333333333,
+      "end": 34.2,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 26.633333333333333,
+      "kind": "impact"
+    },
+    {
+      "t": 29.366666666666667,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1026,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 141,
+        "cues": [
+          {
+            "at": 8,
+            "end": 129,
+            "text": "Na prática: o que acontece quando as contas vencem antes de o dinheiro entrar?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 141,
+        "dur": 374,
+        "cues": [
+          {
+            "at": 9,
+            "end": 135,
+            "text": "Esta é a agenda fictícia de um mês: pagamentos e recebimentos, por data."
+          },
+          {
+            "at": 145,
+            "end": 192,
+            "text": "Calculando o saldo dia a dia,"
+          },
+          {
+            "at": 202,
+            "end": 338,
+            "text": "aparecem três momentos de caixa negativo, mesmo com o mês fechando positivo."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 515,
+        "dur": 284,
+        "cues": [
+          {
+            "at": 9,
+            "end": 126,
+            "text": "No calendário, fica claro: as saídas chegam antes das entradas."
+          },
+          {
+            "at": 135,
+            "end": 254,
+            "text": "Renegociando a data de dois fornecedores, o mês inteiro fica positivo."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 799,
+        "dur": 227,
+        "cues": [
+          {
+            "at": 9,
+            "end": 79,
+            "text": "Organize suas contas antes que elas vençam."
+          },
+          {
+            "at": 88,
+            "end": 119,
+            "text": "Salve este exemplo."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v08/voice/l01.wav",
+        "at": 8,
+        "end": 129
+      },
+      {
+        "file": "v08/voice/l02.wav",
+        "at": 150,
+        "end": 276
+      },
+      {
+        "file": "v08/voice/l03.wav",
+        "at": 286,
+        "end": 333
+      },
+      {
+        "file": "v08/voice/l04.wav",
+        "at": 343,
+        "end": 479
+      },
+      {
+        "file": "v08/voice/l05.wav",
+        "at": 524,
+        "end": 641
+      },
+      {
+        "file": "v08/voice/l06.wav",
+        "at": 650,
+        "end": 769
+      },
+      {
+        "file": "v08/voice/l07.wav",
+        "at": 808,
+        "end": 878
+      },
+      {
+        "file": "v08/voice/l08.wav",
+        "at": 887,
+        "end": 918
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 26,
+        "text": "Na prática:"
+      },
+      {
+        "from": 26,
+        "to": 75,
+        "text": "o que acontece quando as contas"
+      },
+      {
+        "from": 75,
+        "to": 129,
+        "text": "vencem antes de o dinheiro entrar?"
+      },
+      {
+        "from": 150,
+        "to": 213,
+        "text": "Esta é a agenda fictícia de um mês:"
+      },
+      {
+        "from": 213,
+        "to": 260,
+        "text": "pagamentos e recebimentos,"
+      },
+      {
+        "from": 260,
+        "to": 276,
+        "text": "por data."
+      },
+      {
+        "from": 286,
+        "to": 333,
+        "text": "Calculando o saldo dia a dia,"
+      },
+      {
+        "from": 343,
+        "to": 417,
+        "text": "aparecem três momentos de caixa negativo,"
+      },
+      {
+        "from": 417,
+        "to": 479,
+        "text": "mesmo com o mês fechando positivo."
+      },
+      {
+        "from": 524,
+        "to": 573,
+        "text": "No calendário, fica claro:"
+      },
+      {
+        "from": 573,
+        "to": 641,
+        "text": "as saídas chegam antes das entradas."
+      },
+      {
+        "from": 650,
+        "to": 721,
+        "text": "Renegociando a data de dois fornecedores,"
+      },
+      {
+        "from": 721,
+        "to": 769,
+        "text": "o mês inteiro fica positivo."
+      },
+      {
+        "from": 808,
+        "to": 858,
+        "text": "Organize suas contas antes que"
+      },
+      {
+        "from": 858,
+        "to": 878,
+        "text": "elas vençam."
+      },
+      {
+        "from": 887,
+        "to": 918,
+        "text": "Salve este exemplo."
+      }
+    ]
+  }
+}

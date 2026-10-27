@@ -1,0 +1,58 @@
+[
+  {
+    "file": "v14/voice/l01.wav",
+    "seconds": 3.379,
+    "speech": 3.316,
+    "text": "O que um relatório financeiro deveria mostrar para você decidir melhor?",
+    "hash": "067d4e79e67b"
+  },
+  {
+    "file": "v14/voice/l02.wav",
+    "seconds": 2.589,
+    "speech": 2.494,
+    "text": "Entradas, saídas e o resultado do período.",
+    "hash": "476400d03f4f"
+  },
+  {
+    "file": "v14/voice/l03.wav",
+    "seconds": 1.695,
+    "speech": 1.576,
+    "text": "As despesas por categoria.",
+    "hash": "cb201197977c"
+  },
+  {
+    "file": "v14/voice/l04.wav",
+    "seconds": 3.181,
+    "speech": 3.008,
+    "text": "As contas em aberto, o que ainda vai entrar e sair.",
+    "hash": "ed68e84ee303"
+  },
+  {
+    "file": "v14/voice/l05.wav",
+    "seconds": 2.612,
+    "speech": 2.476,
+    "text": "E uma projeção do caixa para os próximos meses.",
+    "hash": "923d14971e74"
+  },
+  {
+    "file": "v14/voice/l06.wav",
+    "seconds": 4.145,
+    "speech": 4.019,
+    "text": "Mas atenção: cada indicador só é tão bom quanto os dados que o alimentam.",
+    "hash": "a0a91585a735"
+  },
+  {
+    "file": "v14/voice/l07.wav",
+    "seconds": 3.286,
+    "speech": 3.125,
+    "text": "Relatório serve para tomar decisões, não para preencher telas.",
+    "hash": "29179364249c"
+  },
+  {
+    "file": "v14/voice/l08.wav",
+    "seconds": 2.067,
+    "speech": 1.939,
+    "text": "Qual desses números você acompanha hoje?",
+    "hash": "1bf8de350761"
+  }
+]

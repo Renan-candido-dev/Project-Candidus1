@@ -1,0 +1,37 @@
+[
+  {
+    "file": "voice/line1.wav",
+    "text": "Você vende, trabalha o mês inteiro e, quando vai olhar o caixa, não sabe para onde o dinheiro foi?",
+    "seconds": 5.4683125
+  },
+  {
+    "file": "voice/line2.wav",
+    "text": "O problema pode não ser vender pouco.",
+    "seconds": 1.846
+  },
+  {
+    "file": "voice/line3.wav",
+    "text": "Pode ser não ter controle financeiro.",
+    "seconds": 1.938875
+  },
+  {
+    "file": "voice/line4.wav",
+    "text": "A Cândidus organiza suas contas, acompanha seu fluxo de caixa,",
+    "seconds": 3.6571458333333333
+  },
+  {
+    "file": "voice/line5.wav",
+    "text": "e transforma números em informações para você tomar decisões melhores.",
+    "seconds": 3.9938333333333333
+  },
+  {
+    "file": "voice/line6.wav",
+    "text": "Você cuida do seu negócio.",
+    "seconds": 1.6254166666666667
+  },
+  {
+    "file": "voice/line7.wav",
+    "text": "Nós ajudamos a cuidar dos números.",
+    "seconds": 2.0085416666666664
+  }
+]

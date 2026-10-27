@@ -1,0 +1,266 @@
+{
+  "id": "v04",
+  "seconds": 34.36666666666667,
+  "music": {
+    "bpm": 104,
+    "root": 55,
+    "seed": 4
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.933333333333334,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.933333333333334,
+      "end": 21.1,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 21.1,
+      "end": 25.966666666666665,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 25.966666666666665,
+      "end": 34.36666666666667,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 25.966666666666665,
+      "kind": "impact"
+    },
+    {
+      "t": 28.666666666666668,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1031,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 148,
+        "cues": [
+          {
+            "at": 8,
+            "end": 136,
+            "text": "Na prática: o que acontece quando a conta da empresa paga as despesas da casa?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 148,
+        "dur": 485,
+        "cues": [
+          {
+            "at": 9,
+            "end": 96,
+            "text": "Este é o extrato fictício de uma empresa em junho."
+          },
+          {
+            "at": 111,
+            "end": 182,
+            "text": "Somando tudo, o mês fechou negativo."
+          },
+          {
+            "at": 197,
+            "end": 270,
+            "text": "Agora, cada lançamento ganha uma categoria."
+          },
+          {
+            "at": 285,
+            "end": 346,
+            "text": "Aparecem quatro gastos pessoais."
+          },
+          {
+            "at": 361,
+            "end": 443,
+            "text": "Sem eles, a operação da empresa ficou positiva."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 633,
+        "dur": 146,
+        "cues": [
+          {
+            "at": 9,
+            "end": 134,
+            "text": "Misturando, você não sabe se o negócio dá lucro ou se o dinheiro foi para casa."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 779,
+        "dur": 252,
+        "cues": [
+          {
+            "at": 9,
+            "end": 78,
+            "text": "Pessoal é pessoal. Empresa é empresa."
+          },
+          {
+            "at": 87,
+            "end": 144,
+            "text": "Sua empresa tem essa separação clara?"
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v04/voice/l01.wav",
+        "at": 8,
+        "end": 136
+      },
+      {
+        "file": "v04/voice/l02.wav",
+        "at": 157,
+        "end": 244
+      },
+      {
+        "file": "v04/voice/l03.wav",
+        "at": 259,
+        "end": 330
+      },
+      {
+        "file": "v04/voice/l04.wav",
+        "at": 345,
+        "end": 418
+      },
+      {
+        "file": "v04/voice/l05.wav",
+        "at": 433,
+        "end": 494
+      },
+      {
+        "file": "v04/voice/l06.wav",
+        "at": 509,
+        "end": 591
+      },
+      {
+        "file": "v04/voice/l07.wav",
+        "at": 642,
+        "end": 767
+      },
+      {
+        "file": "v04/voice/l08.wav",
+        "at": 788,
+        "end": 857
+      },
+      {
+        "file": "v04/voice/l09.wav",
+        "at": 866,
+        "end": 923
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 27,
+        "text": "Na prática:"
+      },
+      {
+        "from": 27,
+        "to": 80,
+        "text": "o que acontece quando a conta da"
+      },
+      {
+        "from": 80,
+        "to": 136,
+        "text": "empresa paga as despesas da casa?"
+      },
+      {
+        "from": 157,
+        "to": 214,
+        "text": "Este é o extrato fictício de uma"
+      },
+      {
+        "from": 214,
+        "to": 244,
+        "text": "empresa em junho."
+      },
+      {
+        "from": 259,
+        "to": 285,
+        "text": "Somando tudo,"
+      },
+      {
+        "from": 285,
+        "to": 330,
+        "text": "o mês fechou negativo."
+      },
+      {
+        "from": 345,
+        "to": 355,
+        "text": "Agora,"
+      },
+      {
+        "from": 355,
+        "to": 418,
+        "text": "cada lançamento ganha uma categoria."
+      },
+      {
+        "from": 433,
+        "to": 494,
+        "text": "Aparecem quatro gastos pessoais."
+      },
+      {
+        "from": 509,
+        "to": 525,
+        "text": "Sem eles,"
+      },
+      {
+        "from": 525,
+        "to": 591,
+        "text": "a operação da empresa ficou positiva."
+      },
+      {
+        "from": 642,
+        "to": 660,
+        "text": "Misturando,"
+      },
+      {
+        "from": 660,
+        "to": 707,
+        "text": "você não sabe se o negócio dá"
+      },
+      {
+        "from": 707,
+        "to": 767,
+        "text": "lucro ou se o dinheiro foi para casa."
+      },
+      {
+        "from": 788,
+        "to": 823,
+        "text": "Pessoal é pessoal."
+      },
+      {
+        "from": 823,
+        "to": 857,
+        "text": "Empresa é empresa."
+      },
+      {
+        "from": 866,
+        "to": 923,
+        "text": "Sua empresa tem essa separação clara?"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "file": "v05/voice/l01.wav",
+    "seconds": 3.123,
+    "speech": 2.986,
+    "text": "Quanto sua empresa precisa vender por mês para pagar as contas?",
+    "hash": "17364f4ac977"
+  },
+  {
+    "file": "v05/voice/l02.wav",
+    "seconds": 3.437,
+    "speech": 3.309,
+    "text": "Primeiro, as despesas fixas: existem mesmo sem vendas.",
+    "hash": "07ff5acdc479"
+  },
+  {
+    "file": "v05/voice/l03.wav",
+    "seconds": 3.309,
+    "speech": 3.187,
+    "text": "Depois, os custos variáveis, que crescem com as vendas.",
+    "hash": "98fbde527705"
+  },
+  {
+    "file": "v05/voice/l04.wav",
+    "seconds": 1.788,
+    "speech": 1.675,
+    "text": "A linha dourada são as fixas.",
+    "hash": "26c4d889bab4"
+  },
+  {
+    "file": "v05/voice/l05.wav",
+    "seconds": 2.438,
+    "speech": 2.305,
+    "text": "Somando os variáveis, temos o custo total.",
+    "hash": "017ed0fc23a3"
+  },
+  {
+    "file": "v05/voice/l06.wav",
+    "seconds": 2.914,
+    "speech": 2.837,
+    "text": "Onde a receita cruza essa linha está o equilíbrio.",
+    "hash": "c30f3ae23173"
+  },
+  {
+    "file": "v05/voice/l07.wav",
+    "seconds": 2.554,
+    "speech": 2.429,
+    "text": "Aqui, cerca de trinta mil reais em vendas.",
+    "hash": "728239925ce5"
+  },
+  {
+    "file": "v05/voice/l08.wav",
+    "seconds": 3.173,
+    "speech": 3.04,
+    "text": "Abaixo disso, prejuízo. Acima, resultado.",
+    "hash": "07e67bd149b3"
+  },
+  {
+    "file": "v05/voice/l09.wav",
+    "seconds": 2.67,
+    "speech": 2.57,
+    "text": "Você conhece o ponto de equilíbrio do seu negócio?",
+    "hash": "b0a6ab06d445"
+  },
+  {
+    "file": "v05/voice/l10.wav",
+    "seconds": 1.266,
+    "speech": 1.115,
+    "text": "Salve e faça a conta.",
+    "hash": "24adbc88651e"
+  }
+]

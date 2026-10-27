@@ -1,0 +1,51 @@
+[
+  {
+    "file": "v22/voice/l01.wav",
+    "seconds": 3.766,
+    "speech": 3.647,
+    "text": "Um número sozinho não toma decisão nenhuma. Veja como ler um indicador.",
+    "hash": "596bf67a437c"
+  },
+  {
+    "file": "v22/voice/l02.wav",
+    "seconds": 6.037,
+    "speech": 5.947,
+    "text": "Aqui, o custo de insumos subiu de trinta e um para trinta e oito por cento das vendas, em seis meses.",
+    "hash": "81fa4205b88b"
+  },
+  {
+    "file": "v22/voice/l03.wav",
+    "seconds": 2.357,
+    "speech": 2.237,
+    "text": "Antes de agir, a pergunta é: por quê?",
+    "hash": "3f437d87f6ef"
+  },
+  {
+    "file": "v22/voice/l04.wav",
+    "seconds": 6.177,
+    "speech": 6.019,
+    "text": "Pode ser reajuste de fornecedor, perdas, mudança no que você vende, ou até um lançamento na categoria errada.",
+    "hash": "27f57de85af0"
+  },
+  {
+    "file": "v22/voice/l05.wav",
+    "seconds": 6.146,
+    "speech": 6.031,
+    "text": "No exemplo, a causa foi o reajuste de um fornecedor. A decisão: renegociar e acompanhar o indicador.",
+    "hash": "95fe67c576d4"
+  },
+  {
+    "file": "v22/voice/l06.wav",
+    "seconds": 3.29,
+    "speech": 3.139,
+    "text": "Não olhe apenas para os números. Entenda o que eles dizem.",
+    "hash": "ce0eef5a2c46"
+  },
+  {
+    "file": "v22/voice/l07.wav",
+    "seconds": 2.171,
+    "speech": 2.079,
+    "text": "Qual indicador você acompanha todo mês?",
+    "hash": "5697238adf8b"
+  }
+]
