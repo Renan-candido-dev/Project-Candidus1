@@ -250,6 +250,8 @@ textarea{resize:vertical}
 
 .overlay{position:fixed;inset:0;background:rgba(15,30,46,.55);display:grid;place-items:center;padding:20px;z-index:50}
 .modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,.4)}
+.modal.lg{max-width:780px}
+@media (max-width:900px){.lm-grid{grid-template-columns:1fr !important}}
 .modal.sm{max-width:440px}
 .modal.xl{max-width:1180px}
 .lote-top{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -298,8 +300,10 @@ textarea{resize:vertical}
 .somente-leitura #btnMap,.somente-leitura #btnMetas,.somente-leitura #btnNovaDesp,.somente-leitura #btnNovaEmp,
 .somente-leitura [data-baixa],.somente-leitura [data-pagar],.somente-leitura [data-estorno],.somente-leitura [data-estornop],
 .somente-leitura [data-rateio],.somente-leitura [data-cancelar-titulo],.somente-leitura [data-reativar-titulo],
+.somente-leitura [data-editar-titulo],.somente-leitura [data-excluir-titulo],
 .somente-leitura [data-edit],.somente-leitura [data-del],
 .somente-leitura #recGerar,.somente-leitura #recNova,.somente-leitura [data-tog],
+.somente-leitura [data-conf],.somente-leitura #ddaDemo,.somente-leitura #ddaAdesao,
 .somente-leitura [data-chkdel],.somente-leitura [data-chkadd],.somente-leitura [data-anexar],.somente-leitura [data-reqok],
 .somente-leitura #dreSemCat,.somente-leitura [data-users],.somente-leitura [data-pay],.somente-leitura #impConfirm,.somente-leitura #impAll,
 .somente-leitura #cncRegras,.somente-leitura #cncBulk,.somente-leitura #cncSelGo,.somente-leitura #rgNova,
@@ -325,6 +329,7 @@ textarea{resize:vertical}
       <div class="field"><label>Senha</label>
         <input type="password" id="password" placeholder="••••••••" required></div>
       <button class="btn full" type="submit" id="loginBtn">Entrar</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" id="esqueciSenha" style="font-size:13px">Esqueci minha senha</a></div>
     </form>
   </div>
 </div>
@@ -352,18 +357,49 @@ textarea{resize:vertical}
 <script>
 const configured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
 let db = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+// Paginação automática: toda listagem SEM limite/range explícito é buscada em páginas de 1.000 até o fim
+// (a API do Supabase corta respostas em 1.000 linhas sem avisar). Ordena por id para páginas estáveis.
+function paginarListagem(b){
+  const origThen=b.then.bind(b);
+  b.then=function(onF,onR){
+    const sp=b.url&&b.url.searchParams, ac=String((b.headers&&(b.headers['Accept']||b.headers['accept']))||'');
+    if(!sp||b.method!=='GET'||sp.has('limit')||sp.has('offset')||ac.includes('vnd.pgrst.object')) return origThen(onF,onR);
+    const pegar=()=>new Promise(res=>origThen(res,e=>res({data:null,error:e})));
+    return (async()=>{
+      let r=await pegar(); if(r.error||!Array.isArray(r.data)||r.data.length<1000) return r;
+      let ordenou=false; if(!sp.has('order')){ b.order('id',{ascending:true}); ordenou=true; }
+      let out=[], off=0, ult;
+      for(let pag=0;pag<1000;pag++){
+        b.range(off,off+999); ult=await pegar();
+        if(ult.error){ if(ordenou&&off===0){ sp.delete('order'); ordenou=false; continue; } return ult; }
+        out=out.concat(ult.data||[]); if(!ult.data||ult.data.length<1000) break; off+=1000;
+      }
+      return {...ult, data:out};
+    })().then(onF,onR);
+  };
+  return b;
+}
+if(db){ const _from=db.from.bind(db); db.from=t=>{ const qb=_from(t); const _sel=qb.select.bind(qb); qb.select=(...a)=>paginarListagem(_sel(...a)); return qb; }; }
 
 const BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const money = v => BRL.format(Number(v||0));
 const $ = id => document.getElementById(id);
 const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
-const todayStr = () => new Date().toISOString().slice(0,10);
+// <datas-negocio> data de negócio = data em Brasília, qualquer que seja o fuso do computador (antes: data UTC, que vira o dia às 21h)
+const FUSO_NEGOCIO = 'America/Sao_Paulo';
+const dataNegocio = (instante=new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:FUSO_NEGOCIO,year:'numeric',month:'2-digit',day:'2-digit'}).format(instante);
+const todayStr = () => dataNegocio();
+const isoDataLocal = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const somaDiasISO = (iso,n) => { const t=new Date(iso+'T00:00:00Z'); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
+// </datas-negocio>
 const fmtDate = d => d ? d.split('-').reverse().join('/') : '—';
 const daysLate = d => Math.floor((new Date(todayStr()) - new Date(d)) / 86400000);
-const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const STLABEL = {a_vencer:'A vencer',vencido:'Vencido',recebido:'Recebido',recebido_parcial:'Receb. parcial',cancelado:'Cancelado',aberto:'Em aberto',quitado:'Quitado'};
 
 function toast(msg,type='ok'){
+  // bloqueios do banco: RLS (v2) e gatilho trg_pode_escrever (s4b: "Seu perfil (x) não permite alterar dados desta empresa")
+  if(typeof msg==='string' && /row-level security|permission denied|bloq_visualizacao|não permite alterar dados/i.test(msg)) msg='Seu perfil não tem permissão para esta ação'+(/bloq_visualizacao|\(visualizacao\)/.test(msg)?' (perfil de visualização: somente consulta).':'.');
   const t=el('div','toast '+type,esc(msg)); $('toast').appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
@@ -387,11 +423,15 @@ const MENU = [
     {ico:'☰',label:'Extrato da conta',view:'extrato'},
     {ico:'✓',label:'Baixa em lote',view:'baixa-lote'},
     {ico:'↻',label:'Recorrentes',view:'recorrentes'},
+    {ico:'▣',label:'DDA (boletos)',view:'dda'},
   ]},
   {g:'Cadastros', items:[
     {ico:'◎',label:'Clientes',view:'clientes'},{ico:'◍',label:'Fornecedores',view:'fornecedores'},
     {ico:'⌗',label:'Categorias',view:'categorias'},{ico:'⊞',label:'Centros de custo',view:'centros-custo'},
     {ico:'▤',label:'Contas financeiras',view:'contas-financeiras'},{ico:'▦',label:'Empresas',view:'empresas'},
+    {ico:'⌫',label:'Limpar movimentação',view:'limpar-movimentacao',admin:true},
+    {ico:'⇩',label:'Exportar dados',view:'exportar'},{ico:'🛡',label:'Auditoria',view:'auditoria'},
+    {ico:'🔐',label:'Segurança da conta',view:'seguranca'},
   ]},
   {g:'BPO', items:[
     {ico:'◈',label:'Pendências',view:'pendencias'},
@@ -410,7 +450,7 @@ const MENU = [
   ]},
 ];
 function viewMeta(v){ for(const g of MENU) for(const it of g.items) if(it.view===v) return it; return null; }
-const APP_VERSAO='2026.10.27-s5b · segurança: importação única';  // muda a cada entrega: confira no rodapé do menu
+const APP_VERSAO='2026.11.24-v2s4b.5 · editar/excluir e limpar movimentação — correções da revisão';  // muda a cada entrega: confira no rodapé do menu
 function renderMenu(){
   const side=$('side'); side.innerHTML='';
   if(favSet.size){
@@ -423,6 +463,7 @@ function renderMenu(){
   MENU.forEach(grp=>{
     side.appendChild(el('div','nav-group',grp.g));
     grp.items.forEach(it=>{
+      if(it.admin && meuPerfil!=='administrador') return;
       const cls='nav-item '+(it.soon?'soon':'link')+(it.view===currentView?' active':'');
       const star = (it.view&&!it.soon)?`<button class="star ${favSet.has(it.view)?'on':''}" title="Favoritar">${favSet.has(it.view)?'★':'☆'}</button>`:'';
       const tag = it.soon?'<span class="tag">em breve</span>':'';
@@ -451,7 +492,7 @@ async function toggleFav(v){
   }
   renderMenu();
 }
-function setView(v){ currentView=v; renderMenu(); const bp=document.getElementById('bellPanel'); if(bp) bp.remove(); if(v==='dashboard')Promise.resolve(renderDashboard()).then(injetarAlertasDashboard); else if(v==='alertas')renderAlertas(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
+function setView(v){ currentView=v; renderMenu(); const bp=document.getElementById('bellPanel'); if(bp) bp.remove(); if(v==='dashboard')Promise.resolve(renderDashboard()).then(injetarAlertasDashboard); else if(v==='alertas')renderAlertas(); else if(v==='exportar')renderExportar(); else if(v==='auditoria')renderAuditoria(); else if(v==='projecao')renderProjecao(); else if(v==='fechamento')renderFechamento(); else if(v==='relatorio')renderRelatorio(); else if(v==='rentabilidade')renderRentabilidade(); else if(v==='extrato')renderExtrato(); else if(v==='contas-receber')renderContasReceber(); else if(v==='contas-pagar')renderContasPagar(); else if(v==='categorias')renderCategorias(); else if(v==='fluxo-caixa')renderFluxo(); else if(v==='cartoes')renderCartoes(); else if(v==='importar')renderImportar(); else if(v==='conciliacao')renderConciliacao(); else if(v==='baixa-lote')renderBaixaLote(); else if(v==='recorrentes')renderRecorrentes(); else if(v==='dda')renderDda(); else if(v==='seguranca')renderSegurancaConta(); else if(v==='pendencias')renderPendencias(); else if(v==='tarefas')renderTarefas(); else if(v==='documentos')renderDocumentos(); else if(v==='dre')renderDre(); else if(v==='custos')renderCustos(); else if(v==='orcamento')renderOrcamento(); else if(v==='realizado-orcado')renderRxO(); else if(v==='indicadores')renderIndicadores(); else if(v==='empresas')renderEmpresas(); else if(v==='limpar-movimentacao')renderLimparMov(); else if(['clientes','fornecedores','centros-custo','contas-financeiras'].includes(v))renderCadastro(v); }
 
 function showLoginMsg(t,type='err'){ $('loginMsg').innerHTML=`<div class="msg ${type}">${t}</div>`; }
 function applyTheme(t){ document.body.classList.toggle('dark', t==='dark'); const b=$('themeToggle'); if(b) b.textContent = t==='dark'?'☀️':'🌙'; }
@@ -473,6 +514,8 @@ $('loginForm').addEventListener('submit', async e=>{
   enterApp(data.session);
 });
 $('logout').addEventListener('click', async ()=>{ await db.auth.signOut(); location.reload(); });
+$('esqueciSenha').addEventListener('click', e=>{ e.preventDefault(); esqueciSenha(); });
+if(db) db.auth.onAuthStateChange((ev)=>{ if(ev==='PASSWORD_RECOVERY') setTimeout(abrirNovaSenha,300); });
 $('burger').addEventListener('click', ()=> $('app').classList.toggle('collapsed'));
 
 async function enterApp(session){
@@ -489,6 +532,7 @@ async function enterApp(session){
   tag.title=somenteLeitura?'Seu perfil pode consultar, mas não alterar dados.':'Seu perfil de acesso';
   $('userEmail').title=session.user.email;
   if(somenteLeitura) toast('Seu perfil é somente leitura: você pode consultar, mas não alterar dados.');
+  if(!(await garantir2FA())) return;   // administrador sem 2º fator (quando exigido) não entra nos dados
   await loadCompanies();
   await loadFavorites();
   try{ await db.rpc('gerar_recorrencias',{}); }catch(e){}  // gera contas recorrentes vencidas ao entrar
@@ -515,6 +559,7 @@ async function renderDashboardConsolidado(){
       db.from('tasks').select('prazo,status,company_id'),
       db.from('bank_transactions').select('id',{count:'exact',head:true}).eq('conciliado',false).eq('origem','importado').in('tipo',['entrada','saida']),
     ]);
+    if(!$('dashArea')) return;   // o usuário trocou de tela durante a carga
     for(const r of [res,tsk]) if(r.error) throw r.error;
     const per={}; // company_id -> agregados (somados no banco: sem limite de 1.000 linhas)
     (res.data||[]).forEach(x=>{ per[x.company_id]={saldoI:Number(x.saldo),ent:0,sai:0,aReceber:Number(x.receber_aberto),aPagar:Number(x.pagar_aberto),vencR:Number(x.receber_vencido),vencP:Number(x.pagar_vencido)}; });
@@ -550,7 +595,7 @@ async function renderDashboardConsolidado(){
       <tbody>${rows}</tbody></table></div>
       <div class="hint" style="margin-top:10px">Os saldos são de cada empresa separadamente — não há soma de caixa entre clientes diferentes.</div>`;
     $('dashArea').querySelectorAll('[data-co]').forEach(tr=>tr.onclick=()=>dashSelectCompany(tr.dataset.co));
-  }catch(err){ $('dashArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ if($('dashArea')) $('dashArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 async function renderDashboard(){
   if(!companyId) return renderDashboardConsolidado();
@@ -616,13 +661,14 @@ function pagerHTML(page,total,prefix){
 
 async function renderContasReceber(){
   $('main').innerHTML=`<div class="page-h"><h1>Contas a receber</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
-      <button class="btn ghost" id="btnLoteR">Lançar em lote</button>
+      <button class="btn ghost" id="btnExpR">Exportar CSV</button><button class="btn ghost" id="btnLoteR">Lançar em lote</button>
       <button class="btn" id="btnNova">+ Nova conta a receber</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="crFilters"></div>
     <div id="crArea"><div class="loading">Carregando…</div></div>`;
   $('btnNova').onclick=openNovaReceber;
   $('btnLoteR').onclick=()=>openLote('receber');
+  $('btnExpR').onclick=()=>exportarDataset('vw_contas_receber','Contas a receber (parcelas)');
   crPage=0;
   const { data:cli }=await scopeQ(db.from('customers').select('id,razao_social,nome_fantasia')).order('razao_social');
   crClientes=cli||[];
@@ -662,8 +708,9 @@ async function loadReceber(){
         recebido:parc.reduce((s,p)=>s+Number(p.valor_recebido||0),0),
         saldo:parc.reduce((s,p)=>s+Number(p.saldo||0),0),
         temVencido:parc.some(p=>p.situacao==='vencido')}; });
+    if(!$('crArea')) return;   // o usuário trocou de tela durante a carga
     drawReceber();
-  }catch(err){ $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ if($('crArea')) $('crArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 
 function drawReceber(){
@@ -739,6 +786,18 @@ function confirmOver({titulo,texto,ok='Confirmar'}){
     d.querySelector('[data-yes]').onclick=()=>done(true);
   });
 }
+/* Cria conta pela função; se o SERVIDOR acusar duplicidade (clique duplo, outra aba), pergunta e repete com permissão.
+   permitir=true quando o usuário já confirmou a duplicidade antes. (vindo da linha s5b, 27/10) */
+async function rpcCriarConta(nome, params, permitir){
+  let r=await db.rpc(nome,{...params, p_permitir_duplicada:!!permitir});
+  if(r.error && /DUPLICADA/.test(r.error.message||'') && !permitir){
+    const msg=String(r.error.message).replace(/^.*DUPLICADA:\s*/,'');
+    const ok=await confirmOver({titulo:'Conta parecida já existe',texto:msg.charAt(0).toUpperCase()+msg.slice(1)+' Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
+    if(!ok) return {cancelado:true};
+    r=await db.rpc(nome,{...params, p_permitir_duplicada:true});
+  }
+  return r;
+}
 /* Checa se já existe conta parecida: mesma empresa, contraparte, valor, descrição e vencimento próximo */
 async function contaDuplicada(tabela, co, contraId, contraCol, desc, val, primeiroVenc){
   const instTbl = tabela==='receivables'?'receivable_installments':'payable_installments';
@@ -747,19 +806,6 @@ async function contaDuplicada(tabela, co, contraId, contraCol, desc, val, primei
   const { data }=await q;
   if(!data||!data.length) return false;
   return data.some(r=>(r[instTbl]||[]).some(i=>Math.abs((new Date(primeiroVenc)-new Date(i.vencimento))/86400000)<=5));
-}
-
-/* Cria conta pela função; se o SERVIDOR acusar duplicidade (clique duplo, outra aba), pergunta e repete com permissão.
-   permitir=true quando o usuário já confirmou a duplicidade antes. */
-async function rpcCriarConta(nome, params, permitir){
-  let r=await db.rpc(nome,{...params, p_permitir_duplicada:!!permitir});
-  if(r.error && /DUPLICADA/.test(r.error.message||'') && !permitir){
-    const msg=String(r.error.message).replace(/^.*DUPLICADA:\s*/,''); 
-    const ok=await confirmOver({titulo:'Conta parecida já existe',texto:msg.charAt(0).toUpperCase()+msg.slice(1)+' Deseja lançar mesmo assim?',ok:'Lançar assim mesmo'});
-    if(!ok) return {cancelado:true};
-    r=await db.rpc(nome,{...params, p_permitir_duplicada:true});
-  }
-  return r;
 }
 
 /* Modal de confirmação com a identidade do Candidus (substitui o confirm() do navegador) */
@@ -919,13 +965,14 @@ const openTitlesP=new Set();
 
 async function renderContasPagar(){
   $('main').innerHTML=`<div class="page-h"><h1>Contas a pagar</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
-      <button class="btn ghost" id="btnLoteP">Lançar em lote</button>
+      <button class="btn ghost" id="btnExpP">Exportar CSV</button><button class="btn ghost" id="btnLoteP">Lançar em lote</button>
       <button class="btn" id="btnNovaP">+ Nova conta a pagar</button></div>
     <div class="updated">Títulos agrupados — clique numa linha para abrir as parcelas.</div>
     <div id="cpFilters"></div>
     <div id="cpArea"><div class="loading">Carregando…</div></div>`;
   $('btnNovaP').onclick=openNovaPagar;
   $('btnLoteP').onclick=()=>openLote('pagar');
+  $('btnExpP').onclick=()=>exportarDataset('vw_contas_pagar','Contas a pagar (parcelas)');
   cpPage=0;
   const { data:forn }=await scopeQ(db.from('suppliers').select('id,razao_social,nome_fantasia')).order('razao_social');
   cpForns=forn||[];
@@ -965,8 +1012,9 @@ async function loadPagar(){
         pago:parc.reduce((s,x)=>s+Number(x.valor_pago||0),0),
         saldo:parc.reduce((s,x)=>s+Number(x.saldo||0),0),
         temVencido:parc.some(x=>x.situacao==='vencido')}; });
+    if(!$('cpArea')) return;   // o usuário trocou de tela durante a carga
     drawPagar();
-  }catch(err){ $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
+  }catch(err){ if($('cpArea')) $('cpArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`; }
 }
 function bindCpPager(){
   const p=$('cpArea').querySelector('[data-pg="cp-prev"]'); const n=$('cpArea').querySelector('[data-pg="cp-next"]');
@@ -1425,11 +1473,12 @@ async function loadFluxo(){
     ]);
     for(const r of [acc,fm]) if(r.error) throw r.error;
     const base=(acc.data||[]).reduce((s,x)=>s+Number(x.saldo_inicial||0),0);
-    const realE={},realS={},prevE={},prevS={};
+    const realE={},realS={},prevE={},prevS={},transf={};
     (fm.data||[]).forEach(x=>{ const k=x.ym;
       if(+x.real_e) realE[k]=Number(x.real_e); if(+x.real_s) realS[k]=Number(x.real_s);
+      if(+x.transf_e||+x.transf_s) transf[k]=Number(x.transf_e||0)-Number(x.transf_s||0);
       if(+x.prev_e) prevE[k]=Number(x.prev_e); if(+x.prev_s) prevS[k]=Number(x.prev_s); });
-    fluxoData={base,realE,realS,prevE,prevS}; fluxoDet={};
+    fluxoData={base,realE,realS,prevE,prevS,transf}; fluxoDet={};
     drawFluxo();
   }catch(err){
     $('fluxoArea').innerHTML=`<div class="panel"><div class="empty">Erro ao carregar.<br><small>${esc(err.message||err)}</small></div></div>`;
@@ -1488,7 +1537,8 @@ function drawFluxo(){
   let running=base, totE=0, totS=0;
   const linhas=months.map(ym=>{
     const e=E[ym]||0, s=S[ym]||0; totE+=e; totS+=s;
-    const ini=running, fim=running+e-s; running=fim;
+    const tl=fluxoMode==='previsto'?0:((fluxoData.transf||{})[ym]||0);  // transferências mexem no saldo, não em entradas/saídas
+    const ini=running, fim=running+e-s+tl; running=fim;
     return {ym,e,s,ini,fim};
   });
   const maxBar=Math.max(1,...linhas.map(l=>Math.max(l.e,l.s)));
@@ -1662,11 +1712,21 @@ const REC={nenhuma:'Não repete',diaria:'Diária',semanal:'Semanal',quinzenal:'Q
 let tarCache={tasks:[],chk:{},profiles:[],templates:[]};
 let tarFilters={status:'',prioridade:'',resp:''};
 const openTasks=new Set();
-function addRec(d,rec){ const b=new Date((d||todayStr())+'T00:00:00');
-  if(rec==='diaria')b.setDate(b.getDate()+1); else if(rec==='semanal')b.setDate(b.getDate()+7);
-  else if(rec==='quinzenal')b.setDate(b.getDate()+15); else if(rec==='mensal')b.setMonth(b.getMonth()+1);
-  else if(rec==='trimestral')b.setMonth(b.getMonth()+3); else if(rec==='anual')b.setMonth(b.getMonth()+12);
-  return b.toISOString().slice(0,10); }
+// próxima data de uma recorrência. Mensal/trimestral/anual não pulam mês: no mês sem o dia, usa o último dia válido
+// (31/01 → 28/02; 29/02 → 28/02 do ano seguinte). diaRef = dia de referência da série (ver diaReferencia), para
+// não "escorregar" (31/01 → 28/02 → 31/03, e não 28/03).
+function addRec(d,rec,diaRef){ const b=new Date((d||todayStr())+'T00:00:00');
+  const meses={mensal:1,trimestral:3,anual:12}[rec];
+  if(meses){ const y=b.getFullYear(), m=b.getMonth()+meses, ult=new Date(y,m+1,0).getDate();
+    b.setTime(new Date(y,m,Math.min(diaRef||b.getDate(),ult)).getTime()); }
+  else if(rec==='diaria')b.setDate(b.getDate()+1); else if(rec==='semanal')b.setDate(b.getDate()+7);
+  else if(rec==='quinzenal')b.setDate(b.getDate()+15);
+  return isoDataLocal(b); }
+// dia de referência: o da data atual; se ela é o último dia do mês e a série começou num dia maior
+// (foi encurtada num mês menor), volta ao dia original
+function diaReferencia(atual,original){ if(!atual) return null; const d=+atual.slice(8,10);
+  if(!original) return d; const o=+original.slice(8,10), ult=new Date(+atual.slice(0,4),+atual.slice(5,7),0).getDate();
+  return (d===ult && o>d)?o:d; }
 
 async function renderTarefas(){
   $('main').innerHTML=`<div class="page-h"><h1>Tarefas</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
@@ -1775,11 +1835,17 @@ async function changeTaskStatus(id,status){
   if(status==='concluida') openApontamento({ co:t.company_id, descricao:t.titulo, task_id:t.id, titulo:'Tarefa concluída ✅', dica:'Quanto tempo levou? Isso alimenta a rentabilidade do cliente. Se não quiser apontar, clique em Pular.' });
 }
 async function gerarProximaTarefa(t){
+  const raizId=t.recurrence_parent_id||t.id;
+  let raiz=t; if(t.recurrence_parent_id){ const r=await db.from('tasks').select('data_inicial,prazo').eq('id',t.recurrence_parent_id).maybeSingle(); if(r.data) raiz=r.data; }
   const novo={ company_id:t.company_id, titulo:t.titulo, descricao:t.descricao, categoria:t.categoria,
     assigned_user_id:t.assigned_user_id, prioridade:t.prioridade, recorrencia:t.recorrencia,
-    recurrence_parent_id:t.recurrence_parent_id||t.id, status:'a_fazer',
-    data_inicial: t.data_inicial?addRec(t.data_inicial,t.recorrencia):null,
-    prazo: t.prazo?addRec(t.prazo,t.recorrencia):null };
+    recurrence_parent_id:raizId, status:'a_fazer',
+    data_inicial: t.data_inicial?addRec(t.data_inicial,t.recorrencia,diaReferencia(t.data_inicial,raiz.data_inicial)):null,
+    prazo: t.prazo?addRec(t.prazo,t.recorrencia,diaReferencia(t.prazo,raiz.prazo)):null };
+  // concluir, reabrir e concluir de novo não cria a mesma ocorrência duas vezes
+  const dataChave=novo.prazo?'prazo':(novo.data_inicial?'data_inicial':null);
+  if(dataChave){ const ja=await db.from('tasks').select('id').or(`id.eq.${raizId},recurrence_parent_id.eq.${raizId}`).eq(dataChave,novo[dataChave]).limit(1);
+    if(ja.data&&ja.data.length) return; }
   const { data,error }=await db.from('tasks').insert(novo).select('id').single();
   if(error||!data) return;
   const items=tarCache.chk[t.id]||[];
@@ -2044,7 +2110,7 @@ let dreItems=[], dreCatNat={}, dreMesSel=todayStr().slice(0,7), dreModo='mes', d
 // (resultado financeiro: o que vem de conta a pagar entra negativo; "baixa" já vem com sinal)
 function dreValor(d){ const v=Number(d.valor||0); return (d.natureza==='resultado_financeiro' && d.origem==='pagar')?-v:v; }
 async function dreRealizado(co, ini, fim){
-  const { data, error }=await db.rpc('dre_realizado',{ p_company:co||null, p_ini:ini, p_fim:fim });
+  const { data, error }=await db.rpc('dre_realizado_json',{ p_company:co||null, p_ini:ini, p_fim:fim });
   if(error) throw error; return data||[];
 }
 const mesIni=(a,m)=>`${a}-${String(m).padStart(2,'0')}-01`;           // m = 1..12
@@ -2212,12 +2278,15 @@ function openDreDetalhe(i){
     </div><div class="modal-f"><button class="btn" id="mCancel">Fechar</button></div></div></div>`;
   $('mx').onclick=$('mCancel').onclick=closeModal;
 }
+// texto que o Excel leria como fórmula (= + - @ tab) ganha um apóstrofo na frente: vira texto, não executa
+// (números negativos como "-12,50" continuam números)
+const csvSeguro = v => { const t=String(v==null?'':v); return /^[=+\-@\t\r]/.test(t) && !/^-?\d[\d.,]*%?$/.test(t) ? "'"+t : t; };
 // CSV pro Excel: ; como separador, vírgula decimal, BOM pra acentos
 function exportDreCsv(){
   if(!dreView){ toast('Nada pra exportar ainda.','err'); return; }
   const {head,linhas}=dreMatriz();
   const num=n=>(Math.round(n*100)/100).toFixed(2).replace('.',',');
-  const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const q=s=>`"${csvSeguro(s).replace(/"/g,'""')}"`;
   const co=companyId?(companies.find(c=>c.id===companyId)||{}):null;
   const out=[ [q('DRE Gerencial — '+dreView.per.titulo+(co?' — '+(co.nome_fantasia||co.razao_social):' — consolidado'))], [q('Descrição'),...head.map(q)] ];
   dreItems.forEach((it,i)=>out.push([q(it.titulo),...linhas[i].map(x=>x.pct!==undefined?(x.pct===null||!isFinite(x.pct)?'':num(x.pct)+'%'):num(x.n))]));
@@ -2336,7 +2405,9 @@ async function loadOrc(){
     const co=orcState.co, ano=orcState.ano;
     // garante orçamento do ano
     let { data:b }=await db.from('budgets').select('id').eq('company_id',co).eq('ano',ano).maybeSingle();
-    if(!b){ const ins=await db.from('budgets').insert({company_id:co,ano,nome:'Orçamento '+ano}).select('id').single(); if(ins.error) throw ins.error; b=ins.data; }
+    if(!b){ const ins=await db.from('budgets').insert({company_id:co,ano,nome:'Orçamento '+ano}).select('id').single();
+      if(ins.error){ if(/row-level security|bloq_visualizacao|não permite alterar dados/i.test(ins.error.message)){ $('ocArea').innerHTML='<div class="panel"><div class="empty">Ainda não há orçamento para este ano. (Seu perfil é somente consulta.)</div></div>'; return; } throw ins.error; }
+      b=ins.data; }
     orcState.budgetId=b.id;
     // categorias mapeadas na DRE
     const [maps,cats,items]=await Promise.all([
@@ -2541,6 +2612,7 @@ async function loadIndicadores(){
       db.rpc('contar_titulos_receber',{p_company:co, p_ini:pIni, p_fim:pFim}),
       indCo?db.from('indicator_targets').select('*').eq('company_id',indCo).eq('ano',ano).is('mes',null):Promise.resolve({data:[]}),
     ]);
+    if(!$('inArea')) return;   // o usuário trocou de tela durante a carga
     for(const r of [res,fm,tit]) if(r.error) throw r.error;
 
     const D=indNat(realiz,pIni,pFim);
@@ -2599,11 +2671,12 @@ async function loadIndicadores(){
       {nome:'Receita líquida', cor:'var(--teal,#0d9488)', vals:porMes.map(x=>x.rl)},
       {nome:'Lucro líquido', cor:'var(--green)', corNeg:'var(--red)', vals:porMes.map(x=>x.ll)} ],
       line:{nome:'Margem líquida', cor:'var(--amber)', vals:porMes.map(x=>x.rl?x.ll/x.rl*100:null), fmt:v=>v.toFixed(0)+'%'} });
-    const totalReal=F.reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
+    const netx=x=>Number(x.real_e)-Number(x.real_s)+Number(x.transf_e||0)-Number(x.transf_s||0);
+    const totalReal=F.reduce((s,x)=>s+netx(x),0);
     let acum=R.saldo-totalReal; // saldo antes do primeiro movimento
-    F.filter(x=>x.ym<`${ano}-01`).forEach(x=>{ acum+=Number(x.real_e)-Number(x.real_s); });
+    F.filter(x=>x.ym<`${ano}-01`).forEach(x=>{ acum+=netx(x); });
     const fAno=meses.map(m=>F.find(x=>x.ym===`${ano}-${String(m).padStart(2,'0')}`)||{real_e:0,real_s:0});
-    const saldoMes=fAno.map(x=>{ acum+=Number(x.real_e)-Number(x.real_s); return acum; });
+    const saldoMes=fAno.map(x=>{ acum+=netx(x); return acum; });
     const ateHoje=meses.map(m=>ano<anoAtual||(ano===anoAtual&&m<=mesAtual));
     const ch2=svgChart({ labels:MES3, series:[
       {nome:'Entradas', cor:'var(--green)', vals:fAno.map(x=>Number(x.real_e))},
@@ -2628,7 +2701,7 @@ async function loadIndicadores(){
         <div class="panel"><h3><span class="dot t"></span>Receita líquida × lucro · ${ano}</h3>${ch1}</div>
         <div class="panel"><h3><span class="dot t"></span>Entradas × saídas (realizado) · ${ano}</h3>${ch2}</div>
       </div>`;
-  }catch(err){ $('inArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
+  }catch(err){ if($('inArea')) $('inArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}</div></div>`; }
 }
 // "R$ 12,3 mil" / "R$ 1,2 mi"
 function moneyCurto(v){ const a=Math.abs(v), s=v<0?'−':'';
@@ -2731,11 +2804,107 @@ function drawEmpresas(){
     <td>${esc(c.cnpj||'—')}</td>
     <td>${esc([c.cidade,c.estado].filter(Boolean).join('/')||'—')}</td>
     <td>${statusPill(c.status)}</td>
-    <td><div class="act"><button class="lnk" data-users="${i}">Usuários</button><button class="lnk" data-edit="${i}">Editar</button><button class="lnk del" data-del="${i}">Excluir</button></div></td></tr>`).join('');
+    <td><div class="act"><button class="lnk" data-users="${i}">Usuários</button><button class="lnk" data-edit="${i}">Editar</button>${meuPerfil==='administrador'?`<button class="lnk del" data-limpar="${i}">Limpar movimentação</button>`:''}<button class="lnk del" data-del="${i}">Excluir</button></div></td></tr>`).join('');
   $('empArea').innerHTML=`<div class="panel"><table><thead><tr><th>Empresa</th><th>CNPJ</th><th>Cidade/UF</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`;
   $('empArea').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEmpForm(empRows[+b.dataset.edit]));
   $('empArea').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delEmpresa(empRows[+b.dataset.del]));
   $('empArea').querySelectorAll('[data-users]').forEach(b=>b.onclick=()=>openEmpUsers(empRows[+b.dataset.users]));
+  $('empArea').querySelectorAll('[data-limpar]').forEach(b=>b.onclick=()=>{ limpEmpId=empRows[+b.dataset.limpar].id; setView('limpar-movimentacao'); });
+}
+
+/* Limpar movimentação (0027) — só administrador. O banco decide tudo (permissão, vínculos, mês fechado,
+   transação única); a tela mostra a prévia, pede as decisões e o nome da empresa e confirma o resumo final. */
+let limpEmpId=null, limpPrevia=null;
+const LIMP_QTD_MONEY=new Set(['valor_pagar','valor_receber']);
+const LIMP_QTD=[['contas_pagar','Contas a pagar'],['parcelas_pagar','Parcelas a pagar'],['valor_pagar','… valor total'],
+  ['contas_receber','Contas a receber'],['parcelas_receber','Parcelas a receber'],['valor_receber','… valor total'],
+  ['pagamentos','Pagamentos'],['recebimentos','Recebimentos'],['movimentos','Movimentos de caixa/extrato (total)'],['movimentos_importados','… dos quais vieram de extrato importado'],
+  ['conciliacoes','Conciliações'],['extrato_importado','Linhas de extrato importado'],['conferencias_saldo','Conferências de saldo'],['rateios','Rateios por centro de custo'],
+  ['pendencias_automaticas','Pendências automáticas dessas parcelas'],['documentos_desvinculados','Documentos (ficam, só perdem o vínculo)'],['dda_desvinculados','Boletos DDA (ficam, só perdem o vínculo)'],
+  ['recorrencias','Recorrências da empresa (decisão abaixo)']];
+const LIMP_REC={desativar:'Desativar (ficam guardadas, não geram mais)',apagar:'Apagar as recorrências'};
+async function renderLimparMov(){
+  const m=$('main');
+  if(meuPerfil!=='administrador'){ m.innerHTML='<div class="panel"><div class="empty">Só o administrador pode limpar a movimentação de uma empresa.</div></div>'; return; }
+  const { data:emps, error }=await db.from('companies').select('id,razao_social,nome_fantasia,cnpj').order('razao_social');
+  if(error){ m.innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(error.message)}</div></div>`; return; }
+  if(!limpEmpId||!emps.some(c=>c.id===limpEmpId)) limpEmpId=companyId||null;
+  limpPrevia=null;
+  m.innerHTML=`<div class="page-h"><h1>Limpar movimentação</h1></div>
+    <div class="updated">Apaga TODA a movimentação de TESTE de uma empresa (não dá para escolher um período nesta versão). Ficam: cadastros, usuários, contas bancárias (com o saldo inicial), categorias e a Auditoria.
+      Para corrigir um lançamento só, use Editar/Excluir em Contas a pagar/receber.</div>
+    <div class="panel" style="padding:16px">
+      <div class="field"><label>Empresa *</label><select id="lmEmp"><option value="">Selecione…</option>${emps.map(c=>`<option value="${c.id}" ${c.id===limpEmpId?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
+      <div class="hint">Limpa toda a movimentação da empresa de uma vez: contas a pagar/receber, parcelas, pagamentos/recebimentos, conciliações e extrato importado.</div>
+      <div style="margin-top:12px"><button class="btn" id="lmPrev">Ver prévia</button></div>
+    </div>
+    <div id="lmArea"></div>`;
+  $('lmEmp').onchange=()=>{ limpEmpId=$('lmEmp').value||null; $('lmArea').innerHTML=''; limpPrevia=null; };
+  $('lmPrev').onclick=()=>limparGerarPrevia();
+}
+async function limparGerarPrevia(){
+  if(!limpEmpId){ toast('Selecione a empresa.','err'); return; }
+  $('lmArea').innerHTML='<div class="loading">Calculando a prévia…</div>';
+  const { data:P, error }=await db.rpc('previa_limpeza_movimentacao',{p_company:limpEmpId});
+  if(error){ $('lmArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(error.message)}</div></div>`; return; }
+  if(!P||!P.empresa){ $('lmArea').innerHTML='<div class="panel"><div class="empty">Não foi possível calcular a prévia (dados vazios). Tente de novo.</div></div>'; return; }
+  limpPrevia=P; const E=P.empresa, Q=P.quantidades, nome=E.nome_fantasia||E.razao_social;
+  const qtd=LIMP_QTD.filter(([k])=>k in Q).map(([k,l])=>`<tr><td>${l}</td><td class="r"><b>${LIMP_QTD_MONEY.has(k)?money(Q[k]):Number(Q[k]).toLocaleString('pt-BR')}</b></td></tr>`).join('');
+  const sal=(P.saldos||[]).map(s=>`<tr><td>${esc(s.nome)}</td><td class="r">${money(s.saldo_inicial)}<br><span style="font-size:11.5px;color:var(--muted)">em ${fmtDate(s.data_saldo_inicial)}</span></td>
+    <td class="r">${money(s.saldo_atual)}</td><td class="r">${s.movimentos_removidos} mov. (${money(s.removido)})</td><td class="r"><b>${money(s.saldo_depois)}</b></td></tr>`).join('');
+  const tot=k=>(P.saldos||[]).reduce((a,s)=>a+Number(s[k]),0);
+  const recs=(P.recorrencias||[]).map(r=>`<li>${esc(r.descricao)} — ${r.tipo==='pagar'?'a pagar':'a receber'} ${money(r.valor)} (${esc(r.periodicidade)}) · ${r.ativo?'ativa, próxima geração em '+fmtDate(r.proxima)+(r.atrasada?' (ATRASADA)':''):'desativada'}</li>`).join('');
+  const bloqueios=[];
+  if(P.meses_fechados.length) bloqueios.push(`<div class="box" style="border-color:var(--red)"><b>Movimentação em mês fechado: ${esc(P.meses_fechados.join(', '))}.</b>
+      Reabra o(s) mês(es) antes de limpar. <button class="lnk" id="lmFech">Abrir Fechamento mensal</button></div>`);
+  $('lmArea').innerHTML=`
+    <div class="box" style="margin-top:16px;font-size:14px;border-color:var(--red)">Empresa selecionada: <b>${esc(nome)}</b> · ${esc(E.razao_social)} · CNPJ ${esc(E.cnpj||'—')}<br><b>Toda a movimentação</b></div>
+    ${bloqueios.join('')}
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px;align-items:start" class="lm-grid">
+      <div class="panel"><div style="padding:12px 14px;font-weight:600">O que será apagado</div><table><tbody>${qtd}</tbody></table></div>
+      <div class="panel" style="overflow-x:auto"><div style="padding:12px 14px;font-weight:600">Saldo das contas</div>
+        <table><thead><tr><th>Conta</th><th class="r">Saldo inicial (abertura)</th><th class="r">Saldo hoje</th><th class="r">Removido</th><th class="r">Saldo depois</th></tr></thead>
+        <tbody>${sal||'<tr><td colspan="5" class="empty">Nenhuma conta financeira.</td></tr>'}</tbody>
+        <tfoot><tr><td><b>Total</b></td><td class="r">${money(tot('saldo_inicial'))}</td><td class="r">${money(tot('saldo_atual'))}</td><td class="r">${money(tot('removido'))}</td><td class="r"><b>${money(tot('saldo_depois'))}</b></td></tr></tfoot></table>
+        <div class="hint" style="padding:0 14px 12px">O saldo inicial de cada conta não é apagado: depois da limpeza o saldo volta a ser o saldo inicial (não zero).
+          Se o saldo inicial também era de teste, corrija em Contas financeiras.</div></div></div>
+    <div class="panel" style="padding:14px 16px;margin-top:16px"><div style="font-weight:600;margin-bottom:6px">Recorrências (${(P.recorrencias||[]).length})</div>
+      ${recs?`<ul style="margin:0 0 8px 18px;line-height:1.6">${recs}</ul>`:'<div class="hint">Esta empresa não tem recorrências.</div>'}
+      <div class="hint" style="margin-bottom:8px">Os lançamentos apagados não voltam em nenhuma opção: a recorrência só gera a partir da "próxima geração", que já está depois de tudo o que ela criou. É obrigatório escolher uma das opções abaixo — não há "manter ativa" nesta versão.</div>
+      ${Object.entries(LIMP_REC).map(([v,l])=>`<label style="display:block"><input type="radio" name="lmRec" value="${v}"> ${l}</label>`).join('')}</div>
+    <div class="panel" style="padding:14px 16px;margin-top:16px">
+      <div class="field"><label>Para confirmar, digite o nome da empresa: <b>${esc(nome)}</b></label><input id="lmNome" autocomplete="off"></div>
+      <button class="btn danger" id="lmGo" ${P.pode_limpar?'':'disabled'}>Revisar e limpar…</button>
+      ${P.pode_limpar?'':'<span class="hint" style="margin-left:8px">Resolva os itens em vermelho acima e gere a prévia de novo.</span>'}</div>`;
+  if($('lmFech')) $('lmFech').onclick=()=>setView('fechamento');
+  $('lmGo').onclick=()=>limparConfirmar();
+}
+function limparConfirmar(){
+  const P=limpPrevia, E=P.empresa, nome=E.nome_fantasia||E.razao_social, Q=P.quantidades;
+  const rec=($('lmArea').querySelector('[name=lmRec]:checked')||{}).value;
+  if(!rec){ toast('Escolha o que fazer com as recorrências: desativar ou apagar.','err'); return; }
+  const dig=$('lmNome').value.trim().toLowerCase();
+  if(dig!==nome.toLowerCase()&&dig!==E.razao_social.toLowerCase()){ toast('O nome digitado não confere com o da empresa selecionada.','err'); return; }
+  const n=k=>Number(Q[k]||0).toLocaleString('pt-BR');
+  const depois=(P.saldos||[]).map(s=>`<li>${esc(s.nome)}: ${money(s.saldo_atual)} → <b>${money(s.saldo_depois)}</b></li>`).join('');
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal lg"><div class="modal-h"><h2>Confirmar limpeza</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box" style="border-color:var(--red)"><b>${esc(nome)}</b> (${esc(E.razao_social)}, CNPJ ${esc(E.cnpj||'—')}) · toda a movimentação</div>
+      <p style="line-height:1.6">Serão apagados <b>${n('contas_pagar')}</b> contas a pagar (${n('parcelas_pagar')} parcelas, ${money(Q.valor_pagar)}), <b>${n('contas_receber')}</b> contas a receber (${n('parcelas_receber')} parcelas, ${money(Q.valor_receber)}),
+      <b>${n('movimentos')}</b> movimentos (${n('pagamentos')} pagamentos, ${n('recebimentos')} recebimentos), <b>${n('conciliacoes')}</b> conciliações e ${n('extrato_importado')} linhas de extrato importado.
+      Recorrências: <b>${esc(LIMP_REC[rec])}</b>.</p>
+      <div>Saldos depois da limpeza:</div><ul style="margin:4px 0 8px 18px">${depois||'<li>sem contas financeiras</li>'}</ul>
+      <div class="hint">Tudo ou nada: se qualquer passo falhar, ou se algo mudou desde a prévia, nada é apagado. Não há como desfazer pela tela; a Auditoria guarda uma cópia de cada linha apagada, quem fez e quando.</div></div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn danger" id="mSave">Confirmo: limpar a movimentação de ${esc(nome)}</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  $('mSave').onclick=async ()=>{
+    $('mSave').disabled=true; $('mSave').textContent='Limpando…';
+    const { data:R, error }=await db.rpc('limpar_movimentacao',{p_company:P.empresa.id,p_recorrencias:rec,p_nome_confirmacao:$('lmNome').value,p_assinatura:P.assinatura});
+    if(error){ closeModal(); toast('Nada foi apagado: '+error.message,'err'); return; }
+    closeModal();
+    if(!R) toast('A limpeza foi concluída (fica registrada na Auditoria), mas a tela não recebeu o resumo. Confira a Auditoria.');
+    else toast(`Movimentação limpa: ${R.contas_pagar+R.contas_receber} conta(s), ${R.movimentos} movimento(s). Registrado na Auditoria.`);
+    limparGerarPrevia();
+  };
 }
 function openEmpForm(rec){
   const creating=!rec;
@@ -2797,7 +2966,7 @@ function faturaVenc(dataCompra, diaFech, diaVenc){
   if(day>diaFech) m+=1;                 // passou do fechamento -> próxima fatura
   if(!(diaVenc>diaFech)) m+=1;          // vencimento cai no mês seguinte ao fechamento
   const due=new Date(y,m,1); const last=new Date(due.getFullYear(),due.getMonth()+1,0).getDate();
-  due.setDate(Math.min(diaVenc,last)); return due.toISOString().slice(0,10);
+  due.setDate(Math.min(diaVenc,last)); return isoDataLocal(due);
 }
 async function renderCartoes(){
   $('main').innerHTML=`<div class="page-h"><h1>Cartões</h1><span class="scope">${companyId?'':'· todas as empresas'}</span></div>
@@ -2899,9 +3068,9 @@ async function openNovaDespCartao(){
       p_valor_total:val, p_primeiro_vencimento:venc, p_qtd_parcelas:parseInt($('dcParc').value||'1'), p_intervalo_meses:1,
       p_categoria_id:$('dcCat').value||null, p_cost_center_id:$('dcCC').value||null, p_financial_account_id:card.id,
       p_forma_pagamento:'cartao', p_data_emissao:dt, p_competencia:comp }, false);
-    $('mSave').disabled=false; $('mSave').textContent='Lançar';
     if(rc.cancelado) return;
     const { error }=rc;
+    $('mSave').disabled=false; $('mSave').textContent='Lançar';
     if(error){ toast('Erro: '+error.message,'err'); return; }
     closeModal(); toast('Despesa lançada no cartão!'); loadFaturas();
   };
@@ -2941,7 +3110,7 @@ async function openPagarFatura(fat, card){
 }
 
 /* ===================== IMPORTAR EXTRATO (OFX/CSV) ===================== */
-let impRows=[], impCard={};
+let impRows=[], impCard={}, impLinhas=[];
 const normDesc=s=>(s||'').toLowerCase().replace(/\s+/g,' ').trim();
 function parseDateFlex(s){
   s=(s||'').trim();
@@ -3012,15 +3181,13 @@ async function lerExtrato(){
   const text=await f.text();
   let rows = impCard.origem==='ofx'?parseOFX(text):parseCSV(text);
   if(!rows.length && impCard.origem==='csv'){ rows=parseOFX(text); if(rows.length) impCard.origem='ofx'; }
-  rows=rows.filter(r=>r.valor>0);   // movimento de valor zero não é lançamento
   if(!rows.length){ $('impArea').innerHTML='<div class="panel"><div class="empty">Não consegui ler movimentos nesse arquivo. Se for CSV, confira se tem colunas de Data, Descrição e Valor. OFX costuma funcionar direto.</div></div>'; return; }
 
-  // situação de cada linha conferida pelo SERVIDOR, com a mesma regra que a importação usa
-  impCard.linhas=rows.map(r=>({ data:r.data, descricao:r.descricao, documento:r.documento||null, valor:r.valor, tipo:r.tipo, fit_id:r.fit_id||null }));
-  const { data:prev, error:pe }=await db.rpc('previa_importacao',{ p_account:acc, p_linhas:impCard.linhas });
-  if(pe){ $('impArea').innerHTML=`<div class="panel"><div class="empty">Não consegui conferir o arquivo: ${esc(pe.message||String(pe))}</div></div>`; return; }
-  const situacao=new Map((prev||[]).map(x=>[x.i,x.status]));
-  impRows=rows.map((r,i)=>{ r.i=i; r.status=situacao.get(i)||'nova'; r.importar=(r.status==='nova'); return r; });
+  // prévia no servidor: duplicidade conferida no banco (chave por FITID ou conteúdo+ocorrência), sem limite de linhas
+  impLinhas=rows.map(r=>({data:r.data, valor:r.valor, tipo:r.tipo, descricao:r.descricao, documento:r.documento||null, fit_id:r.fit_id||null}));
+  const { data:prev, error:pe }=await db.rpc('previa_importacao',{ p_account:acc, p_linhas:impLinhas });
+  if(pe){ $('impArea').innerHTML=`<div class="panel"><div class="empty">Não foi possível conferir o arquivo: ${esc(pe.message)}</div></div>`; return; }
+  impRows=rows.map((r,i)=>{ const p=(prev||[])[i]||{}; r.status=p.status||'nova'; r.chave=p.chave; r.importar=(r.status==='nova'); return r; });
   drawImport();
 }
 function drawImport(){
@@ -3041,35 +3208,39 @@ function drawImport(){
   $('impConfirm').onclick=confirmarImport;
 }
 async function confirmarImport(){
-  const sel=impRows.filter(r=>r.importar);
-  if(!sel.length){ toast('Nenhum movimento marcado.','err'); return; }
+  const idx=impRows.map((r,i)=>r.importar?i:-1).filter(i=>i>=0);
+  if(!idx.length){ toast('Nenhum movimento marcado.','err'); return; }
   const btn=$('impConfirm'); btn.disabled=true; btn.textContent='Importando…';
   try{
-    // tudo numa chamada só: o servidor confere duplicidade de novo e grava tudo ou nada
-    const { data:res, error:ie }=await db.rpc('importar_extrato',{ p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:String(impCard.nome).slice(0,200),
-                                                                   p_linhas:impCard.linhas, p_importar:sel.map(r=>r.i) });
-    if(ie) throw ie;
-    const ids=(res&&res.ids)||[], qtd=(res&&res.importadas)||0, dupSrv=Math.max(0,((res&&res.duplicadas)||0)-impRows.filter(r=>r.status==='duplicada').length);
-    // regras automáticas (tarifas, transferências etc.) só nos movimentos que acabaram de entrar
+    // uma única transação no banco: lote + movimentos + controle; erro em qualquer linha desfaz tudo
+    const { data:r, error }=await db.rpc('importar_extrato',{ p_account:impCard.acc, p_origem:impCard.origem, p_nome_arquivo:impCard.nome, p_linhas:impLinhas, p_importar:idx });
+    if(error) throw error;
     let porRegra=0, errRegra=0;
-    if(ids.length){
-      const ap=await db.rpc('aplicar_regras_conciliacao',{ p_company:impCard.co, p_bank_transaction_ids:ids, p_somente_auto:true });
-      if(!ap.error && ap.data){ porRegra=ap.data.aplicados||0; errRegra=ap.data.erros||0; }
-    }
+    if((r.ids||[]).length){ const ap=await db.rpc('aplicar_regras_conciliacao',{ p_company:impCard.co, p_bank_transaction_ids:r.ids, p_somente_auto:true });
+      if(!ap.error && ap.data){ porRegra=ap.data.aplicados||0; errRegra=ap.data.erros||0; } }
     btn.disabled=false; btn.textContent='Importar selecionados';
-    toast(qtd+' movimento(s) importado(s)!'+(porRegra?` ${porRegra} resolvido(s) por regra.`:''));
-    $('impArea').innerHTML=`<div class="panel"><div class="empty">✅ ${qtd} movimentos lançados na conta.`+
-      (dupSrv?`<br>🔁 ${dupSrv} já tinham sido importados antes e foram ignorados.`:'')+
+    toast(r.importadas+' movimento(s) importado(s)!'+(porRegra?` ${porRegra} resolvido(s) por regra.`:''));
+    $('impArea').innerHTML=`<div class="panel"><div class="empty">✅ ${r.importadas} movimento(s) lançado(s) na conta.`+
+      (r.duplicadas?`<br>${r.duplicadas} já existiam e foram ignorados (duplicidade conferida no banco).`:'')+
       (porRegra?`<br>⚡ ${porRegra} já resolvido(s) automaticamente pelas regras.`:'')+
       (errRegra?`<br>⚠️ ${errRegra} regra(s) deram erro — confira na Conciliação.`:'')+
       `<br>Os demais estão esperando na <b>Conciliação</b>.</div></div>`;
-  }catch(err){ btn.disabled=false; btn.textContent='Importar selecionados'; toast('Erro: '+(err.message||err),'err'); }
+  }catch(err){ btn.disabled=false; btn.textContent='Importar selecionados'; toast('Nada foi importado. '+(err.message||err),'err'); }
 }
 
 /* ===================== CONCILIAÇÃO ===================== */
 let concState={bts:[],abertas:{receber:[],pagar:[]},tab:'conciliar',sel:new Set(),regras:new Map()};
 const rnd2=v=>Math.round(Number(v||0)*100)/100;
 function daysDiff(a,b){ return Math.abs(Math.round((new Date(a)-new Date(b))/86400000)); }
+// Ordena candidatos do "Escolher": valor EXATO sempre primeiro (ordenado por proximidade de data);
+// só depois entram os valores aproximados (valor parecido pesa mais que data entre eles)
+function scoreCandidato(dataRef, valorRef, item){
+  const dif=Math.abs(item.saldo-valorRef), exato=dif<0.01;
+  const dias=daysDiff(dataRef, item.vencimento);
+  if(exato) return dias;
+  const pct=item.saldo>0?dif/item.saldo:1;
+  return 1e6 + pct*1000 + dias;
+}
 function nameTokens(s){ return normDesc(s).split(/[^a-z0-9]+/).filter(w=>w.length>=4); }
 function descHit(btDesc, nome){ const d=normDesc(btDesc); return nameTokens(nome).some(t=>d.includes(t)); }
 function sugerir(bt, lista){ // lista de parcelas abertas (do tipo certo)
@@ -3118,7 +3289,7 @@ async function loadConciliacao(){
       const { data:bts, error }=await scopeQ(db.from('bank_transactions').select('id,data,descricao,valor,tipo,company_id').eq('conciliado',false).in('tipo',['entrada','saida'])).order('data');
       if(error) throw error;
       concState.bts=(bts||[]).map(b=>({...b,valor:Number(b.valor)}));
-      const sim=await db.rpc('simular_regras_conciliacao',{ p_company:companyId||null });
+      const sim=await db.rpc('simular_regras_conciliacao_json',{ p_company:companyId||null });
       concState.regras=new Map((sim.error?[]:(sim.data||[])).map(x=>[x.bank_transaction_id,x]));
       const bR=$('cncRegras'); if(bR){ bR.style.display=concState.regras.size?'':'none'; bR.textContent=`Aplicar regras (${concState.regras.size})`; }
       drawConciliar();
@@ -3238,7 +3409,7 @@ async function conciliarAltas(){
 // 1 movimento → 1 ou várias contas
 function openPickConc(bt){
   const V=bt.valor;
-  const lista=abertasPara(bt).slice().sort((a,b)=>Math.abs(a.saldo-V)-Math.abs(b.saldo-V));
+  const lista=abertasPara(bt).slice().sort((a,b)=>scoreCandidato(bt.data,V,a)-scoreCandidato(bt.data,V,b));
   const byId=Object.fromEntries(lista.map(x=>[x.id,x]));
   const sel=new Map(); let difT=null, filtro='';
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
@@ -3302,7 +3473,7 @@ function openPickVarios(){
   if(new Set(bts.map(b=>b.tipo)).size>1){ toast('Selecione só entradas ou só saídas.','err'); return; }
   if(new Set(bts.map(b=>b.company_id)).size>1){ toast('Selecione movimentos de uma empresa só.','err'); return; }
   const T=rnd2(bts.reduce((t,b)=>t+b.valor,0));
-  const lista=abertasPara(bts[0]).slice().sort((a,b)=>Math.abs(a.saldo-T)-Math.abs(b.saldo-T));
+  const lista=abertasPara(bts[0]).slice().sort((a,b)=>scoreCandidato(bts[0].data,T,a)-scoreCandidato(bts[0].data,T,b));
   let esc_id=null, difT=null, filtro='';
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
     <div class="modal-h"><h2>Conciliar ${bts.length} movimentos com uma conta</h2><button class="x" id="mx">×</button></div>
@@ -3818,14 +3989,195 @@ function acoesTituloLinha(tipo, t){
   const cancelaveis=t.parc.filter(p=>p.situacao!=='cancelado'&&Number(p[pagoKey]||0)===0).length;
   const canceladas=t.parc.filter(p=>p.situacao==='cancelado').length;
   let b='';
+  if(t.status!=='cancelado') b+=`<button class="lnk" data-editar-titulo="${t.id}">Editar</button>`;
+  b+=`<button class="lnk del" data-excluir-titulo="${t.id}">Excluir</button>`;
   if(t.status!=='cancelado'&&cancelaveis>0) b+=`<button class="lnk del" data-cancelar-titulo="${t.id}">Cancelar conta</button>`;
   if(canceladas>0) b+=`<button class="lnk" data-reativar-titulo="${t.id}">${t.status==='cancelado'?'Reativar conta':'Reativar parcelas canceladas'}</button>`;
-  if(!b) return '';
   return `<tr class="inst-row"><td colspan="8" style="padding-left:38px;font-size:12.5px"><span style="color:var(--muted);margin-right:8px">Ações da conta:</span>${b}</td></tr>`;
 }
 function ligarAcoesTitulo(area, tipo, lista, recarregar){
-  area.querySelectorAll('[data-cancelar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=lista.find(x=>x.id===b.dataset.cancelarTitulo); if(t) openMotivoTitulo('cancelar',tipo,t,recarregar); });
-  area.querySelectorAll('[data-reativar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=lista.find(x=>x.id===b.dataset.reativarTitulo); if(t) openMotivoTitulo('reativar',tipo,t,recarregar); });
+  const achar=id=>lista.find(x=>x.id===id);
+  area.querySelectorAll('[data-cancelar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.cancelarTitulo); if(t) openMotivoTitulo('cancelar',tipo,t,recarregar); });
+  area.querySelectorAll('[data-reativar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.reativarTitulo); if(t) openMotivoTitulo('reativar',tipo,t,recarregar); });
+  area.querySelectorAll('[data-editar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.editarTitulo); if(t) openEditarTitulo(tipo,t,recarregar); });
+  area.querySelectorAll('[data-excluir-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.excluirTitulo); if(t) openExcluirTitulo(tipo,t,recarregar); });
+}
+
+/* Editar / excluir conta (0026). Quem decide é o banco (perfil, mês fechado, baixas, conciliação);
+   a tela só mostra o que está travado e por quê, e oferece o caminho certo para desfazer. */
+const TITULO_CFG={
+  pagar:  {tab:'payables',   contra:'supplier_id', contraTab:'suppliers', contraLbl:'Fornecedor', forma:'forma_pagamento',   catTipo:'despesa', pagoLbl:'pagamento',  pagaLbl:'paga'},
+  receber:{tab:'receivables',contra:'customer_id', contraTab:'customers', contraLbl:'Cliente',    forma:'forma_recebimento', catTipo:'receita', pagoLbl:'recebimento',pagaLbl:'recebida'}};
+const PARC_ST={a_pagar:'Em aberto',a_receber:'Em aberto',pago:'Paga',pago_parcial:'Paga em parte',recebido:'Recebida',recebido_parcial:'Recebida em parte',cancelado:'Cancelada'};
+const mesAnoDe=d=>d?d.slice(5,7)+'/'+d.slice(0,4):'';
+function travaParcela(C,p){
+  if(p.status==='cancelado') return 'cancelada — reative para alterar';
+  if(p.periodo_fechado) return 'mês '+mesAnoDe(p.competencia)+' fechado — reabra em Fechamento mensal';
+  if((p.movimentos||[]).some(m=>m.via==='conciliacao')) return 'conciliada — desfaça na Conciliação para alterar';
+  if(Number(p.pago)>0||(p.movimentos||[]).length) return C.pagaLbl+' — estorne o '+C.pagoLbl+' para alterar';
+  return '';
+}
+async function openEditarTitulo(tipo, t, recarregar){
+  const C=TITULO_CFG[tipo];
+  const R=await Promise.all([
+    db.from(C.tab).select('*').eq('id',t.id).single(),
+    db.rpc('vinculos_titulo',{p_tipo:tipo,p_titulo_id:t.id}),
+    db.from(C.contraTab).select('id,razao_social,nome_fantasia').eq('company_id',t.company_id).order('razao_social'),
+    db.from('categories').select('id,nome').eq('company_id',t.company_id).eq('tipo',C.catTipo).order('nome'),
+    db.from('cost_centers').select('id,nome').eq('company_id',t.company_id).order('nome'),
+    db.from('financial_accounts').select('id,nome').eq('company_id',t.company_id).order('nome')]);
+  const falhou=R.find(r=>r.error); if(falhou){ toast('Erro: '+falhou.error.message,'err'); return; }
+  const [T,V,contra,cat,cc,acc]=R.map(r=>r.data);
+  if(!T||!V){ toast('Não foi possível carregar a conta (dados vazios). Tente de novo.','err'); return; }
+  const parcs=V.parcelas||[];
+  // VERSÃO BÁSICA: só título em aberto pode ser editado (nenhum campo) — pago/conciliado explica e oferece
+  // o desfazimento antes, igual já fazia a tela de Excluir.
+  if(T.status==='cancelado'){
+    $('modalRoot').innerHTML=`<div class="overlay"><div class="modal"><div class="modal-h"><h2>Editar conta a ${tipo==='pagar'?'pagar':'receber'}</h2><button class="x" id="mx">×</button></div>
+      <div class="modal-b"><div class="box"><b>${esc(t.descricao)}</b> · ${money(t.valor_total)}<br>Esta conta está <b>cancelada</b> e não pode ser editada. Reative a conta antes.</div></div>
+      <div class="modal-f"><button class="btn ghost" id="mCancel">Voltar</button></div></div></div>`;
+    $('mx').onclick=$('mCancel').onclick=closeModal; return;
+  }
+  const pend=[];
+  parcs.forEach(p=>{
+    const nome=`Parcela ${p.numero}/${p.total_parcelas} (venc. ${fmtDate(p.vencimento)}, ${money(p.valor)})`;
+    const movs=p.movimentos||[];
+    movs.filter(m=>m.via==='conciliacao').forEach(m=>pend.push(`<li>${nome}: <b>conciliada com o extrato</b> — movimento de ${fmtDate(m.data)}, ${money(m.valor)}. Desfazer a conciliação deixa o movimento no extrato, sem vínculo, e a parcela volta a em aberto; o saldo da conta não muda. <button class="lnk" data-desconc="${m.id}">Desfazer conciliação</button></li>`));
+    const manuais=movs.filter(m=>m.via!=='conciliacao');
+    if(!movs.some(m=>m.via==='conciliacao')&&(manuais.length||Number(p.pago)>0))
+      pend.push(`<li>${nome}: <b>${C.pagaLbl}</b>${manuais.map(m=>` em ${fmtDate(m.data)} (${money(m.valor)})`).join(',')}. Estornar apaga esse movimento do caixa — o saldo da conta volta ao que era antes do ${C.pagoLbl}. <button class="lnk" data-estornar="${p.id}">Estornar ${C.pagoLbl}</button></li>`);
+  });
+  if(T.status==='quitado'||pend.length){
+    $('modalRoot').innerHTML=`<div class="overlay"><div class="modal lg"><div class="modal-h"><h2>Editar conta a ${tipo==='pagar'?'pagar':'receber'}</h2><button class="x" id="mx">×</button></div>
+      <div class="modal-b"><div class="box"><b>${esc(t.descricao)}</b> · ${money(t.valor_total)} · ${parcs.length} parcela(s)</div>
+      <div class="box" style="margin-top:12px;border-color:var(--warn,#c80)"><b>Esta conta tem alteração financeira (pagamento/recebimento ou conciliação) e não pode ser editada enquanto isso durar. Desfaça antes:</b>
+        <ul style="margin:8px 0 0 18px;line-height:1.6">${pend.length?pend.join(''):'<li>Conta quitada — estorne o pagamento/recebimento de cada parcela.</li>'}</ul>
+        <div style="margin-top:8px">Depois de desfazer, volte aqui para editar normalmente.</div></div></div>
+      <div class="modal-f"><button class="btn ghost" id="mCancel">Voltar</button></div></div></div>`;
+    $('mx').onclick=$('mCancel').onclick=closeModal;
+    const reabrir=()=>{ recarregar(); openEditarTitulo(tipo,t,recarregar); };
+    $('modalRoot').querySelectorAll('[data-desconc]').forEach(b=>b.onclick=async ()=>{
+      if(!await confirmOver({titulo:'Desfazer conciliação',texto:'O movimento continua no extrato, sem vínculo, para ser conciliado com a conta certa. A parcela volta a em aberto.',ok:'Desfazer conciliação'})) return;
+      const { error:e }=await db.rpc('desconciliar_movimento',{p_bank_transaction_id:b.dataset.desconc});
+      if(e){ toast('Erro: '+e.message,'err'); return; } toast('Conciliação desfeita.'); reabrir(); });
+    $('modalRoot').querySelectorAll('[data-estornar]').forEach(b=>b.onclick=async ()=>{
+      if(!await confirmOver({titulo:'Estornar '+C.pagoLbl,texto:'O movimento do caixa desta parcela é apagado e a parcela volta a em aberto. Fica registrado na Auditoria.',ok:'Estornar'})) return;
+      const { error:e }=await db.rpc('estornar_baixa',{p_installment_id:b.dataset.estornar,p_tipo:tipo});
+      if(e){ toast('Erro: '+e.message,'err'); return; } toast(C.pagoLbl.charAt(0).toUpperCase()+C.pagoLbl.slice(1)+' estornado.'); reabrir(); });
+    return;
+  }
+  const opt=(arr,sel,lbl)=>'<option value="">—</option>'+(arr||[]).map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${esc(lbl(x))}</option>`).join('');
+  const formas=[['pix','PIX'],['boleto','Boleto'],['transferencia','Transferência'],['cartao','Cartão'],['dinheiro','Dinheiro'],['outro','Outro']];
+  const linhas=parcs.map(p=>{ const tr=travaParcela(C,p);
+    return `<tr><td>${p.numero}/${p.total_parcelas}</td>
+      <td><input type="date" data-pvenc="${p.id}" value="${esc(p.vencimento)}" ${tr?'disabled':''}></td>
+      <td class="r"><input type="number" step="0.01" min="0.01" data-pval="${p.id}" value="${Number(p.valor).toFixed(2)}" ${tr?'disabled':''} style="text-align:right;width:120px"></td>
+      <td style="font-size:12px;color:var(--muted)">${esc(PARC_ST[p.status]||p.status)}${tr?' · '+esc(tr):''}</td></tr>`; }).join('');
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal lg">
+    <div class="modal-h"><h2>Editar conta a ${tipo==='pagar'?'pagar':'receber'}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b">
+      <div class="field"><label>Descrição *</label><input id="teDesc" value="${esc(T.descricao)}"></div>
+      <div class="row2">
+        <div class="field"><label>${C.contraLbl}</label><select id="teContra">${opt(contra,T[C.contra],x=>x.nome_fantasia||x.razao_social)}</select></div>
+        <div class="field"><label>Documento</label><input id="teDoc" value="${esc(T.documento||'')}"></div></div>
+      <div class="row2">
+        <div class="field"><label>Categoria</label><select id="teCat">${opt(cat,T.categoria_id,x=>x.nome)}</select></div>
+        <div class="field"><label>Centro de custo</label><select id="teCC">${opt(cc,T.cost_center_id,x=>x.nome)}</select></div></div>
+      <div class="row2">
+        <div class="field"><label>Conta financeira</label><select id="teAcc">${opt(acc,T.financial_account_id,x=>x.nome)}</select></div>
+        <div class="field"><label>Forma de ${C.pagoLbl}</label><select id="teForma"><option value="">—</option>${formas.map(([v,l])=>`<option value="${v}" ${T[C.forma]===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+      <div class="row2">
+        <div class="field"><label>Data de emissão</label><input id="teEmis" type="date" value="${esc(T.data_emissao||'')}"></div>
+        <div class="field"><label>Observação</label><input id="teObs" value="${esc(T.observacao||'')}"></div></div>
+      <div style="font-weight:600;margin:14px 0 6px">Parcelas</div>
+      <table><thead><tr><th>Nº</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody>${linhas}</tbody>
+        <tfoot><tr><td colspan="2" class="r"><b>Total</b></td><td class="r"><b id="teTot"></b></td><td></td></tr></tfoot></table>
+      <div class="hint">Mudar o vencimento não muda a competência (o mês contábil da parcela continua o mesmo). Só dá para alterar parcela fora de mês fechado. A alteração fica registrada na Auditoria (antes e depois).</div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mSave">Salvar alterações</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  const somar=()=>{ $('teTot').textContent=money(parcs.reduce((s,p)=>{ const i=$('modalRoot').querySelector(`[data-pval="${p.id}"]`); return s+(parseFloat(i.value)||0); },0)); };
+  $('modalRoot').querySelectorAll('[data-pval]').forEach(i=>i.oninput=somar); somar();
+  $('mSave').onclick=async ()=>{
+    const d={}, mudou=(k,v,orig)=>{ if((v||null)!==(orig||null)) d[k]=v||null; };
+    const desc=$('teDesc').value.trim(); if(!desc){ toast('Informe a descrição.','err'); return; }
+    if(desc!==T.descricao) d.descricao=desc;
+    mudou('documento',$('teDoc').value.trim(),T.documento);
+    mudou('contraparte_id',$('teContra').value,T[C.contra]);
+    mudou('categoria_id',$('teCat').value,T.categoria_id);
+    mudou('cost_center_id',$('teCC').value,T.cost_center_id);
+    mudou('financial_account_id',$('teAcc').value,T.financial_account_id);
+    mudou('data_emissao',$('teEmis').value,T.data_emissao);
+    mudou('forma',$('teForma').value,T[C.forma]);
+    mudou('observacao',$('teObs').value.trim(),T.observacao);
+    const ps=[];
+    for(const p of parcs){
+      const iv=$('modalRoot').querySelector(`[data-pval="${p.id}"]`), dv=$('modalRoot').querySelector(`[data-pvenc="${p.id}"]`);
+      if(iv.disabled) continue;
+      const nv=Math.round((parseFloat(iv.value)+Number.EPSILON)*100)/100;
+      if(!(nv>0)){ toast(`Valor da parcela ${p.numero} inválido.`,'err'); return; }
+      if(!dv.value){ toast(`Informe o vencimento da parcela ${p.numero}.`,'err'); return; }
+      if(nv!==Number(p.valor)||dv.value!==p.vencimento) ps.push({id:p.id,valor:nv,vencimento:dv.value});
+    }
+    if(ps.length) d.parcelas=ps;
+    if(!Object.keys(d).length){ toast('Nada foi alterado.'); return; }
+    $('mSave').disabled=true;
+    const { data:RE, error }=await db.rpc('editar_titulo',{p_tipo:tipo,p_titulo_id:t.id,p_dados:d});
+    if(error){ $('mSave').disabled=false; toast('Erro: '+error.message,'err'); return; }
+    closeModal();
+    if(RE && RE.alterado===false) toast('Nada mudou: os dados já estavam assim (alguém pode ter salvo a mesma alteração antes de você).');
+    else toast('Conta atualizada. A alteração ficou registrada na Auditoria.');
+    recarregar();
+  };
+}
+async function openExcluirTitulo(tipo, t, recarregar){
+  const C=TITULO_CFG[tipo];
+  const { data:V, error }=await db.rpc('vinculos_titulo',{p_tipo:tipo,p_titulo_id:t.id});
+  if(error){ toast('Erro: '+error.message,'err'); return; }
+  if(!V){ toast('Não foi possível carregar os vínculos da conta (dados vazios). Tente de novo.','err'); return; }
+  const parcs=V.parcelas||[], pend=[];
+  parcs.forEach(p=>{
+    const nome=`Parcela ${p.numero}/${p.total_parcelas} (venc. ${fmtDate(p.vencimento)}, ${money(p.valor)})`;
+    const movs=p.movimentos||[];
+    movs.filter(m=>m.via==='conciliacao').forEach(m=>pend.push(`<li>${nome}: <b>conciliada com o extrato</b> — movimento de ${fmtDate(m.data)}, ${money(m.valor)}. Desfazer a conciliação deixa o movimento no extrato, sem vínculo, e a parcela volta a em aberto; o saldo da conta não muda. <button class="lnk" data-desconc="${m.id}">Desfazer conciliação</button></li>`));
+    const manuais=movs.filter(m=>m.via!=='conciliacao');
+    if(!movs.some(m=>m.via==='conciliacao')&&(manuais.length||Number(p.pago)>0))
+      pend.push(`<li>${nome}: <b>${C.pagaLbl}</b>${manuais.map(m=>` em ${fmtDate(m.data)} (${money(m.valor)})`).join(',')}. Estornar apaga esse movimento do caixa — o saldo da conta volta ao que era antes do ${C.pagoLbl}. <button class="lnk" data-estornar="${p.id}">Estornar ${C.pagoLbl}</button></li>`);
+    if(p.dda) pend.push(`<li>${nome}: vinculada a um <b>boleto DDA</b>. Desvincule na tela DDA antes de excluir.</li>`);
+    if(p.periodo_fechado) pend.push(`<li>${nome}: competência em <b>mês fechado</b> (${mesAnoDe(p.competencia)}). Reabra o mês antes de excluir. <button class="lnk" data-irfech>Abrir Fechamento mensal</button></li>`);
+  });
+  const tabela=`<table><thead><tr><th>Parcela</th><th>Vencimento</th><th class="r">Valor</th><th>Situação</th></tr></thead><tbody>${parcs.map(p=>`<tr><td>${p.numero}/${p.total_parcelas}</td><td>${fmtDate(p.vencimento)}</td><td class="r">${money(p.valor)}</td><td>${esc(PARC_ST[p.status]||p.status)}</td></tr>`).join('')}</tbody></table>`;
+  const extras=[V.documentos?`${V.documentos} documento(s) anexado(s) continuam em Documentos, sem vínculo com a conta.`:'',
+                V.rateio?'O rateio entre centros de custo desta conta também é apagado.':''].filter(Boolean).join(' ');
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal lg"><div class="modal-h"><h2>Excluir conta a ${tipo==='pagar'?'pagar':'receber'}</h2><button class="x" id="mx">×</button></div>
+    <div class="modal-b"><div class="box"><b>${esc(t.descricao)}</b> · ${money(t.valor_total)} · ${parcs.length} parcela(s)</div>${tabela}
+      ${pend.length?`<div class="box" style="margin-top:12px;border-color:var(--warn,#c80)"><b>Antes de excluir, desfaça estes vínculos:</b><ul style="margin:8px 0 0 18px;line-height:1.6">${pend.join('')}</ul>
+        <div style="margin-top:8px">Se o ${C.pagoLbl} aconteceu de verdade e a conta não foi criada por engano, use <b>Cancelar conta</b> em vez de excluir.</div></div>`
+      :`<div class="box" style="margin-top:12px">A conta e ${parcs.length===1?'a parcela':'as '+parcs.length+' parcelas'} acima serão <b>apagadas</b> e saem dos totais, do fluxo e da DRE. O saldo das contas bancárias não muda (não há ${C.pagoLbl} lançado). Uma cópia completa, com o motivo, fica registrada na Auditoria. ${esc(extras)}</div>
+        <div class="field"><label>Motivo *</label><textarea id="exMot" rows="2" placeholder="Ex.: lançada em duplicidade por engano"></textarea></div>`}
+    </div>
+    <div class="modal-f"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn danger" id="mSave" ${pend.length?'disabled':''}>Excluir conta</button></div></div></div>`;
+  $('mx').onclick=$('mCancel').onclick=closeModal;
+  const reabrir=()=>{ recarregar(); openExcluirTitulo(tipo,t,recarregar); };
+  $('modalRoot').querySelectorAll('[data-desconc]').forEach(b=>b.onclick=async ()=>{
+    if(!await confirmOver({titulo:'Desfazer conciliação',texto:'O movimento continua no extrato, sem vínculo, para ser conciliado com a conta certa. A parcela volta a em aberto.',ok:'Desfazer conciliação'})) return;
+    const { error:e }=await db.rpc('desconciliar_movimento',{p_bank_transaction_id:b.dataset.desconc});
+    if(e){ toast('Erro: '+e.message,'err'); return; } toast('Conciliação desfeita.'); reabrir(); });
+  $('modalRoot').querySelectorAll('[data-estornar]').forEach(b=>b.onclick=async ()=>{
+    if(!await confirmOver({titulo:'Estornar '+C.pagoLbl,texto:'O movimento do caixa desta parcela é apagado e a parcela volta a em aberto. Fica registrado na Auditoria.',ok:'Estornar'})) return;
+    const { error:e }=await db.rpc('estornar_baixa',{p_installment_id:b.dataset.estornar,p_tipo:tipo});
+    if(e){ toast('Erro: '+e.message,'err'); return; } toast(C.pagoLbl.charAt(0).toUpperCase()+C.pagoLbl.slice(1)+' estornado.'); reabrir(); });
+  $('modalRoot').querySelectorAll('[data-irfech]').forEach(b=>b.onclick=()=>{ closeModal(); setView('fechamento'); });
+  if(!pend.length) $('mSave').onclick=async ()=>{
+    const mot=$('exMot').value.trim(); if(mot.length<5){ toast('Informe o motivo (mínimo 5 caracteres).','err'); return; }
+    $('mSave').disabled=true;
+    const { data, error:e }=await db.rpc('excluir_titulo',{p_tipo:tipo,p_titulo_id:t.id,p_motivo:mot});
+    if(e){ $('mSave').disabled=false; toast('Erro: '+e.message,'err'); return; }
+    closeModal();
+    if(!data) toast('A conta foi excluída (fica registrada na Auditoria), mas a tela não recebeu o resumo. Confira a Auditoria.');
+    else toast(`Conta excluída (${data.parcelas_excluidas} parcela(s)). A cópia completa ficou na Auditoria.`);
+    recarregar();
+  };
 }
 function openMotivoTitulo(acao, tipo, t, recarregar){
   const cancelar=acao==='cancelar';
@@ -3919,7 +4271,7 @@ async function renderCustos(){
 async function loadCustos(){
   $('cuArea').innerHTML='<div class="loading">Calculando…</div>';
   try{
-    const { data, error }=await db.rpc('custos_por_cc',{ p_company:companyId||null, p_ini:mesIni(cuAno,cuMes||1), p_fim:mesIni(cuAno,cuMes||12) });
+    const { data, error }=await db.rpc('custos_por_cc_json',{ p_company:companyId||null, p_ini:mesIni(cuAno,cuMes||1), p_fim:mesIni(cuAno,cuMes||12) });
     if(error) throw error;
     cuData=(data||[]).map(d=>({...d, valor:Number(d.valor)}));
     // opções do filtro de centro de custo
@@ -4009,7 +4361,7 @@ function drawCustosCat(){
 }
 // CSV genérico pro Excel (; e vírgula decimal, BOM pros acentos)
 function baixarCsv(arquivo, titulo, head, rows){
-  const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const q=s=>`"${csvSeguro(s).replace(/"/g,'""')}"`;
   const cel=v=>typeof v==='number'?(Math.round(v*100)/100).toFixed(2).replace('.',','):q(v);
   const out=[[q(titulo)],head.map(q),...rows.map(r=>r.map(cel))].map(r=>r.join(';')).join('\r\n');
   const blob=new Blob(['\ufeff'+out],{type:'text/csv;charset=utf-8'});
@@ -4133,12 +4485,13 @@ async function loadProjecao(){
     const hoje=todayStr(); const [y,m]=[+hoje.slice(0,4),+hoje.slice(5,7)]; const [fy,fm]=addMes(y,m,pjMeses);
     const ate=pjAddDias(`${fy}-${String(fm).padStart(2,'0')}-01`,-1);
     const [base,res]=await Promise.all([ db.rpc('projecao_base',{ p_company:companyId||null, p_ate:ate }), db.rpc('resumo_financeiro',{ p_company:companyId||null }) ]);
+    if(!$('pjArea')) return;   // o usuário trocou de tela durante a carga
     if(base.error) throw base.error; if(res.error) throw res.error;
     pjBase=base.data||{itens:[]};
     const R=(res.data||[]).reduce((s,x)=>{ s.saldo+=Number(x.saldo||0); s.ab+=Number(x.receber_aberto||0); s.ve+=Number(x.receber_vencido||0); return s; },{saldo:0,ab:0,ve:0});
     pjSaldo=R.saldo; pjInadAtual=R.ab?R.ve/R.ab*100:null;
     drawProjecao();
-  }catch(err){ $('pjArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_projecao.sql?</div></div>`; }
+  }catch(err){ if($('pjArea')) $('pjArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(err.message||err)}<br>Rodou o candidus_projecao.sql?</div></div>`; }
 }
 function drawProjecao(){
   const hoje=todayStr(), itens=pjBase.itens||[];
@@ -4337,11 +4690,12 @@ async function gerarPrevia(soReMontar){
     $('relStatus').style.display=''; $('relStatus').textContent='Montando relatório…';
     const chave=relCfg.co+'|'+relCfg.mes;
     if(!soReMontar || !relDadosCache || relDadosCache.chave!==chave){ relDadosCache=await relDados(relCfg); relDadosCache.chave=chave; }
+    if(!$('relStatus')) return;   // o usuário trocou de tela durante a carga
     const html=montarRelatorioHtml(relCfg, relDadosCache);
     const f=$('relFrame'); if(f) f.srcdoc=html;
     $('relStatus').style.display='none';
     return html;
-  }catch(err){ $('relStatus').style.display=''; $('relStatus').innerHTML=`Erro: ${esc(err.message||err)}`; }
+  }catch(err){ if(!$('relStatus')) return; $('relStatus').style.display=''; $('relStatus').innerHTML=`Erro: ${esc(err.message||err)}`; }
 }
 // busca tudo que o relatório precisa (somas no banco)
 async function relDados(cfg){
@@ -4354,7 +4708,7 @@ async function relDados(cfg){
     dreRealizado(co, mesIni(Math.min(ia,ano),Math.min(ia,ano)===ano?1:im), mesIni(ano,m)),
     db.rpc('fluxo_mensal',{ p_company:co }),
     co?db.from('financial_accounts').select('saldo_inicial').eq('company_id',co):db.from('financial_accounts').select('saldo_inicial'),
-    db.rpc('custos_por_cc',{ p_company:co, p_ini:mesIni(ano,m), p_fim:mesIni(ano,m) }),
+    db.rpc('custos_por_cc_json',{ p_company:co, p_ini:mesIni(ano,m), p_fim:mesIni(ano,m) }),
     db.rpc('resumo_financeiro',{ p_company:co }),
     co?db.from('periodos_fechados').select('fechado_em,profiles(nome,email)').eq('company_id',co).eq('competencia',mesIni(ano,m)):Promise.resolve({data:[]}),
     db.rpc('projecao_base',{ p_company:co, p_ate:projAte }),
@@ -4377,7 +4731,7 @@ function montarRelatorioHtml(cfg, D){
   const ah=(a,b)=>b?(a-b)/Math.abs(b)*100:null;
   // caixa
   const F=D.fluxo; const real=ym=>F.find(x=>x.ym===ym)||{real_e:0,real_s:0};
-  const saldoAte=ym=>D.base+F.filter(x=>x.ym<=ym).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s),0);
+  const saldoAte=ym=>D.base+F.filter(x=>x.ym<=ym).reduce((s,x)=>s+Number(x.real_e)-Number(x.real_s)+Number(x.transf_e||0)-Number(x.transf_s||0),0);
   const ym0=`${ano}-${String(m).padStart(2,'0')}`, ymP=`${pa}-${String(pm).padStart(2,'0')}`;
   const ent=Number(real(ym0).real_e), sai=Number(real(ym0).real_s), saldoFim=saldoAte(ym0), saldoFimP=saldoAte(ymP);
   const blocos=[];
@@ -4828,7 +5182,7 @@ async function renderAlertas(){
   document.querySelectorAll('[data-alsev]').forEach(b=>b.onclick=()=>{ alSevFiltro=b.dataset.alsev; document.querySelectorAll('[data-alsev]').forEach(x=>x.classList.toggle('on',x===b)); drawAlertas(); });
   await loadAlertas(); renderAlertasCfg();
 }
-async function loadAlertas(){ $('alArea').innerHTML='<div class="loading">Verificando…</div>'; await carregarAlertas(); drawAlertas(); }
+async function loadAlertas(){ $('alArea').innerHTML='<div class="loading">Verificando…</div>'; await carregarAlertas(); if(!$('alArea')) return; drawAlertas(); }
 function drawAlertas(){
   const L=alertasCache.filter(a=>!alSevFiltro||a.sev===alSevFiltro);
   const cont=s=>alertasCache.filter(a=>a.sev===s).length;
@@ -4873,6 +5227,123 @@ async function renderAlertasCfg(){
   draw();
 }
 
+/* ===================== EXPORTAÇÃO DE DADOS ===================== */
+const EXP_DATASETS=[
+  ['vw_contas_receber','Contas a receber (parcelas)'],['vw_contas_pagar','Contas a pagar (parcelas)'],
+  ['bank_transactions','Movimentos bancários'],['conciliacao_itens','Conciliações (itens)'],['customers','Clientes'],['suppliers','Fornecedores'],
+  ['categories','Categorias'],['cost_centers','Centros de custo'],['financial_accounts','Contas financeiras'],['recurring_entries','Recorrentes'],
+  ['conciliation_rules','Regras de conciliação'],['import_batches','Lotes de importação'],['rateio_centro_custo','Rateios'],['periodos_fechados','Meses fechados'],
+];
+// CSV genérico de linhas (todas as colunas); listas vêm completas (paginação automática do cliente)
+function linhasParaCsv(arquivo, titulo, rows){
+  if(!rows.length){ toast('Nada para exportar.','err'); return; }
+  const cols=Object.keys(rows[0]).filter(k=>typeof rows[0][k]!=='object'||rows[0][k]===null);
+  const cel=v=>v==null?'':(typeof v==='number'?String(v).replace('.',','):(/^-?\d+(\.\d+)?$/.test(String(v))&&String(v).includes('.')?String(v).replace('.',','):String(v)));
+  baixarCsv(arquivo, titulo, ['empresa',...cols], rows.map(r=>[r.company_id?coName(r.company_id):'',...cols.map(c=>cel(r[c]))]));
+}
+async function exportarDataset(tabela, nome){
+  try{
+    const { data, error }=await scopeQ(db.from(tabela).select('*'));
+    if(error) throw error;
+    const sufixo=companyId?coName(companyId).replace(/\W+/g,'_'):'todas';
+    linhasParaCsv(`${tabela}_${sufixo}_${todayStr()}.csv`, `${nome} — ${companyId?coName(companyId):'todas as empresas'} — exportado em ${new Date().toLocaleString('pt-BR')}`, data||[]);
+    toast(`${(data||[]).length} linha(s) exportada(s).`);
+  }catch(err){ toast('Erro: '+(err.message||err),'err'); }
+}
+async function renderExportar(){
+  $('main').innerHTML=`<div class="page-h"><h1>Exportar dados</h1><span class="scope">${companyId?esc(coName(companyId)):'· todas as empresas'}</span></div>
+    <div class="updated">Baixa os dados completos em CSV (abre no Excel). Escolha a empresa no seletor do topo; “Todas as empresas” exporta tudo que você acessa.</div>
+    <div class="panel">${EXP_DATASETS.map(([t,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)"><span>${n}</span><button class="btn ghost" data-exp="${t}">Baixar CSV</button></div>`).join('')}</div>`;
+  document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>exportarDataset(b.dataset.exp, EXP_DATASETS.find(x=>x[0]===b.dataset.exp)[1]));
+}
+/* ===================== AUDITORIA (consulta) ===================== */
+let auPag=0, auFiltro={ini:'',fim:'',tabela:'',acao:''};
+async function renderAuditoria(){
+  if(!auFiltro.ini){ const h=todayStr(); auFiltro.ini=h.slice(0,8)+'01'; auFiltro.fim=h; }
+  $('main').innerHTML=`<div class="page-h"><h1>Auditoria</h1><span class="scope">${companyId?esc(coName(companyId)):'· todas as empresas'}</span><div class="spacer"></div><button class="btn ghost" id="auCsv">Exportar CSV</button></div>
+    <div class="updated">Histórico de ações e alterações (quem, quando, o quê). Registrado pelo servidor; não pode ser alterado nem apagado. Visível para administrador (e gestor, nas empresas dele).</div>
+    <div class="filters">
+      <div class="fg"><label>De</label><input id="auIni" type="date" value="${auFiltro.ini}"></div>
+      <div class="fg"><label>Até</label><input id="auFim" type="date" value="${auFiltro.fim}"></div>
+      <div class="fg"><label>Tabela</label><input id="auTab" value="${esc(auFiltro.tabela)}" placeholder="ex.: payables"></div>
+      <div class="fg"><label>Ação contém</label><input id="auAcao" value="${esc(auFiltro.acao)}" placeholder="ex.: baixa, update"></div>
+    </div><div id="auArea"><div class="loading">Carregando…</div></div>`;
+  const ler=()=>{ auFiltro={ini:$('auIni').value,fim:$('auFim').value,tabela:$('auTab').value.trim(),acao:$('auAcao').value.trim()}; auPag=0; loadAuditoria(); };
+  ['auIni','auFim'].forEach(id=>$(id).onchange=ler); ['auTab','auAcao'].forEach(id=>$(id).onchange=ler);
+  $('auCsv').onclick=async ()=>{ const { data, error }=await auQuery(false); if(error){ toast('Erro: '+error.message,'err'); return; }
+    baixarCsv(`auditoria_${auFiltro.ini}_${auFiltro.fim}.csv`,`Auditoria ${auFiltro.ini} a ${auFiltro.fim}`,['Data/hora','Empresa','Usuário','Ação','Tabela','Registro','Antes','Depois'],
+      (data||[]).map(a=>[new Date(a.quando).toLocaleString('pt-BR'),a.company_id?coName(a.company_id):'',a.quem||'',a.acao,a.tabela,a.registro_id||'',JSON.stringify(a.antes||''),JSON.stringify(a.depoisnovo||'')])); };
+  await loadAuditoria();
+}
+function auQuery(paginado){
+  // vw_auditoria (s4b): já traz quem (e-mail ou origem) e respeita o RLS de audit_logs
+  let q=scopeQ(db.from('vw_auditoria').select('id,quando,company_id,user_id,acao,tabela,registro_id,antes,depois,quem,origem',paginado?{count:'exact'}:undefined))
+    .gte('quando',auFiltro.ini+'T00:00:00-03:00').lte('quando',auFiltro.fim+'T23:59:59-03:00').order('quando',{ascending:false});
+  if(auFiltro.tabela) q=q.eq('tabela',auFiltro.tabela);
+  if(auFiltro.acao) q=q.ilike('acao','%'+auFiltro.acao+'%');
+  if(paginado) q=q.range(auPag*50, auPag*50+49);
+  return q;
+}
+let auRows=[];
+async function loadAuditoria(){
+  $('auArea').innerHTML='<div class="loading">Carregando…</div>';
+  const { data, error, count }=await auQuery(true);
+  if(error){ $('auArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(error.message)}</div></div>`; return; }
+  const L=data||[], tot=count||0, pags=Math.max(1,Math.ceil(tot/50));
+  auRows=L;
+  const resumo=v=>{ if(!v) return ''; const s=JSON.stringify(v); return esc(s.length>160?s.slice(0,160)+'…':s); };
+  $('auArea').innerHTML=`<div class="panel">${L.length?`<div style="overflow-x:auto"><table><thead><tr><th>Data/hora</th>${companyId?'':'<th>Empresa</th>'}<th>Usuário</th><th>Ação</th><th>Tabela</th><th>Antes → depois</th></tr></thead><tbody>
+    ${L.map((a,i)=>`<tr><td style="white-space:nowrap">${new Date(a.quando).toLocaleString('pt-BR')}</td>${companyId?'':`<td>${a.company_id?esc(coName(a.company_id)):'—'}</td>`}
+      <td>${a.user_id||a.quem&&a.quem.includes('@')?esc(a.quem):'<span class="dre-av">'+esc(a.quem||'sistema')+'</span>'}</td><td>${esc(a.acao)}</td><td>${esc(a.tabela||'')}</td>
+      <td style="font-size:12px;max-width:520px">${a.antes?`<div class="dre-av">antes: ${resumo(a.antes)}</div>`:''}${a.depois?`<div>depois: ${resumo(a.depois)}</div>`:''}
+        ${(a.antes||a.depois)?`<button class="btn ghost" style="padding:2px 8px;font-size:11px;margin-top:4px" data-au-ver="${i}">Ver tudo</button>`:''}</td></tr>`).join('')}</tbody></table></div>`
+    :'<div class="empty">Nenhum registro no período (ou seu perfil não tem acesso à auditoria).</div>'}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px"><span>${tot} registro(s)</span>
+      <span><button class="btn ghost" id="auPrev" ${auPag===0?'disabled':''}>‹ Anterior</button> página ${auPag+1} de ${pags} <button class="btn ghost" id="auNext" ${auPag+1>=pags?'disabled':''}>Próxima ›</button></span></div></div>`;
+  if($('auPrev')) $('auPrev').onclick=()=>{ auPag=Math.max(0,auPag-1); loadAuditoria(); };
+  if($('auNext')) $('auNext').onclick=()=>{ auPag++; loadAuditoria(); };
+  document.querySelectorAll('[data-au-ver]').forEach(b=>b.onclick=()=>abrirDetalheAuditoria(auRows[+b.dataset.auVer]));
+}
+/* Detalhe completo do "antes → depois" (sem corte de 160 caracteres), para conferir qualquer campo, inclusive subtotal */
+function abrirDetalheAuditoria(a){
+  const pretty=v=>v?esc(JSON.stringify(v,null,2)):'(vazio)';
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal xl">
+    <div class="modal-h"><h2>Detalhe da auditoria</h2><button class="x" id="adX">×</button></div>
+    <div class="modal-b">
+      <div class="updated" style="margin-bottom:12px">${new Date(a.quando).toLocaleString('pt-BR')} · ${a.company_id?esc(coName(a.company_id)):'—'} · ${esc(a.quem||'sistema')} · ${esc(a.acao)} · ${esc(a.tabela||'')}${a.registro_id?' · registro '+esc(a.registro_id):''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><div style="font-weight:600;margin-bottom:6px;color:var(--muted)">Antes</div><pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:60vh;overflow:auto">${pretty(a.antes)}</pre></div>
+        <div><div style="font-weight:600;margin-bottom:6px;color:var(--muted)">Depois</div><pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:60vh;overflow:auto">${pretty(a.depois)}</pre></div>
+      </div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" id="adClose">Fechar</button></div>
+  </div></div>`;
+  $('adX').onclick=$('adClose').onclick=closeModal;
+}
+/* ===================== RECUPERAÇÃO DE SENHA (fluxo do Supabase) ===================== */
+async function esqueciSenha(){
+  const email=($('email').value||'').trim();
+  if(!email){ showLoginMsg('Digite seu e-mail no campo acima e clique de novo em “Esqueci minha senha”.'); return; }
+  const { error }=await db.auth.resetPasswordForEmail(email,{ redirectTo: location.origin+location.pathname });
+  // resposta igual para e-mail existente ou não (não revela quem tem conta)
+  showLoginMsg(error&&!/rate|limit/i.test(error.message)?'Não foi possível enviar agora. Tente de novo em alguns minutos.':'Se este e-mail tiver acesso, você vai receber um link para criar uma nova senha.');
+}
+function abrirNovaSenha(){
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Criar nova senha</h2></div>
+    <div class="modal-b"><div class="field"><label>Nova senha (mínimo 8 caracteres)</label><input id="ns1" type="password" autocomplete="new-password"></div>
+      <div class="field"><label>Repita a nova senha</label><input id="ns2" type="password" autocomplete="new-password"></div></div>
+    <div class="modal-f"><button class="btn" id="nsSalvar">Salvar nova senha</button></div></div></div>`;
+  $('nsSalvar').onclick=async ()=>{
+    const a=$('ns1').value, b=$('ns2').value;
+    if(a.length<8){ toast('A senha precisa ter pelo menos 8 caracteres.','err'); return; }
+    if(a!==b){ toast('As senhas não conferem.','err'); return; }
+    $('nsSalvar').disabled=true;
+    const { error }=await db.auth.updateUser({ password:a });
+    if(error){ $('nsSalvar').disabled=false; toast('Erro: '+error.message,'err'); return; }
+    closeModal(); toast('Senha alterada.'); history.replaceState(null,'',location.pathname);
+  };
+}
+
 /* ===================== BAIXA EM LOTE ===================== */
 let blState={co:'',tipo:'pagar',venc:'todas',rows:[],sel:new Set(),accs:[]};
 async function renderBaixaLote(){
@@ -4901,8 +5372,8 @@ async function loadBaixaLote(){
     if(tipo==='receber') q=db.from('receivable_installments').select('id,vencimento,valor,valor_recebido,saldo,status, receivables(descricao,customers(razao_social,nome_fantasia))').eq('company_id',co).in('status',['a_receber','recebido_parcial']);
     else q=db.from('payable_installments').select('id,vencimento,valor,valor_pago,saldo,status, payables(descricao,suppliers(razao_social,nome_fantasia))').eq('company_id',co).in('status',['a_pagar','pago_parcial']);
     if(blState.venc==='hoje') q=q.lte('vencimento',todayStr());
-    else if(blState.venc==='7') q=q.lte('vencimento',new Date(Date.now()+7*86400000).toISOString().slice(0,10));
-    else if(blState.venc==='30') q=q.lte('vencimento',new Date(Date.now()+30*86400000).toISOString().slice(0,10));
+    else if(blState.venc==='7') q=q.lte('vencimento',somaDiasISO(todayStr(),7));
+    else if(blState.venc==='30') q=q.lte('vencimento',somaDiasISO(todayStr(),30));
     q=q.order('vencimento').limit(300);
     const { data,error }=await q; if(error) throw error;
     blState.rows=(data||[]).filter(r=>Number(r.saldo)>0).map(r=>{
@@ -4961,6 +5432,137 @@ async function confirmarBaixaLote(){
 /* ===================== LANÇAMENTOS RECORRENTES ===================== */
 const PERIOD={semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal',trimestral:'Trimestral',anual:'Anual'};
 let recRows=[];
+/* ===================== 2FA (autenticação em dois fatores, TOTP do Supabase) =====================
+   O banco decide (minha_seguranca/is_admin, migração 0013): com a exigência ligada, administrador sem 2º fator
+   não lê nem grava nada. Aqui o front só leva a pessoa ao cadastro ou à confirmação do código. */
+async function garantir2FA(){
+  let seg=null; try{ const r=await db.rpc('minha_seguranca'); seg=r.data; }catch(e){}
+  if(!seg||!seg.exige_2fa||seg.sessao_2fa) return true;
+  if(!db.auth.mfa){ toast('Este acesso exige autenticação em dois fatores, indisponível neste ambiente.','err'); return false; }
+  const { data:f }=await db.auth.mfa.listFactors();
+  const totp=((f&&f.totp)||[]).find(x=>x.status==='verified');
+  $('main').innerHTML=`<div class="panel" style="max-width:520px;margin:40px auto;padding:22px"><h2>Autenticação em dois fatores</h2>
+    <p style="font-size:14px;line-height:1.5">A conta de administrador exige um código do aplicativo autenticador (Google Authenticator, Microsoft Authenticator, Authy…).</p>
+    <div id="mfaArea"></div></div>`;
+  if(totp) mfaDesafio(totp.id); else mfaCadastro();
+  return false;
+}
+function mfaPedirCodigo(rotulo, aoConfirmar){
+  const a=el('div','', `<label style="display:block;margin:12px 0 4px">${esc(rotulo)}</label>
+    <input id="mfaCodigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" style="font-size:20px;letter-spacing:4px;width:140px">
+    <button class="btn" id="mfaOk" style="margin-left:8px">Confirmar</button><div id="mfaMsg" style="margin-top:8px"></div>`);
+  $('mfaArea').appendChild(a);
+  $('mfaOk').onclick=async ()=>{ const c=$('mfaCodigo').value.replace(/\D/g,''); if(c.length!==6){ $('mfaMsg').textContent='Digite os 6 números.'; return; }
+    $('mfaOk').disabled=true; const erro=await aoConfirmar(c); $('mfaOk').disabled=false;
+    if(erro){ $('mfaMsg').textContent='Código não aceito. Confira o horário do celular e tente o código atual.'; return; }
+    const { data:{ session } }=await db.auth.getSession(); enterApp(session); };
+}
+async function mfaDesafio(factorId){
+  mfaPedirCodigo('Código de 6 números do aplicativo autenticador', async c=>(await db.auth.mfa.challengeAndVerify({ factorId, code:c })).error);
+}
+async function mfaCadastro(){
+  const { data, error }=await db.auth.mfa.enroll({ factorType:'totp', friendlyName:'Candidus '+todayStr() });
+  if(error){ $('mfaArea').innerHTML=`<div class="msg err">Não foi possível iniciar o cadastro: ${esc(error.message)}</div>`; return; }
+  const qr=String(data.totp.qr_code||''); const img=/^data:image\/svg\+xml/.test(qr)?`<img src="${esc(qr)}" alt="QR code" style="width:180px;height:180px;background:#fff">`:'';
+  $('mfaArea').innerHTML=`<ol style="font-size:14px;line-height:1.6"><li>Abra o aplicativo autenticador no celular e escolha “adicionar conta” / “ler QR code”.</li>
+    <li>Leia o código abaixo (ou digite a chave manualmente).</li><li>Digite o código de 6 números que aparecer.</li></ol>${img}
+    <div style="font-size:12px;color:var(--muted)">Chave manual: <code>${esc(data.totp.secret)}</code></div>`;
+  mfaPedirCodigo('Código de 6 números', async c=>(await db.auth.mfa.challengeAndVerify({ factorId:data.id, code:c })).error);
+}
+async function renderSegurancaConta(){
+  $('main').innerHTML=`<div class="page-h"><h1>Segurança da conta</h1></div><div id="segArea"><div class="loading">Carregando…</div></div>`;
+  let seg=null; try{ seg=(await db.rpc('minha_seguranca')).data; }catch(e){}
+  const f=db.auth.mfa?(await db.auth.mfa.listFactors()).data:null; const fat=((f&&f.totp)||[]);
+  $('segArea').innerHTML=`<div class="panel" style="padding:18px;max-width:640px">
+    <p><b>Dois fatores (aplicativo autenticador):</b> ${fat.some(x=>x.status==='verified')?'✅ ativo':'não cadastrado'}${seg&&seg.exige_2fa?' · <b>obrigatório</b> para administrador':''}</p>
+    <p style="font-size:13px;color:var(--muted)">Sessão atual: ${seg&&seg.sessao_2fa?'confirmada com 2º fator':'só com senha'}.</p>
+    <div class="hbtns">${fat.some(x=>x.status==='verified')?'':'<button class="btn" id="segCad">Cadastrar autenticador</button>'}
+      <button class="btn ghost" id="segSairTodos">Sair de todos os dispositivos</button></div><div id="mfaArea"></div></div>`;
+  if($('segCad')) $('segCad').onclick=()=>{ if(!db.auth.mfa){ toast('Indisponível neste ambiente.','err'); return; } mfaCadastro(); };
+  $('segSairTodos').onclick=async ()=>{ if(!(await confirmModal({titulo:'Sair de todos os dispositivos',texto:'Encerra esta e todas as outras sessões abertas com esta conta. Confirmar?',ok:'Sair de todos'}))) return;
+    await db.auth.signOut({ scope:'global' }); location.reload(); };
+}
+
+/* ===================== DDA: boletos registrados contra o CNPJ do cliente (CONSULTA e CONFERÊNCIA) =====================
+   Os boletos chegam pelo servidor (Edge Functions; credenciais do fornecedor nunca no navegador). A presença de um
+   boleto NÃO autoriza pagamento nem reconhece dívida: aqui só se confere, vincula a uma conta existente, cria a conta
+   (ação explícita) ou ignora. Boletos de DEMONSTRAÇÃO são fictícios e não geram nada. */
+let ddaRows=[], ddaInts=[];
+const DDA_MODO={demonstracao:'DEMONSTRAÇÃO — dado fictício',sandbox:'TESTE (sandbox do fornecedor)',producao:''};
+const DDA_CONF={pendente:'A conferir',vinculado:'Vinculado a conta',conta_criada:'Conta criada',ignorado:'Ignorado'};
+async function renderDda(){
+  $('main').innerHTML=`<div class="page-h"><h1>DDA — boletos contra o CNPJ</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
+    <div class="hbtns"><button class="btn ghost" id="ddaDemo">Ver demonstração</button><button class="btn" id="ddaAdesao">Registrar adesão</button></div></div>
+    <div class="updated">Consulta e conferência: um boleto aqui <b>não</b> é pago nem vira dívida sozinho. Confira e vincule a uma conta a pagar, crie a conta ou ignore.</div>
+    <div id="ddaInt"></div><div id="ddaArea"><div class="loading">Carregando…</div></div>`;
+  $('ddaDemo').onclick=async ()=>{ if(!companyId){ toast('Escolha uma empresa no seletor.','err'); return; }
+    const { data,error }=await db.rpc('dda_gerar_demonstracao',{p_company:companyId}); if(error){ toast('Erro: '+error.message,'err'); return; }
+    toast((data||0)+' boleto(s) de DEMONSTRAÇÃO criados (fictícios).'); loadDda(); };
+  $('ddaAdesao').onclick=()=>openDdaAdesao();
+  await loadDda();
+}
+async function loadDda(){
+  const [b,i]=await Promise.all([scopeQ(db.from('dda_boletos').select('*')).order('vencimento'), scopeQ(db.from('dda_integracoes').select('*')).order('created_at')]);
+  if(b.error){ $('ddaArea').innerHTML=`<div class="panel"><div class="empty">Erro: ${esc(b.error.message)}</div></div>`; return; }
+  ddaRows=b.data||[]; ddaInts=i.data||[]; drawDda();
+}
+function drawDda(){
+  const real=ddaInts.filter(x=>x.modo==='producao'&&x.situacao==='ativa');
+  $('ddaInt').innerHTML=ddaInts.length?`<div class="panel" style="padding:10px 14px;margin-bottom:10px;font-size:13px">${ddaInts.map(x=>
+    `<div>${esc(coName(x.company_id))}: <b>${esc(x.fornecedor)}</b> · ${esc(DDA_MODO[x.modo]||'consulta real')} · situação <b>${esc(x.situacao)}</b>${x.ultima_sincronizacao?' · último aviso '+esc(new Date(x.ultima_sincronizacao).toLocaleString('pt-BR')):''}${x.ultimo_erro?' · <span style="color:var(--red)">erro: '+esc(x.ultimo_erro.slice(0,120))+'</span>':''}</div>`).join('')}
+    ${real.length?'':'<div style="margin-top:4px;color:var(--muted)">Nenhuma consulta REAL ativa: integração com o fornecedor ainda depende de contrato.</div>'}</div>`
+    :'<div class="panel" style="padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--muted)">Nenhuma empresa com adesão ao DDA. A consulta real depende de contrato com o fornecedor e do termo de adesão assinado por cada cliente.</div>';
+  if(!ddaRows.length){ $('ddaArea').innerHTML='<div class="panel"><div class="empty">Nenhum boleto recebido.</div></div>'; return; }
+  const showCo=!companyId;
+  $('ddaArea').innerHTML=`<div class="panel"><table class="tbl"><thead><tr>${showCo?'<th>Empresa</th>':''}<th>Beneficiário</th><th class="r">Valor</th><th>Vencimento</th><th>Linha digitável</th><th>Situação</th><th>Conferência</th><th></th></tr></thead><tbody>${
+    ddaRows.map((r,i)=>`<tr${r.modo==='demonstracao'?' style="background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(234,179,8,.08) 8px,rgba(234,179,8,.08) 16px)"':''}>
+      ${showCo?`<td>${esc(coName(r.company_id))}</td>`:''}
+      <td>${r.modo!=='producao'?`<span class="pill" style="background:#fef3c7;color:#92400e">${esc(DDA_MODO[r.modo])}</span><br>`:''}<b>${esc(r.beneficiario_nome||'—')}</b>${r.beneficiario_documento?`<br><span style="font-size:12px;color:var(--muted)">${esc(r.beneficiario_documento)}</span>`:''}</td>
+      <td class="r">${money(r.valor)}</td><td>${fmtDate(r.vencimento)}</td>
+      <td style="font-family:monospace;font-size:11px;max-width:220px;word-break:break-all">${esc(r.linha_digitavel||'—')}</td>
+      <td>${esc(r.situacao)}</td><td>${esc(DDA_CONF[r.conferencia]||r.conferencia)}${r.observacao?`<br><span style="font-size:12px;color:var(--muted)">${esc(r.observacao)}</span>`:''}</td>
+      <td>${r.modo==='demonstracao'||r.conferencia!=='pendente'||r.situacao!=='aberto'?'':`<button class="btn sm so-escrita" data-conf="${i}">Conferir</button>`}</td></tr>`).join('')}</tbody></table></div>`;
+  $('ddaArea').querySelectorAll('[data-conf]').forEach(b=>b.onclick=()=>openDdaConferir(ddaRows[+b.dataset.conf]));
+}
+async function openDdaConferir(r){
+  const { data:cand }=await db.rpc('dda_candidatos',{p_boleto:r.id});
+  const { data:forn }=await db.from('suppliers').select('id,razao_social,nome_fantasia,cpf_cnpj').eq('company_id',r.company_id).order('razao_social');
+  const sug=(forn||[]).find(f=>(f.cpf_cnpj||'').replace(/\D/g,'')===r.beneficiario_documento);
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal"><div class="modal-h"><h2>Conferir boleto</h2><button class="x" id="dX">×</button></div><div class="modal-b">
+    <p style="font-size:14px"><b>${esc(r.beneficiario_nome||'—')}</b> · ${money(r.valor)} · venc. ${fmtDate(r.vencimento)}</p>
+    <p style="font-size:12px;color:var(--muted)">Conferir não paga nada. Confira se a cobrança é devida antes de vincular ou criar a conta.</p>
+    <h3 style="font-size:14px;margin-top:12px">Contas a pagar compatíveis (mesmo valor, vencimento próximo)</h3>
+    ${(cand||[]).length?`<table class="tbl"><tbody>${cand.map(c=>`<tr><td>${esc(c.descricao)}<br><span style="font-size:12px;color:var(--muted)">${esc(c.fornecedor||'')}</span></td><td>${fmtDate(c.vencimento)}</td><td class="r">${money(c.saldo)}</td>
+      <td><button class="btn sm" data-vinc="${esc(c.parcela_id)}">Vincular</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma conta compatível.</div>'}
+    <h3 style="font-size:14px;margin-top:12px">Ou criar a conta a pagar a partir do boleto</h3>
+    <select id="dForn"><option value="">— fornecedor (opcional) —</option>${(forn||[]).map(f=>`<option value="${esc(f.id)}" ${sug&&sug.id===f.id?'selected':''}>${esc(f.nome_fantasia||f.razao_social)}</option>`).join('')}</select>
+    <button class="btn ghost" id="dCriar">Criar conta a pagar</button>
+    <h3 style="font-size:14px;margin-top:12px">Ou ignorar (cobrança indevida, já paga por fora…)</h3>
+    <input id="dMotivo" placeholder="Motivo (obrigatório)" style="width:70%"> <button class="btn ghost" id="dIgn">Ignorar</button>
+  </div></div></div>`;
+  const fim=async (p,msg)=>{ const { error }=await p; if(error){ toast('Erro: '+error.message,'err'); return; } toast(msg); closeModal(); loadDda(); };
+  $('dX').onclick=closeModal;
+  $('modalRoot').querySelectorAll('[data-vinc]').forEach(b=>b.onclick=()=>fim(db.rpc('dda_vincular',{p_boleto:r.id,p_parcela:b.dataset.vinc}),'Boleto vinculado à conta (nada foi pago).'));
+  $('dCriar').onclick=async ()=>{ if(!(await confirmOver({titulo:'Criar conta a pagar',texto:`Criar uma conta a pagar de ${money(r.valor)} com vencimento ${fmtDate(r.vencimento)} a partir deste boleto? Nada será pago.`,ok:'Criar conta'}))) return;
+    fim(db.rpc('dda_criar_conta_pagar',{p_boleto:r.id,p_supplier:$('dForn').value||null}),'Conta a pagar criada (em aberto).'); };
+  $('dIgn').onclick=()=>fim(db.rpc('dda_ignorar',{p_boleto:r.id,p_motivo:$('dMotivo').value}),'Boleto marcado como ignorado.');
+}
+function openDdaAdesao(){
+  if(!companyId){ toast('Escolha a empresa no seletor.','err'); return; }
+  $('modalRoot').innerHTML=`<div class="overlay"><div class="modal sm"><div class="modal-h"><h2>Adesão ao DDA — ${esc(coName(companyId))}</h2><button class="x" id="aX">×</button></div><div class="modal-b" style="font-size:14px;line-height:1.5">
+    <p>A consulta só pode começar depois que o <b>cliente assinar o termo de adesão ao DDA</b> do fornecedor. Guarde o termo assinado nos Documentos da empresa.</p>
+    <label>Versão do termo</label><input id="aVer" placeholder="ex.: Celcoin modelo 2026"><label>Data da assinatura</label><input id="aData" type="date" value="${todayStr()}">
+    <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="aOk"> Confirmo que o cliente assinou o termo de adesão</label>
+    <p style="font-size:12px;color:var(--muted)">Sem contrato com o fornecedor, a adesão fica registrada no Candidus e <b>nada</b> é enviado ao fornecedor.</p></div>
+    <div class="modal-f"><button class="btn ghost" id="aNo">Cancelar</button><button class="btn" id="aSim">Registrar</button></div></div></div>`;
+  $('aX').onclick=$('aNo').onclick=closeModal;
+  $('aSim').onclick=async ()=>{ if(!$('aOk').checked||!$('aVer').value.trim()){ toast('Confirme o termo e informe a versão.','err'); return; }
+    if(!db.functions){ toast('Indisponível neste ambiente.','err'); return; }
+    const { data,error }=await db.functions.invoke('dda-adesao',{ body:{ company_id:companyId, termo_versao:$('aVer').value.trim(), termo_aceito_em:$('aData').value+'T12:00:00-03:00', modo:'sandbox' } });
+    if(error){ toast('Erro: '+(error.context&&error.context.status===403?'sem permissão ou termo incompleto':error.message),'err'); return; }
+    toast(data&&data.enviado_ao_fornecedor?'Adesão enviada ao fornecedor.':'Adesão registrada. Nada foi enviado ao fornecedor (sem contrato).'); closeModal(); loadDda(); };
+}
+
 async function renderRecorrentes(){
   $('main').innerHTML=`<div class="page-h"><h1>Recorrentes</h1><span class="scope">${companyId?'':'· todas as empresas'}</span><div class="spacer"></div>
     <div class="hbtns"><button class="btn ghost" id="recGerar">Gerar lançamentos pendentes</button><button class="btn" id="recNova">+ Nova recorrência</button></div></div>
