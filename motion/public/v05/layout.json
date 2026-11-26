@@ -1,0 +1,290 @@
+{
+  "id": "v05",
+  "seconds": 33.766666666666666,
+  "music": {
+    "bpm": 112,
+    "root": 52,
+    "seed": 5
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.6333333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3.6333333333333333,
+      "end": 11.133333333333333,
+      "mood": "tension",
+      "enter": "whipLeft"
+    },
+    {
+      "start": 11.133333333333333,
+      "end": 22.133333333333333,
+      "mood": "bright",
+      "enter": "zoom"
+    },
+    {
+      "start": 22.133333333333333,
+      "end": 25.866666666666667,
+      "mood": "bright",
+      "enter": "blur"
+    },
+    {
+      "start": 25.866666666666667,
+      "end": 33.766666666666666,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 25.866666666666667,
+      "kind": "impact"
+    },
+    {
+      "t": 28.833333333333332,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1013,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 109,
+        "cues": [
+          {
+            "at": 8,
+            "end": 97,
+            "text": "Quanto sua empresa precisa vender por mês para pagar as contas?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 109,
+        "dur": 225,
+        "cues": [
+          {
+            "at": 9,
+            "end": 108,
+            "text": "Primeiro, as despesas fixas: existem mesmo sem vendas."
+          },
+          {
+            "at": 117,
+            "end": 213,
+            "text": "Depois, os custos variáveis, que crescem com as vendas."
+          }
+        ],
+        "enter": "whipLeft",
+        "mood": "tension"
+      },
+      {
+        "from": 334,
+        "dur": 330,
+        "cues": [
+          {
+            "at": 9,
+            "end": 59,
+            "text": "A linha dourada são as fixas."
+          },
+          {
+            "at": 70,
+            "end": 139,
+            "text": "Somando os variáveis, temos o custo total."
+          },
+          {
+            "at": 149,
+            "end": 235,
+            "text": "Onde a receita cruza essa linha está o equilíbrio."
+          },
+          {
+            "at": 245,
+            "end": 318,
+            "text": "Aqui, cerca de trinta mil reais em vendas."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "bright"
+      },
+      {
+        "from": 664,
+        "dur": 112,
+        "cues": [
+          {
+            "at": 9,
+            "end": 100,
+            "text": "Abaixo disso, prejuízo. Acima, resultado."
+          }
+        ],
+        "enter": "blur",
+        "mood": "bright"
+      },
+      {
+        "from": 776,
+        "dur": 237,
+        "cues": [
+          {
+            "at": 9,
+            "end": 86,
+            "text": "Você conhece o ponto de equilíbrio do seu negócio?"
+          },
+          {
+            "at": 95,
+            "end": 129,
+            "text": "Salve e faça a conta."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v05/voice/l01.wav",
+        "at": 8,
+        "end": 97
+      },
+      {
+        "file": "v05/voice/l02.wav",
+        "at": 118,
+        "end": 217
+      },
+      {
+        "file": "v05/voice/l03.wav",
+        "at": 226,
+        "end": 322
+      },
+      {
+        "file": "v05/voice/l04.wav",
+        "at": 343,
+        "end": 393
+      },
+      {
+        "file": "v05/voice/l05.wav",
+        "at": 404,
+        "end": 473
+      },
+      {
+        "file": "v05/voice/l06.wav",
+        "at": 483,
+        "end": 569
+      },
+      {
+        "file": "v05/voice/l07.wav",
+        "at": 579,
+        "end": 652
+      },
+      {
+        "file": "v05/voice/l08.wav",
+        "at": 673,
+        "end": 764
+      },
+      {
+        "file": "v05/voice/l09.wav",
+        "at": 785,
+        "end": 862
+      },
+      {
+        "file": "v05/voice/l10.wav",
+        "at": 871,
+        "end": 905
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 55,
+        "text": "Quanto sua empresa precisa vender"
+      },
+      {
+        "from": 55,
+        "to": 97,
+        "text": "por mês para pagar as contas?"
+      },
+      {
+        "from": 118,
+        "to": 170,
+        "text": "Primeiro, as despesas fixas:"
+      },
+      {
+        "from": 170,
+        "to": 217,
+        "text": "existem mesmo sem vendas."
+      },
+      {
+        "from": 226,
+        "to": 276,
+        "text": "Depois, os custos variáveis,"
+      },
+      {
+        "from": 276,
+        "to": 322,
+        "text": "que crescem com as vendas."
+      },
+      {
+        "from": 343,
+        "to": 393,
+        "text": "A linha dourada são as fixas."
+      },
+      {
+        "from": 404,
+        "to": 439,
+        "text": "Somando os variáveis,"
+      },
+      {
+        "from": 439,
+        "to": 473,
+        "text": "temos o custo total."
+      },
+      {
+        "from": 483,
+        "to": 537,
+        "text": "Onde a receita cruza essa linha"
+      },
+      {
+        "from": 537,
+        "to": 569,
+        "text": "está o equilíbrio."
+      },
+      {
+        "from": 579,
+        "to": 588,
+        "text": "Aqui,"
+      },
+      {
+        "from": 588,
+        "to": 652,
+        "text": "cerca de trinta mil reais em vendas."
+      },
+      {
+        "from": 673,
+        "to": 725,
+        "text": "Abaixo disso, prejuízo."
+      },
+      {
+        "from": 725,
+        "to": 764,
+        "text": "Acima, resultado."
+      },
+      {
+        "from": 785,
+        "to": 838,
+        "text": "Você conhece o ponto de equilíbrio"
+      },
+      {
+        "from": 838,
+        "to": 862,
+        "text": "do seu negócio?"
+      },
+      {
+        "from": 871,
+        "to": 905,
+        "text": "Salve e faça a conta."
+      }
+    ]
+  }
+}

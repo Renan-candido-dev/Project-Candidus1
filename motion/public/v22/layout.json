@@ -1,0 +1,260 @@
+{
+  "id": "v22",
+  "seconds": 36.4,
+  "music": {
+    "bpm": 112,
+    "root": 50,
+    "seed": 22
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.3,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.3,
+      "end": 13.5,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 13.5,
+      "end": 20.233333333333334,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 20.233333333333334,
+      "end": 26.966666666666665,
+      "mood": "bright",
+      "enter": "blur"
+    },
+    {
+      "start": 26.966666666666665,
+      "end": 36.4,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 26.966666666666665,
+      "kind": "impact"
+    },
+    {
+      "t": 30.5,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1092,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 129,
+        "cues": [
+          {
+            "at": 8,
+            "end": 117,
+            "text": "Um número sozinho não toma decisão nenhuma. Veja como ler um indicador."
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 129,
+        "dur": 276,
+        "cues": [
+          {
+            "at": 9,
+            "end": 187,
+            "text": "Aqui, o custo de insumos subiu de trinta e um para trinta e oito por cento das vendas, em seis meses."
+          },
+          {
+            "at": 196,
+            "end": 264,
+            "text": "Antes de agir, a pergunta é: por quê?"
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 405,
+        "dur": 202,
+        "cues": [
+          {
+            "at": 9,
+            "end": 190,
+            "text": "Pode ser reajuste de fornecedor, perdas, mudança no que você vende, ou até um lançamento na categoria errada."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 607,
+        "dur": 202,
+        "cues": [
+          {
+            "at": 9,
+            "end": 190,
+            "text": "No exemplo, a causa foi o reajuste de um fornecedor. A decisão: renegociar e acompanhar o indicador."
+          }
+        ],
+        "enter": "blur",
+        "mood": "bright"
+      },
+      {
+        "from": 809,
+        "dur": 283,
+        "cues": [
+          {
+            "at": 9,
+            "end": 103,
+            "text": "Não olhe apenas para os números. Entenda o que eles dizem."
+          },
+          {
+            "at": 112,
+            "end": 175,
+            "text": "Qual indicador você acompanha todo mês?"
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v22/voice/l01.wav",
+        "at": 8,
+        "end": 117
+      },
+      {
+        "file": "v22/voice/l02.wav",
+        "at": 138,
+        "end": 316
+      },
+      {
+        "file": "v22/voice/l03.wav",
+        "at": 325,
+        "end": 393
+      },
+      {
+        "file": "v22/voice/l04.wav",
+        "at": 414,
+        "end": 595
+      },
+      {
+        "file": "v22/voice/l05.wav",
+        "at": 616,
+        "end": 797
+      },
+      {
+        "file": "v22/voice/l06.wav",
+        "at": 818,
+        "end": 912
+      },
+      {
+        "file": "v22/voice/l07.wav",
+        "at": 921,
+        "end": 984
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 75,
+        "text": "Um número sozinho não toma decisão nenhuma."
+      },
+      {
+        "from": 75,
+        "to": 117,
+        "text": "Veja como ler um indicador."
+      },
+      {
+        "from": 138,
+        "to": 147,
+        "text": "Aqui,"
+      },
+      {
+        "from": 147,
+        "to": 209,
+        "text": "o custo de insumos subiu de trinta"
+      },
+      {
+        "from": 209,
+        "to": 269,
+        "text": "e um para trinta e oito por cento"
+      },
+      {
+        "from": 269,
+        "to": 316,
+        "text": "das vendas, em seis meses."
+      },
+      {
+        "from": 325,
+        "to": 378,
+        "text": "Antes de agir, a pergunta é:"
+      },
+      {
+        "from": 378,
+        "to": 393,
+        "text": "por quê?"
+      },
+      {
+        "from": 414,
+        "to": 468,
+        "text": "Pode ser reajuste de fornecedor,"
+      },
+      {
+        "from": 468,
+        "to": 526,
+        "text": "perdas, mudança no que você vende,"
+      },
+      {
+        "from": 526,
+        "to": 595,
+        "text": "ou até um lançamento na categoria errada."
+      },
+      {
+        "from": 616,
+        "to": 637,
+        "text": "No exemplo,"
+      },
+      {
+        "from": 637,
+        "to": 711,
+        "text": "a causa foi o reajuste de um fornecedor."
+      },
+      {
+        "from": 711,
+        "to": 730,
+        "text": "A decisão:"
+      },
+      {
+        "from": 730,
+        "to": 797,
+        "text": "renegociar e acompanhar o indicador."
+      },
+      {
+        "from": 818,
+        "to": 871,
+        "text": "Não olhe apenas para os números."
+      },
+      {
+        "from": 871,
+        "to": 912,
+        "text": "Entenda o que eles dizem."
+      },
+      {
+        "from": 921,
+        "to": 984,
+        "text": "Qual indicador você acompanha todo mês?"
+      }
+    ]
+  }
+}

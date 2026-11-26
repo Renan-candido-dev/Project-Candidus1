@@ -1,0 +1,251 @@
+{
+  "id": "v23",
+  "seconds": 33.03333333333333,
+  "music": {
+    "bpm": 112,
+    "root": 53,
+    "seed": 23
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 4.233333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 4.233333333333333,
+      "end": 17.066666666666666,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 17.066666666666666,
+      "end": 25.7,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 25.7,
+      "end": 33.03333333333333,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 25.7,
+      "kind": "impact"
+    },
+    {
+      "t": 28.1,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 991,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 127,
+        "cues": [
+          {
+            "at": 8,
+            "end": 115,
+            "text": "Na prática: como seria fechar o mês com clareza sobre o financeiro?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 127,
+        "dur": 385,
+        "cues": [
+          {
+            "at": 9,
+            "end": 185,
+            "text": "Este é um fechamento gerencial fictício: receitas, custos e despesas, organizados por grupo."
+          },
+          {
+            "at": 197,
+            "end": 253,
+            "text": "O resultado do mês fica evidente."
+          },
+          {
+            "at": 265,
+            "end": 355,
+            "text": "E a margem também: quanto de cada venda virou resultado."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 512,
+        "dur": 259,
+        "cues": [
+          {
+            "at": 9,
+            "end": 144,
+            "text": "Junto com o resultado, as contas pendentes e a projeção do caixa para noventa dias."
+          },
+          {
+            "at": 153,
+            "end": 247,
+            "text": "Assim, a reunião do mês vira decisão, e não susto."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 771,
+        "dur": 220,
+        "cues": [
+          {
+            "at": 9,
+            "end": 69,
+            "text": "Sua empresa tem essa visão do financeiro?"
+          },
+          {
+            "at": 78,
+            "end": 112,
+            "text": "Fale com a Candidus."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v23/voice/l01.wav",
+        "at": 8,
+        "end": 115
+      },
+      {
+        "file": "v23/voice/l02.wav",
+        "at": 136,
+        "end": 312
+      },
+      {
+        "file": "v23/voice/l03.wav",
+        "at": 324,
+        "end": 380
+      },
+      {
+        "file": "v23/voice/l04.wav",
+        "at": 392,
+        "end": 482
+      },
+      {
+        "file": "v23/voice/l05.wav",
+        "at": 521,
+        "end": 656
+      },
+      {
+        "file": "v23/voice/l06.wav",
+        "at": 665,
+        "end": 759
+      },
+      {
+        "file": "v23/voice/l07.wav",
+        "at": 780,
+        "end": 840
+      },
+      {
+        "file": "v23/voice/l08.wav",
+        "at": 849,
+        "end": 883
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 26,
+        "text": "Na prática:"
+      },
+      {
+        "from": 26,
+        "to": 71,
+        "text": "como seria fechar o mês com"
+      },
+      {
+        "from": 71,
+        "to": 115,
+        "text": "clareza sobre o financeiro?"
+      },
+      {
+        "from": 136,
+        "to": 214,
+        "text": "Este é um fechamento gerencial fictício:"
+      },
+      {
+        "from": 214,
+        "to": 269,
+        "text": "receitas, custos e despesas,"
+      },
+      {
+        "from": 269,
+        "to": 312,
+        "text": "organizados por grupo."
+      },
+      {
+        "from": 324,
+        "to": 380,
+        "text": "O resultado do mês fica evidente."
+      },
+      {
+        "from": 392,
+        "to": 421,
+        "text": "E a margem também:"
+      },
+      {
+        "from": 421,
+        "to": 482,
+        "text": "quanto de cada venda virou resultado."
+      },
+      {
+        "from": 521,
+        "to": 558,
+        "text": "Junto com o resultado,"
+      },
+      {
+        "from": 558,
+        "to": 611,
+        "text": "as contas pendentes e a projeção"
+      },
+      {
+        "from": 611,
+        "to": 656,
+        "text": "do caixa para noventa dias."
+      },
+      {
+        "from": 665,
+        "to": 677,
+        "text": "Assim,"
+      },
+      {
+        "from": 677,
+        "to": 736,
+        "text": "a reunião do mês vira decisão,"
+      },
+      {
+        "from": 736,
+        "to": 759,
+        "text": "e não susto."
+      },
+      {
+        "from": 780,
+        "to": 840,
+        "text": "Sua empresa tem essa visão do financeiro?"
+      },
+      {
+        "from": 849,
+        "to": 883,
+        "text": "Fale com a Candidus."
+      }
+    ]
+  }
+}

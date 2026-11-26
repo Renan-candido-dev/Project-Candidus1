@@ -1,0 +1,251 @@
+{
+  "id": "v15",
+  "seconds": 33.266666666666666,
+  "music": {
+    "bpm": 110,
+    "root": 55,
+    "seed": 15
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.2,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3.2,
+      "end": 16.066666666666666,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 16.066666666666666,
+      "end": 25.433333333333334,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 25.433333333333334,
+      "end": 33.266666666666666,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 25.433333333333334,
+      "kind": "impact"
+    },
+    {
+      "t": 28.6,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 998,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 96,
+        "cues": [
+          {
+            "at": 8,
+            "end": 84,
+            "text": "Na prática: os seus registros batem com o banco?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 96,
+        "dur": 386,
+        "cues": [
+          {
+            "at": 9,
+            "end": 123,
+            "text": "De um lado, os registros da empresa. Do outro, o extrato do banco."
+          },
+          {
+            "at": 135,
+            "end": 202,
+            "text": "Linha a linha, os valores são conferidos."
+          },
+          {
+            "at": 214,
+            "end": 350,
+            "text": "Aqui aparece uma diferença de cento e cinquenta reais no recebimento do cliente B."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 482,
+        "dur": 281,
+        "cues": [
+          {
+            "at": 9,
+            "end": 269,
+            "text": "A causa pode ser um desconto não registrado, uma taxa, um erro de digitação ou um pagamento parcial. Por isso, toda diferença precisa ser investigada."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 763,
+        "dur": 235,
+        "cues": [
+          {
+            "at": 9,
+            "end": 92,
+            "text": "Você confere se os seus registros correspondem ao banco?"
+          },
+          {
+            "at": 101,
+            "end": 127,
+            "text": "Conta pra gente."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v15/voice/l01.wav",
+        "at": 8,
+        "end": 84
+      },
+      {
+        "file": "v15/voice/l02.wav",
+        "at": 105,
+        "end": 219
+      },
+      {
+        "file": "v15/voice/l03.wav",
+        "at": 231,
+        "end": 298
+      },
+      {
+        "file": "v15/voice/l04.wav",
+        "at": 310,
+        "end": 446
+      },
+      {
+        "file": "v15/voice/l05.wav",
+        "at": 491,
+        "end": 751
+      },
+      {
+        "file": "v15/voice/l06.wav",
+        "at": 772,
+        "end": 855
+      },
+      {
+        "file": "v15/voice/l07.wav",
+        "at": 864,
+        "end": 890
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 26,
+        "text": "Na prática:"
+      },
+      {
+        "from": 26,
+        "to": 84,
+        "text": "os seus registros batem com o banco?"
+      },
+      {
+        "from": 105,
+        "to": 125,
+        "text": "De um lado,"
+      },
+      {
+        "from": 125,
+        "to": 167,
+        "text": "os registros da empresa."
+      },
+      {
+        "from": 167,
+        "to": 219,
+        "text": "Do outro, o extrato do banco."
+      },
+      {
+        "from": 231,
+        "to": 254,
+        "text": "Linha a linha,"
+      },
+      {
+        "from": 254,
+        "to": 298,
+        "text": "os valores são conferidos."
+      },
+      {
+        "from": 310,
+        "to": 359,
+        "text": "Aqui aparece uma diferença de"
+      },
+      {
+        "from": 359,
+        "to": 404,
+        "text": "cento e cinquenta reais no"
+      },
+      {
+        "from": 404,
+        "to": 446,
+        "text": "recebimento do cliente B."
+      },
+      {
+        "from": 491,
+        "to": 570,
+        "text": "A causa pode ser um desconto não registrado,"
+      },
+      {
+        "from": 570,
+        "to": 586,
+        "text": "uma taxa,"
+      },
+      {
+        "from": 586,
+        "to": 633,
+        "text": "um erro de digitação ou um"
+      },
+      {
+        "from": 633,
+        "to": 665,
+        "text": "pagamento parcial."
+      },
+      {
+        "from": 665,
+        "to": 681,
+        "text": "Por isso,"
+      },
+      {
+        "from": 681,
+        "to": 751,
+        "text": "toda diferença precisa ser investigada."
+      },
+      {
+        "from": 772,
+        "to": 822,
+        "text": "Você confere se os seus registros"
+      },
+      {
+        "from": 822,
+        "to": 855,
+        "text": "correspondem ao banco?"
+      },
+      {
+        "from": 864,
+        "to": 890,
+        "text": "Conta pra gente."
+      }
+    ]
+  }
+}

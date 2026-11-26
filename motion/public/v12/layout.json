@@ -1,0 +1,285 @@
+{
+  "id": "v12",
+  "seconds": 37.333333333333336,
+  "music": {
+    "bpm": 108,
+    "root": 57,
+    "seed": 12
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3.8,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3.8,
+      "end": 19.133333333333333,
+      "mood": "tension",
+      "enter": "zoom"
+    },
+    {
+      "start": 19.133333333333333,
+      "end": 23.533333333333335,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 23.533333333333335,
+      "end": 28.9,
+      "mood": "bright",
+      "enter": "blur"
+    },
+    {
+      "start": 28.9,
+      "end": 37.333333333333336,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 28.9,
+      "kind": "impact"
+    },
+    {
+      "t": 31.3,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 1120,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 114,
+        "cues": [
+          {
+            "at": 8,
+            "end": 102,
+            "text": "Na prática: e se as vendas caírem nos próximos meses?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 114,
+        "dur": 460,
+        "cues": [
+          {
+            "at": 9,
+            "end": 178,
+            "text": "Esta é uma projeção fictícia de seis meses, com a receita esperada e os compromissos fixos."
+          },
+          {
+            "at": 190,
+            "end": 294,
+            "text": "Agora, um cenário com vendas vinte e cinco por cento menores."
+          },
+          {
+            "at": 306,
+            "end": 430,
+            "text": "Com saldo inicial de vinte mil, o caixa chegaria ao limite em outubro e novembro."
+          }
+        ],
+        "enter": "zoom",
+        "mood": "tension"
+      },
+      {
+        "from": 574,
+        "dur": 132,
+        "cues": [
+          {
+            "at": 9,
+            "end": 120,
+            "text": "No gráfico, a distância entre as duas linhas mostra o tamanho do risco."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 706,
+        "dur": 161,
+        "cues": [
+          {
+            "at": 9,
+            "end": 149,
+            "text": "Com essa visão, dá para formar reserva, mapear o que é ajustável e planejar as compras."
+          }
+        ],
+        "enter": "blur",
+        "mood": "bright"
+      },
+      {
+        "from": 867,
+        "dur": 253,
+        "cues": [
+          {
+            "at": 9,
+            "end": 69,
+            "text": "Planeje também os meses difíceis."
+          },
+          {
+            "at": 78,
+            "end": 145,
+            "text": "Salve e faça o teste com os seus números."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v12/voice/l01.wav",
+        "at": 8,
+        "end": 102
+      },
+      {
+        "file": "v12/voice/l02.wav",
+        "at": 123,
+        "end": 292
+      },
+      {
+        "file": "v12/voice/l03.wav",
+        "at": 304,
+        "end": 408
+      },
+      {
+        "file": "v12/voice/l04.wav",
+        "at": 420,
+        "end": 544
+      },
+      {
+        "file": "v12/voice/l05.wav",
+        "at": 583,
+        "end": 694
+      },
+      {
+        "file": "v12/voice/l06.wav",
+        "at": 715,
+        "end": 855
+      },
+      {
+        "file": "v12/voice/l07.wav",
+        "at": 876,
+        "end": 936
+      },
+      {
+        "file": "v12/voice/l08.wav",
+        "at": 945,
+        "end": 1012
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 28,
+        "text": "Na prática:"
+      },
+      {
+        "from": 28,
+        "to": 102,
+        "text": "e se as vendas caírem nos próximos meses?"
+      },
+      {
+        "from": 123,
+        "to": 183,
+        "text": "Esta é uma projeção fictícia de"
+      },
+      {
+        "from": 183,
+        "to": 204,
+        "text": "seis meses,"
+      },
+      {
+        "from": 204,
+        "to": 256,
+        "text": "com a receita esperada e os"
+      },
+      {
+        "from": 256,
+        "to": 292,
+        "text": "compromissos fixos."
+      },
+      {
+        "from": 304,
+        "to": 315,
+        "text": "Agora,"
+      },
+      {
+        "from": 315,
+        "to": 366,
+        "text": "um cenário com vendas vinte e"
+      },
+      {
+        "from": 366,
+        "to": 408,
+        "text": "cinco por cento menores."
+      },
+      {
+        "from": 420,
+        "to": 469,
+        "text": "Com saldo inicial de vinte mil,"
+      },
+      {
+        "from": 469,
+        "to": 514,
+        "text": "o caixa chegaria ao limite em"
+      },
+      {
+        "from": 514,
+        "to": 544,
+        "text": "outubro e novembro."
+      },
+      {
+        "from": 583,
+        "to": 601,
+        "text": "No gráfico,"
+      },
+      {
+        "from": 601,
+        "to": 652,
+        "text": "a distância entre as duas linhas"
+      },
+      {
+        "from": 652,
+        "to": 694,
+        "text": "mostra o tamanho do risco."
+      },
+      {
+        "from": 715,
+        "to": 740,
+        "text": "Com essa visão,"
+      },
+      {
+        "from": 740,
+        "to": 778,
+        "text": "dá para formar reserva,"
+      },
+      {
+        "from": 778,
+        "to": 822,
+        "text": "mapear o que é ajustável e"
+      },
+      {
+        "from": 822,
+        "to": 855,
+        "text": "planejar as compras."
+      },
+      {
+        "from": 876,
+        "to": 936,
+        "text": "Planeje também os meses difíceis."
+      },
+      {
+        "from": 945,
+        "to": 1012,
+        "text": "Salve e faça o teste com os seus números."
+      }
+    ]
+  }
+}

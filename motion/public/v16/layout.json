@@ -1,0 +1,236 @@
+{
+  "id": "v16",
+  "seconds": 31.433333333333334,
+  "music": {
+    "bpm": 118,
+    "root": 52,
+    "seed": 16
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 5.333333333333333,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 5.333333333333333,
+      "end": 17.1,
+      "mood": "tension",
+      "enter": "whipUp"
+    },
+    {
+      "start": 17.1,
+      "end": 23.166666666666668,
+      "mood": "bright",
+      "enter": "whipLeft"
+    },
+    {
+      "start": 23.166666666666668,
+      "end": 31.433333333333334,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 23.166666666666668,
+      "kind": "impact"
+    },
+    {
+      "t": 26.133333333333333,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 943,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 160,
+        "cues": [
+          {
+            "at": 8,
+            "end": 148,
+            "text": "Um equipamento novo, de quarenta e oito mil reais. A sua empresa pode comprar?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 160,
+        "dur": 353,
+        "cues": [
+          {
+            "at": 9,
+            "end": 80,
+            "text": "O saldo hoje é de sessenta e dois mil."
+          },
+          {
+            "at": 89,
+            "end": 206,
+            "text": "Mas, nos próximos trinta dias, há folha, fornecedores e impostos."
+          },
+          {
+            "at": 215,
+            "end": 279,
+            "text": "E vale manter uma reserva para imprevistos."
+          },
+          {
+            "at": 288,
+            "end": 341,
+            "text": "Sobram cerca de cinco mil livres."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "tension"
+      },
+      {
+        "from": 513,
+        "dur": 182,
+        "cues": [
+          {
+            "at": 9,
+            "end": 140,
+            "text": "E parcelar também pede conta: a parcela precisa caber na folga mensal do caixa."
+          }
+        ],
+        "enter": "whipLeft",
+        "mood": "bright"
+      },
+      {
+        "from": 695,
+        "dur": 248,
+        "cues": [
+          {
+            "at": 9,
+            "end": 86,
+            "text": "Antes de comprar, analise o impacto no caixa."
+          },
+          {
+            "at": 95,
+            "end": 140,
+            "text": "Que compra você está avaliando?"
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v16/voice/l01.wav",
+        "at": 8,
+        "end": 148
+      },
+      {
+        "file": "v16/voice/l02.wav",
+        "at": 169,
+        "end": 240
+      },
+      {
+        "file": "v16/voice/l03.wav",
+        "at": 249,
+        "end": 366
+      },
+      {
+        "file": "v16/voice/l04.wav",
+        "at": 375,
+        "end": 439
+      },
+      {
+        "file": "v16/voice/l05.wav",
+        "at": 448,
+        "end": 501
+      },
+      {
+        "file": "v16/voice/l06.wav",
+        "at": 522,
+        "end": 653
+      },
+      {
+        "file": "v16/voice/l07.wav",
+        "at": 704,
+        "end": 781
+      },
+      {
+        "file": "v16/voice/l08.wav",
+        "at": 790,
+        "end": 835
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 45,
+        "text": "Um equipamento novo,"
+      },
+      {
+        "from": 45,
+        "to": 98,
+        "text": "de quarenta e oito mil reais."
+      },
+      {
+        "from": 98,
+        "to": 148,
+        "text": "A sua empresa pode comprar?"
+      },
+      {
+        "from": 169,
+        "to": 240,
+        "text": "O saldo hoje é de sessenta e dois mil."
+      },
+      {
+        "from": 249,
+        "to": 304,
+        "text": "Mas, nos próximos trinta dias,"
+      },
+      {
+        "from": 304,
+        "to": 366,
+        "text": "há folha, fornecedores e impostos."
+      },
+      {
+        "from": 375,
+        "to": 439,
+        "text": "E vale manter uma reserva para imprevistos."
+      },
+      {
+        "from": 448,
+        "to": 501,
+        "text": "Sobram cerca de cinco mil livres."
+      },
+      {
+        "from": 522,
+        "to": 571,
+        "text": "E parcelar também pede conta:"
+      },
+      {
+        "from": 571,
+        "to": 626,
+        "text": "a parcela precisa caber na folga"
+      },
+      {
+        "from": 626,
+        "to": 653,
+        "text": "mensal do caixa."
+      },
+      {
+        "from": 704,
+        "to": 734,
+        "text": "Antes de comprar,"
+      },
+      {
+        "from": 734,
+        "to": 781,
+        "text": "analise o impacto no caixa."
+      },
+      {
+        "from": 790,
+        "to": 835,
+        "text": "Que compra você está avaliando?"
+      }
+    ]
+  }
+}

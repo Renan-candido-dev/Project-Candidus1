@@ -1,0 +1,71 @@
+1
+00:00:00,300 --> 00:00:02,300
+Sua empresa faturou trinta mil
+
+2
+00:00:02,350 --> 00:00:03,550
+reais no mês.
+
+3
+00:00:04,200 --> 00:00:06,200
+Isso significa que você lucrou
+
+4
+00:00:06,250 --> 00:00:07,050
+trinta mil?
+
+5
+00:00:07,700 --> 00:00:08,900
+Claro que não.
+
+6
+00:00:09,300 --> 00:00:12,500
+Faturamento é o que entrou com as vendas.
+
+7
+00:00:12,550 --> 00:00:15,350
+E desse valor ainda sai muita coisa.
+
+8
+00:00:15,400 --> 00:00:16,600
+Num exemplo fictício:
+
+9
+00:00:16,850 --> 00:00:20,050
+nove mil de custo do que foi vendido,
+
+10
+00:00:20,300 --> 00:00:21,900
+doze mil de despesas,
+
+11
+00:00:21,950 --> 00:00:23,950
+como aluguel, salários e sistemas,
+
+12
+00:00:24,200 --> 00:00:27,000
+e dois mil e quatrocentos de impostos.
+
+13
+00:00:27,850 --> 00:00:29,850
+Sobram seis mil e seiscentos.
+
+14
+00:00:29,900 --> 00:00:32,300
+Uns vinte e dois por cento.
+
+15
+00:00:32,700 --> 00:00:34,700
+Confundir faturamento com lucro é
+
+16
+00:00:34,750 --> 00:00:37,550
+o jeito mais rápido de gastar o
+
+17
+00:00:37,600 --> 00:00:38,800
+que não tem.
+
+18
+00:00:38,850 --> 00:00:40,050
+Salva este vídeo.

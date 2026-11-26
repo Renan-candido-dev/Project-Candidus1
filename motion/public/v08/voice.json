@@ -1,0 +1,58 @@
+[
+  {
+    "file": "v08/voice/l01.wav",
+    "seconds": 4.168,
+    "speech": 4.041,
+    "text": "Na prática: o que acontece quando as contas vencem antes de o dinheiro entrar?",
+    "hash": "08bfcb35a482"
+  },
+  {
+    "file": "v08/voice/l02.wav",
+    "seconds": 4.296,
+    "speech": 4.194,
+    "text": "Esta é a agenda fictícia de um mês: pagamentos e recebimentos, por data.",
+    "hash": "cf114e5dec90"
+  },
+  {
+    "file": "v08/voice/l03.wav",
+    "seconds": 1.695,
+    "speech": 1.555,
+    "text": "Calculando o saldo dia a dia,",
+    "hash": "12a678efe58d"
+  },
+  {
+    "file": "v08/voice/l04.wav",
+    "seconds": 4.632,
+    "speech": 4.515,
+    "text": "aparecem três momentos de caixa negativo, mesmo com o mês fechando positivo.",
+    "hash": "359fa426742e"
+  },
+  {
+    "file": "v08/voice/l05.wav",
+    "seconds": 4.064,
+    "speech": 3.884,
+    "text": "No calendário, fica claro: as saídas chegam antes das entradas.",
+    "hash": "9b3105c2b6d8"
+  },
+  {
+    "file": "v08/voice/l06.wav",
+    "seconds": 4.087,
+    "speech": 3.992,
+    "text": "Renegociando a data de dois fornecedores, o mês inteiro fica positivo.",
+    "hash": "0abfec4baa92"
+  },
+  {
+    "file": "v08/voice/l07.wav",
+    "seconds": 2.438,
+    "speech": 2.324,
+    "text": "Organize suas contas antes que elas vençam.",
+    "hash": "b3f9d627f134"
+  },
+  {
+    "file": "v08/voice/l08.wav",
+    "seconds": 1.138,
+    "speech": 1.042,
+    "text": "Salve este exemplo.",
+    "hash": "1f462c62f21d"
+  }
+]

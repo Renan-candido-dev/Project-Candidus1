@@ -1,0 +1,65 @@
+[
+  {
+    "file": "v03/voice/l01.wav",
+    "seconds": 3.379,
+    "speech": 3.267,
+    "text": "Três sinais de que o financeiro da sua empresa está desorganizado.",
+    "hash": "599872cec47b"
+  },
+  {
+    "file": "v03/voice/l02.wav",
+    "seconds": 2.601,
+    "speech": 2.508,
+    "text": "Primeiro: contas que vencem sem ninguém perceber.",
+    "hash": "dc71d2d92463"
+  },
+  {
+    "file": "v03/voice/l03.wav",
+    "seconds": 2.914,
+    "speech": 2.8,
+    "text": "A multa e os juros só aparecem depois, no extrato.",
+    "hash": "39bdd2d6be63"
+  },
+  {
+    "file": "v03/voice/l04.wav",
+    "seconds": 2.74,
+    "speech": 2.588,
+    "text": "Segundo: o mesmo boleto pago duas vezes.",
+    "hash": "4f045a6a554b"
+  },
+  {
+    "file": "v03/voice/l05.wav",
+    "seconds": 2.078,
+    "speech": 1.913,
+    "text": "Sem conferência, ninguém percebe.",
+    "hash": "0d8fdb1f4122"
+  },
+  {
+    "file": "v03/voice/l06.wav",
+    "seconds": 3.982,
+    "speech": 3.863,
+    "text": "Terceiro: você não sabe quanto vai ter em caixa daqui a trinta dias.",
+    "hash": "f4b42e02b98f"
+  },
+  {
+    "file": "v03/voice/l07.wav",
+    "seconds": 5.05,
+    "speech": 4.93,
+    "text": "O primeiro passo: registrar cada conta com data, valor e categoria, num só lugar.",
+    "hash": "140f74de8754"
+  },
+  {
+    "file": "v03/voice/l08.wav",
+    "seconds": 2.531,
+    "speech": 2.39,
+    "text": "Quantos desses sinais existem na sua empresa?",
+    "hash": "fd321c240a9f"
+  },
+  {
+    "file": "v03/voice/l09.wav",
+    "seconds": 1.533,
+    "speech": 1.404,
+    "text": "Conta aqui nos comentários.",
+    "hash": "93486d9add63"
+  }
+]

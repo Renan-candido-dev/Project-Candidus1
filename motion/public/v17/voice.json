@@ -1,0 +1,44 @@
+[
+  {
+    "file": "v17/voice/l01.wav",
+    "seconds": 2.38,
+    "speech": 2.27,
+    "text": "Afinal, o que é BPO financeiro?",
+    "hash": "2beffaa9a095"
+  },
+  {
+    "file": "v17/voice/l02.wav",
+    "seconds": 3.808,
+    "speech": 3.657,
+    "text": "É a terceirização das rotinas financeiras para uma equipe especializada.",
+    "hash": "f1e7922b4d78"
+  },
+  {
+    "file": "v17/voice/l03.wav",
+    "seconds": 4.505,
+    "speech": 4.368,
+    "text": "Contas a pagar e a receber, conciliação bancária e relatórios gerenciais.",
+    "hash": "e87081d9dd49"
+  },
+  {
+    "file": "v17/voice/l04.wav",
+    "seconds": 7.864,
+    "speech": 7.741,
+    "text": "O empresário continua no comando: aprova os pagamentos e toma as decisões. O BPO cuida da rotina e organiza a informação.",
+    "hash": "b5ce4766c7d1"
+  },
+  {
+    "file": "v17/voice/l05.wav",
+    "seconds": 2.426,
+    "speech": 2.322,
+    "text": "Rotina organizada e informação na mão.",
+    "hash": "8c7d2ad05980"
+  },
+  {
+    "file": "v17/voice/l06.wav",
+    "seconds": 1.846,
+    "speech": 1.739,
+    "text": "Conheça a proposta da Candidus.",
+    "hash": "4e5bea859df4"
+  }
+]

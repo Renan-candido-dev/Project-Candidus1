@@ -1,0 +1,230 @@
+{
+  "id": "v11",
+  "seconds": 27.4,
+  "music": {
+    "bpm": 116,
+    "root": 57,
+    "seed": 11
+  },
+  "segments": [
+    {
+      "start": 0,
+      "end": 3,
+      "mood": "tension",
+      "enter": "cut"
+    },
+    {
+      "start": 3,
+      "end": 10.7,
+      "mood": "tension",
+      "enter": "flood"
+    },
+    {
+      "start": 10.7,
+      "end": 17.866666666666667,
+      "mood": "bright",
+      "enter": "whipUp"
+    },
+    {
+      "start": 17.866666666666667,
+      "end": 27.4,
+      "mood": "outro",
+      "enter": "flood"
+    }
+  ],
+  "accents": [
+    {
+      "t": 3,
+      "kind": "impact"
+    },
+    {
+      "t": 17.866666666666667,
+      "kind": "impact"
+    },
+    {
+      "t": 21.4,
+      "kind": "logo"
+    }
+  ],
+  "layout": {
+    "total": 822,
+    "beats": [
+      {
+        "from": 0,
+        "dur": 90,
+        "cues": [
+          {
+            "at": 8,
+            "end": 78,
+            "text": "Para onde está indo cada centavo da sua empresa?"
+          }
+        ],
+        "enter": "cut",
+        "mood": "tension"
+      },
+      {
+        "from": 90,
+        "dur": 231,
+        "cues": [
+          {
+            "at": 9,
+            "end": 57,
+            "text": "Tudo começa nos lançamentos."
+          },
+          {
+            "at": 66,
+            "end": 219,
+            "text": "Cada um recebe uma categoria: pessoal, fornecedores, tributos, despesas operacionais."
+          }
+        ],
+        "enter": "flood",
+        "mood": "tension"
+      },
+      {
+        "from": 321,
+        "dur": 215,
+        "cues": [
+          {
+            "at": 9,
+            "end": 78,
+            "text": "Somando por categoria, o mês ganha forma."
+          },
+          {
+            "at": 87,
+            "end": 203,
+            "text": "Aqui, pessoal e fornecedores concentram dois terços das saídas."
+          }
+        ],
+        "enter": "whipUp",
+        "mood": "bright"
+      },
+      {
+        "from": 536,
+        "dur": 286,
+        "cues": [
+          {
+            "at": 9,
+            "end": 103,
+            "text": "Organização financeira começa com informação confiável."
+          },
+          {
+            "at": 112,
+            "end": 178,
+            "text": "Salve para organizar as suas categorias."
+          }
+        ],
+        "enter": "flood",
+        "mood": "outro"
+      }
+    ],
+    "lines": [
+      {
+        "file": "v11/voice/l01.wav",
+        "at": 8,
+        "end": 78
+      },
+      {
+        "file": "v11/voice/l02.wav",
+        "at": 99,
+        "end": 147
+      },
+      {
+        "file": "v11/voice/l03.wav",
+        "at": 156,
+        "end": 309
+      },
+      {
+        "file": "v11/voice/l04.wav",
+        "at": 330,
+        "end": 399
+      },
+      {
+        "file": "v11/voice/l05.wav",
+        "at": 408,
+        "end": 524
+      },
+      {
+        "file": "v11/voice/l06.wav",
+        "at": 545,
+        "end": 639
+      },
+      {
+        "file": "v11/voice/l07.wav",
+        "at": 648,
+        "end": 714
+      }
+    ],
+    "captions": [
+      {
+        "from": 8,
+        "to": 56,
+        "text": "Para onde está indo cada centavo"
+      },
+      {
+        "from": 56,
+        "to": 78,
+        "text": "da sua empresa?"
+      },
+      {
+        "from": 99,
+        "to": 147,
+        "text": "Tudo começa nos lançamentos."
+      },
+      {
+        "from": 156,
+        "to": 209,
+        "text": "Cada um recebe uma categoria:"
+      },
+      {
+        "from": 209,
+        "to": 268,
+        "text": "pessoal, fornecedores, tributos,"
+      },
+      {
+        "from": 268,
+        "to": 309,
+        "text": "despesas operacionais."
+      },
+      {
+        "from": 330,
+        "to": 368,
+        "text": "Somando por categoria,"
+      },
+      {
+        "from": 368,
+        "to": 399,
+        "text": "o mês ganha forma."
+      },
+      {
+        "from": 408,
+        "to": 418,
+        "text": "Aqui,"
+      },
+      {
+        "from": 418,
+        "to": 480,
+        "text": "pessoal e fornecedores concentram"
+      },
+      {
+        "from": 480,
+        "to": 524,
+        "text": "dois terços das saídas."
+      },
+      {
+        "from": 545,
+        "to": 602,
+        "text": "Organização financeira começa com"
+      },
+      {
+        "from": 602,
+        "to": 639,
+        "text": "informação confiável."
+      },
+      {
+        "from": 648,
+        "to": 714,
+        "text": "Salve para organizar as suas categorias."
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+[
+  {
+    "file": "v15/voice/l01.wav",
+    "seconds": 2.682,
+    "speech": 2.56,
+    "text": "Na prática: os seus registros batem com o banco?",
+    "hash": "8b8379958a14"
+  },
+  {
+    "file": "v15/voice/l02.wav",
+    "seconds": 3.975,
+    "speech": 3.802,
+    "text": "De um lado, os registros da empresa. Do outro, o extrato do banco.",
+    "hash": "11185776f23a"
+  },
+  {
+    "file": "v15/voice/l03.wav",
+    "seconds": 2.31,
+    "speech": 2.228,
+    "text": "Linha a linha, os valores são conferidos.",
+    "hash": "39cb2907f829"
+  },
+  {
+    "file": "v15/voice/l04.wav",
+    "seconds": 4.598,
+    "speech": 4.521,
+    "text": "Aqui aparece uma diferença de cento e cinquenta reais no recebimento do cliente B.",
+    "hash": "396e70859030"
+  },
+  {
+    "file": "v15/voice/l05.wav",
+    "seconds": 8.793,
+    "speech": 8.666,
+    "text": "A causa pode ser um desconto não registrado, uma taxa, um erro de digitação ou um pagamento parcial. Por isso, toda diferença precisa ser investigada.",
+    "hash": "f60de3dbc797"
+  },
+  {
+    "file": "v15/voice/l06.wav",
+    "seconds": 2.844,
+    "speech": 2.758,
+    "text": "Você confere se os seus registros correspondem ao banco?",
+    "hash": "07698fae17aa"
+  },
+  {
+    "file": "v15/voice/l07.wav",
+    "seconds": 1.01,
+    "speech": 0.876,
+    "text": "Conta pra gente.",
+    "hash": "f7d0488fd6de"
+  }
+]

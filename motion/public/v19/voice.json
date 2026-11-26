@@ -1,0 +1,65 @@
+[
+  {
+    "file": "v19/voice/l01.wav",
+    "seconds": 3.738,
+    "speech": 3.593,
+    "text": "O que a Candidus faz, todos os meses, no financeiro de uma empresa?",
+    "hash": "1d406a8708d0"
+  },
+  {
+    "file": "v19/voice/l02.wav",
+    "seconds": 2.229,
+    "speech": 2.087,
+    "text": "Registra e acompanha os recebimentos.",
+    "hash": "d2495ca6bfdc"
+  },
+  {
+    "file": "v19/voice/l03.wav",
+    "seconds": 3.17,
+    "speech": 2.993,
+    "text": "Organiza e agenda os pagamentos, para a sua aprovação.",
+    "hash": "66f85bb91466"
+  },
+  {
+    "file": "v19/voice/l04.wav",
+    "seconds": 1.625,
+    "speech": 1.449,
+    "text": "Concilia banco e cartões.",
+    "hash": "02a2dfb1da71"
+  },
+  {
+    "file": "v19/voice/l05.wav",
+    "seconds": 1.776,
+    "speech": 1.604,
+    "text": "Acompanha o fluxo de caixa.",
+    "hash": "efeca16e66ad"
+  },
+  {
+    "file": "v19/voice/l06.wav",
+    "seconds": 3.437,
+    "speech": 3.334,
+    "text": "E fecha o mês com relatório e uma conversa sobre os números.",
+    "hash": "4496b4335f0c"
+  },
+  {
+    "file": "v19/voice/l07.wav",
+    "seconds": 3.541,
+    "speech": 3.404,
+    "text": "No fim, você tem uma visão clara do mês e do que vem pela frente.",
+    "hash": "59ac52417152"
+  },
+  {
+    "file": "v19/voice/l08.wav",
+    "seconds": 2.589,
+    "speech": 2.45,
+    "text": "Vamos conversar sobre o financeiro da sua empresa?",
+    "hash": "cf947376798a"
+  },
+  {
+    "file": "v19/voice/l09.wav",
+    "seconds": 1.242,
+    "speech": 1.103,
+    "text": "Fale com a Candidus.",
+    "hash": "27df23a8bf3a"
+  }
+]

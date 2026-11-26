@@ -1,0 +1,58 @@
+[
+  {
+    "file": "v16/voice/l01.wav",
+    "seconds": 4.845,
+    "speech": 4.689,
+    "text": "Um equipamento novo, de quarenta e oito mil reais. A sua empresa pode comprar?",
+    "hash": "81fa4f30d8a8"
+  },
+  {
+    "file": "v16/voice/l02.wav",
+    "seconds": 2.45,
+    "speech": 2.355,
+    "text": "O saldo hoje é de sessenta e dois mil.",
+    "hash": "3577f3780a16"
+  },
+  {
+    "file": "v16/voice/l03.wav",
+    "seconds": 4.064,
+    "speech": 3.924,
+    "text": "Mas, nos próximos trinta dias, há folha, fornecedores e impostos.",
+    "hash": "205bcd1578d8"
+  },
+  {
+    "file": "v16/voice/l04.wav",
+    "seconds": 2.218,
+    "speech": 2.114,
+    "text": "E vale manter uma reserva para imprevistos.",
+    "hash": "2f33eaedfe26"
+  },
+  {
+    "file": "v16/voice/l05.wav",
+    "seconds": 1.881,
+    "speech": 1.785,
+    "text": "Sobram cerca de cinco mil livres.",
+    "hash": "ea925eca8faa"
+  },
+  {
+    "file": "v16/voice/l06.wav",
+    "seconds": 4.54,
+    "speech": 4.352,
+    "text": "E parcelar também pede conta: a parcela precisa caber na folga mensal do caixa.",
+    "hash": "fc937f94964d"
+  },
+  {
+    "file": "v16/voice/l07.wav",
+    "seconds": 2.728,
+    "speech": 2.575,
+    "text": "Antes de comprar, analise o impacto no caixa.",
+    "hash": "b523dc91b691"
+  },
+  {
+    "file": "v16/voice/l08.wav",
+    "seconds": 1.637,
+    "speech": 1.506,
+    "text": "Que compra você está avaliando?",
+    "hash": "b3ce0c8b8148"
+  }
+]
