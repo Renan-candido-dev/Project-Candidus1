@@ -54,6 +54,10 @@ input,select,textarea{font-family:inherit}
 .login-card p.sub{color:var(--muted);font-size:13.5px;margin:14px 0 26px}
 label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin:0 0 6px}
 .field{margin-bottom:16px}
+.field-with-btn{display:flex;gap:6px;align-items:center}
+.field-with-btn select{flex:1;min-width:0}
+.field-with-btn .btn{flex:none;padding:0 10px;height:42px;font-size:12px;white-space:nowrap}
+@media(max-width:520px){.field-with-btn{flex-wrap:wrap}.field-with-btn select{flex:1 1 100%}.field-with-btn .btn{flex:1}}
 input,select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;transition:border-color .15s,box-shadow .15s;background:#fff}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
 .password-field{position:relative}
@@ -364,7 +368,7 @@ textarea{resize:vertical}
 .somente-leitura #btnMap,.somente-leitura #btnDreNomes,.somente-leitura #btnMetas,.somente-leitura #btnNovaDesp,.somente-leitura #btnNovaEmp,
 .somente-leitura [data-baixa],.somente-leitura [data-pagar],.somente-leitura [data-estorno],.somente-leitura [data-estornop],
 .somente-leitura [data-rateio],.somente-leitura [data-cancelar-titulo],.somente-leitura [data-reativar-titulo],
-.somente-leitura [data-editar-titulo],.somente-leitura [data-excluir-titulo],
+.somente-leitura [data-editar-titulo],.somente-leitura [data-excluir-titulo],.somente-leitura [data-duplicar-titulo],
 .somente-leitura [data-edit],.somente-leitura [data-del],
 .somente-leitura #recGerar,.somente-leitura #recNova,.somente-leitura [data-tog],
 .somente-leitura [data-conf],.somente-leitura #ddaDemo,.somente-leitura #ddaAdesao,
@@ -954,6 +958,43 @@ function confirmOver({titulo,texto,ok='Confirmar'}){
     d.querySelector('[data-yes]').onclick=()=>done(true);
   });
 }
+/* Cadastro rápido de cliente/fornecedor, aberto DE DENTRO do formulário de lançamento (empilha
+   por cima, como confirmOver — não mexe no formulário por trás). Mesma tabela e mesma regra de
+   permissão do cadastro completo (CAD): só o campo obrigatório (razão social/nome); empresa vem
+   fixa do lançamento, não se pergunta de novo. Cancelar ou dar erro não altera nada do formulário
+   por trás; resolve(null) nesses casos, resolve(a_linha_criada) quando salva. */
+function openQuickCad(tipo, co){
+  const cfg = tipo==='cliente' ? CAD.clientes : CAD.fornecedores;
+  return new Promise(resolve=>{
+    const d=el('div','overlay'); d.style.zIndex='60';
+    d.innerHTML=`<div class="modal sm"><div class="modal-h"><h2>Novo ${cfg.singular}</h2><button class="x">×</button></div>
+      <div class="modal-b"><div class="field"><label>Razão social / Nome *</label><input id="qcNome" placeholder="Nome do ${cfg.singular}"></div></div>
+      <div class="modal-f"><button class="btn ghost" data-no>Cancelar</button><button class="btn" data-yes>Salvar</button></div></div>`;
+    document.body.appendChild(d);
+    const done=v=>{ d.remove(); resolve(v); };
+    d.querySelector('.x').onclick=d.querySelector('[data-no]').onclick=()=>done(null);
+    const input=d.querySelector('#qcNome');
+    input.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); d.querySelector('[data-yes]').click(); } };
+    setTimeout(()=>input.focus(),0);
+    d.querySelector('[data-yes]').onclick=async ()=>{
+      const nome=input.value.trim();
+      if(!nome){ toast('Informe o nome.','err'); return; }
+      const btn=d.querySelector('[data-yes]'); btn.disabled=true; btn.textContent='Salvando…';
+      const { data,error }=await db.from(cfg.table).insert({company_id:co,razao_social:nome}).select().single();
+      btn.disabled=false; btn.textContent='Salvar';
+      if(error){ toast('Erro ao criar '+cfg.singular+': '+error.message,'err'); return; }
+      toast(cfg.singular[0].toUpperCase()+cfg.singular.slice(1)+' criado!');
+      done(data);
+    };
+  });
+}
+/* Recarrega só o <select> de cliente/fornecedor de um formulário de lançamento aberto (sem mexer
+   nos outros campos já preenchidos) e seleciona o registro recém-criado. */
+async function refillContraSelect(tabela, co, selectEl, selecionarId){
+  const { data }=await db.from(tabela).select('id,razao_social,nome_fantasia').eq('company_id',co).order('razao_social');
+  selectEl.innerHTML='<option value="">—</option>'+(data||[]).map(x=>`<option value="${x.id}">${esc(x.nome_fantasia||x.razao_social)}</option>`).join('');
+  if(selecionarId) selectEl.value=selecionarId;
+}
 /* Cria conta pela função; se o SERVIDOR acusar duplicidade (clique duplo, outra aba), pergunta e repete com permissão.
    permitir=true quando o usuário já confirmou a duplicidade antes. (vindo da linha s5b, 27/10) */
 async function rpcCriarConta(nome, params, permitir){
@@ -990,14 +1031,15 @@ function confirmModal({titulo, texto, ok='Confirmar', perigo=false}){
     $('cfYes').onclick=()=>done(true);
   });
 }
-async function openNovaReceber(){
-  const defaultCo=companyId||(companies[0]&&companies[0].id)||'';
+async function openNovaReceber(origem){
+  const defaultCo=origem?origem.company_id:(companyId||(companies[0]&&companies[0].id)||'');
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
     <div class="modal-h"><h2>Nova conta a receber</h2><button class="x" id="mx">×</button></div>
     <div class="modal-b">
+      ${origem?`<div class="hint" style="margin-bottom:14px">Pré-preenchido a partir de "${esc(origem.descricao)}". Revise os dados e as datas — nasce em aberto, sem baixas, conciliações, anexos ou vínculos da conta original.</div>`:''}
       <div class="field"><label>Empresa</label><select id="nCo">${companies.map(c=>`<option value="${c.id}" ${c.id===defaultCo?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
       <div class="row2">
-        <div class="field"><label>Cliente</label><select id="nCli"><option value="">—</option></select></div>
+        <div class="field"><label>Cliente</label><div class="field-with-btn"><select id="nCli"><option value="">—</option></select><button type="button" class="btn ghost" id="nCliNovo">+ Novo cliente</button></div></div>
         <div class="field"><label>Documento</label><input id="nDoc" placeholder="NF, contrato…"></div>
       </div>
       <div class="field"><label>Descrição *</label><input id="nDesc" placeholder="ex: Consultoria mensal"></div>
@@ -1032,7 +1074,19 @@ async function openNovaReceber(){
   $('tParc').onclick=()=>{tipo='parcelado';$('tParc').classList.add('on');$('tVista').classList.remove('on');$('wrapParc').style.display='';$('wrapInt').style.display='';};
 
   await fillNovaSelects(defaultCo);
+  if(origem){
+    $('nCli').value=origem.customer_id||''; $('nDoc').value=origem.documento||'';
+    $('nDesc').value=origem.descricao||''; $('nCat').value=origem.categoria_id||'';
+    $('nCC').value=origem.cost_center_id||''; $('nAcc').value=origem.financial_account_id||'';
+    $('nForma').value=origem.forma_recebimento||''; $('nVal').value=origem.valor_total!=null?Number(origem.valor_total).toFixed(2):'';
+    // datas e tipo ficam no padrão (hoje, à vista) — revisão proposital, não copia do original
+  }
   $('nCo').onchange=()=>fillNovaSelects($('nCo').value);
+  $('nCliNovo').onclick=async ()=>{
+    const co=$('nCo').value;
+    const novo=await openQuickCad('cliente',co);
+    if(novo) await refillContraSelect('customers',co,$('nCli'),novo.id);
+  };
 
   $('mSave').onclick=async ()=>{
     const desc=$('nDesc').value.trim(), val=parseFloat($('nVal').value);
@@ -1242,14 +1296,15 @@ function drawPagar(){
 }
 
 /* ---------- MODAL: NOVA CONTA A PAGAR ---------- */
-async function openNovaPagar(){
-  const defaultCo=companyId||(companies[0]&&companies[0].id)||'';
+async function openNovaPagar(origem){
+  const defaultCo=origem?origem.company_id:(companyId||(companies[0]&&companies[0].id)||'');
   $('modalRoot').innerHTML=`<div class="overlay"><div class="modal">
     <div class="modal-h"><h2>Nova conta a pagar</h2><button class="x" id="mx">×</button></div>
     <div class="modal-b">
+      ${origem?`<div class="hint" style="margin-bottom:14px">Pré-preenchido a partir de "${esc(origem.descricao)}". Revise os dados e as datas — nasce em aberto, sem baixas, conciliações, anexos ou vínculos da conta original.</div>`:''}
       <div class="field"><label>Empresa</label><select id="pnCo">${companies.map(c=>`<option value="${c.id}" ${c.id===defaultCo?'selected':''}>${esc(c.nome_fantasia||c.razao_social)}</option>`).join('')}</select></div>
       <div class="row2">
-        <div class="field"><label>Fornecedor</label><select id="pnFor"><option value="">—</option></select></div>
+        <div class="field"><label>Fornecedor</label><div class="field-with-btn"><select id="pnFor"><option value="">—</option></select><button type="button" class="btn ghost" id="pnForNovo">+ Novo fornecedor</button></div></div>
         <div class="field"><label>Documento</label><input id="pnDoc" placeholder="NF, boleto…"></div>
       </div>
       <div class="field"><label>Descrição *</label><input id="pnDesc" placeholder="ex: Aluguel do galpão"></div>
@@ -1284,7 +1339,19 @@ async function openNovaPagar(){
   $('ptParc').onclick=()=>{tipo='parcelado';$('ptParc').classList.add('on');$('ptVista').classList.remove('on');$('pwrapParc').style.display='';$('pwrapInt').style.display='';};
 
   await fillNovaPagarSelects(defaultCo);
+  if(origem){
+    $('pnFor').value=origem.supplier_id||''; $('pnDoc').value=origem.documento||'';
+    $('pnDesc').value=origem.descricao||''; $('pnCat').value=origem.categoria_id||'';
+    $('pnCC').value=origem.cost_center_id||''; $('pnAcc').value=origem.financial_account_id||'';
+    $('pnForma').value=origem.forma_pagamento||''; $('pnVal').value=origem.valor_total!=null?Number(origem.valor_total).toFixed(2):'';
+    // datas e tipo ficam no padrão (hoje, à vista) — revisão proposital, não copia do original
+  }
   $('pnCo').onchange=()=>fillNovaPagarSelects($('pnCo').value);
+  $('pnForNovo').onclick=async ()=>{
+    const co=$('pnCo').value;
+    const novo=await openQuickCad('fornecedor',co);
+    if(novo) await refillContraSelect('suppliers',co,$('pnFor'),novo.id);
+  };
 
   $('mSave').onclick=async ()=>{
     const desc=$('pnDesc').value.trim(), val=parseFloat($('pnVal').value);
@@ -4197,6 +4264,7 @@ function acoesTituloLinha(tipo, t){
   const canceladas=t.parc.filter(p=>p.situacao==='cancelado').length;
   let b='';
   if(t.status!=='cancelado') b+=`<button class="lnk" data-editar-titulo="${t.id}">Editar</button>`;
+  b+=`<button class="lnk" data-duplicar-titulo="${t.id}">Duplicar lançamento</button>`;
   b+=`<button class="lnk del" data-excluir-titulo="${t.id}">Excluir</button>`;
   if(t.status!=='cancelado'&&cancelaveis>0) b+=`<button class="lnk del" data-cancelar-titulo="${t.id}">Cancelar conta</button>`;
   if(canceladas>0) b+=`<button class="lnk" data-reativar-titulo="${t.id}">${t.status==='cancelado'?'Reativar conta':'Reativar parcelas canceladas'}</button>`;
@@ -4208,6 +4276,22 @@ function ligarAcoesTitulo(area, tipo, lista, recarregar){
   area.querySelectorAll('[data-reativar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.reativarTitulo); if(t) openMotivoTitulo('reativar',tipo,t,recarregar); });
   area.querySelectorAll('[data-editar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.editarTitulo); if(t) openEditarTitulo(tipo,t,recarregar); });
   area.querySelectorAll('[data-excluir-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.excluirTitulo); if(t) openExcluirTitulo(tipo,t,recarregar); });
+  area.querySelectorAll('[data-duplicar-titulo]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const t=achar(b.dataset.duplicarTitulo); if(t) duplicarTitulo(tipo,t); });
+}
+/* Duplicar lançamento: abre o formulário de NOVA conta pré-preenchido com os dados descritivos
+   da conta original (fornecedor/cliente, descrição, documento, categoria, centro de custo, conta
+   financeira, forma de pagamento/recebimento, valor). Lê a linha original de novo (select *) —
+   nunca os dados de payable_installments/movimentos — então baixas, conciliações, status quitado
+   e vínculos bancários nunca entram aqui; datas e tipo (à vista/parcelado) ficam no padrão do
+   formulário (hoje, à vista) para revisão, nunca copiados. Só grava quando "Salvar" é clicado,
+   pela mesma função criar_conta_pagar/receber de sempre — a conta nova nasce com id e parcelas
+   próprios, em aberto, e passa pela mesma confirmação de duplicidade de qualquer lançamento novo.
+   Funciona para conta quitada ou cancelada também (é só um "modelo" pros dados descritivos). */
+async function duplicarTitulo(tipo, t){
+  const C=TITULO_CFG[tipo];
+  const { data, error }=await db.from(C.tab).select('*').eq('id',t.id).single();
+  if(error || !data){ toast('Erro ao carregar a conta para duplicar: '+(error&&error.message||''),'err'); return; }
+  if(tipo==='pagar') openNovaPagar(data); else openNovaReceber(data);
 }
 
 /* Editar / excluir conta (0026). Quem decide é o banco (perfil, mês fechado, baixas, conciliação);
